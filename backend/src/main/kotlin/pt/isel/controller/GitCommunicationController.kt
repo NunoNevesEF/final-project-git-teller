@@ -11,7 +11,7 @@ import pt.isel.domain.GitAnalysis
 import pt.isel.service.GitCommunicationService
 import pt.isel.service.Success
 
-@CrossOrigin(origins = ["http://localhost:8080"])
+@CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
 @RequestMapping("/api/gitCommunication")
 class GitCommunicationController(
