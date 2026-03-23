@@ -2,15 +2,17 @@ import CustomTextInput from '@/components/textInput';
 import { useState } from 'react';
 import { View, Button } from 'react-native';
 import { analyzeRepo } from '../services/GitCommunicationService';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { useAnalysisStore } from '@/store/useAnalysisStore';
 
 /**
  * Non Authenticated first page that user interacts with
  * @returns 
  */
 export default function Index() {
-  const navigation = useNavigation<any>();
+  const router = useRouter();
   const [text, setText] = useState('');
+  const setResult = useAnalysisStore((state) => state.setResult);
 
   const handleSubmit = async () => {
     if (text.length > 0) {
@@ -19,7 +21,9 @@ export default function Index() {
       try {
         // Chamada à API
         const result = await analyzeRepo(text);
-        navigation.navigate('Info', { analysisResult: result });
+
+        setResult(result);
+        router.push("/Info");
       } catch (error) {
         // ERROR IN CALL RESULT
         console.log("An error as occured" + error);
@@ -27,7 +31,6 @@ export default function Index() {
     } else {
       // WARNING MESSAGE PATH
     }
-    
   };
   
   return (
