@@ -1,9 +1,23 @@
+import { createReport } from '@/services/ReportGenerationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Button } from 'react-native';
 
 export default function Info() {
   const result = useAnalysisStore((state) => state.result);
   if (result == null ) return;
+
+  // Should be migrated later on aswell, when graph development is over
+  // For now we are using gitAnalysis as our payload, it should be something like WebView or HTML ( easier to include the graph )
+  const handleGenerate = async () => {
+    const response = await createReport(result);
+    const url = window.URL.createObjectURL(response);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'report.pdf';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   // Useless to refactor this code, it will not be used, only for testing purposes
   // This should be migrated for a graphic view of this data
   return (
@@ -41,6 +55,7 @@ export default function Info() {
             </Text>
         </View>
     </ScrollView>
+    <Button title="Generate Report" onPress={handleGenerate} />
     </View>
   );
 }
