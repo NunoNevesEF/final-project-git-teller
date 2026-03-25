@@ -19,3 +19,15 @@ export async function apiPost(path: string, body: object) {
   }
   return res.json();
 }
+
+export async function apiPostBlob(path: string, body: object) {
+  const res = await fetch(`${API_BASE_URL}/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`POST ${path} falhou com status ${res.status}`);
+  }
+  return res.blob();
+}
