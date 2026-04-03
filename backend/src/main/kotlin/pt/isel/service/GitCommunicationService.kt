@@ -2,10 +2,10 @@ package pt.isel.service
 
 import jakarta.inject.Named
 import pt.isel.domain.GitAnalysis
-import pt.isel.repository.GitCommunicationRepo
+import pt.isel.repository.memory.GitCommunicationRepo
 
-sealed class GitCommunicationError
-object RepoDoesNotExist: GitCommunicationError()
+sealed class GitCommunicationServiceError
+object RepoDoesNotExist: GitCommunicationServiceError()
 
 @Named
 class GitCommunicationService(private val gitCommunicationRepo: GitCommunicationRepo){

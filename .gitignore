@@ -13,3 +13,6 @@ Thumbs.db
 
 # GitClones
 /gitRepos
+
+# Secrets
+env.properties
