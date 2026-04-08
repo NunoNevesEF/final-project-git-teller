@@ -15,7 +15,6 @@ export default function Info() {
       if (!containerRef.current) return;
       const dataUrl = await htmlToImage.toPng(containerRef.current);
       const base64 = dataUrl.split(',')[1];
-      // const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 
       const response = await createReport(base64);
       const url = window.URL.createObjectURL(response);
