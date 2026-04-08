@@ -1,35 +1,37 @@
 package pt.isel.service
 
+import com.itextpdf.io.image.ImageDataFactory
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.layout.Document
+import com.itextpdf.layout.element.Image
 import com.itextpdf.layout.element.Paragraph
 import java.io.ByteArrayOutputStream
 import org.springframework.stereotype.Service
-import pt.isel.domain.GitAnalysis
 
 @Service
 class ReportGenerationService {
 
-    fun createPdf(gitAnalysis: GitAnalysis) : ByteArray  {
+    fun createPdf(componentImageBytes: ByteArray): ByteArray {
         val outputStream = ByteArrayOutputStream()
 
         val writer = PdfWriter(outputStream)
         val pdf = PdfDocument(writer)
         val document = Document(pdf)
 
-        document.add(Paragraph("Git Analysis Report"))
+        document.add(Paragraph("Git Analysis Report").setBold().setFontSize(18f))
+        document.add(Paragraph("\n"))
 
-        gitAnalysis.commitsByUser.forEach { (user, commits) ->
-            document.add(Paragraph("User: $user"))
+        val imageData = ImageDataFactory.create(componentImageBytes)
+        val image = Image(imageData)
 
-            commits.forEach { commit ->
-                document.add(Paragraph(" - ${commit.message}"))
-            }
-        }
+        val pageWidth = pdf.defaultPageSize.width - document.leftMargin - document.rightMargin
+        val scale = pageWidth / image.imageWidth
+        image.scale(scale, scale)
+
+        document.add(image)
 
         document.close()
-
         return outputStream.toByteArray()
     }
 }
