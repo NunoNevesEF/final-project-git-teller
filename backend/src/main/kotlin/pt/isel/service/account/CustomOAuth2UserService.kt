@@ -1,33 +1,36 @@
-package pt.isel.service.userServices
+package pt.isel.service.account
 
-import org.slf4j.LoggerFactory
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
-import pt.isel.domain.OAuthUserWrapper
-import pt.isel.domain.User
-import pt.isel.domain.UserAuthentication
-import pt.isel.domain.UserData
-import pt.isel.repository.memory.UserRepoMem
+import pt.isel.domain.account.OAuthUserWrapper
+import pt.isel.service.getOrThrow
 import kotlin.random.Random
 
 @Service
-class CustomOAuth2UserService(private val userRepo: UserRepoMem) : DefaultOAuth2UserService() {
+class CustomOAuth2UserService(private val accountService: AccountService) : DefaultOAuth2UserService() {
+    var temp = 0
+
     override fun loadUser(userRequest: OAuth2UserRequest): OAuth2User {
         val oAuth2User = super.loadUser(userRequest)
-        oAuth2User.attributes.entries.forEach { entry ->
-            println("${entry.key} : ${entry.value}")
-        }
 
         val registrationId = userRequest.clientRegistration.registrationId
         val email = getEmail(oAuth2User, registrationId)
         val userName = oAuth2User.name
 
-        val user = readOrCreateUser(email, userName, registrationId)
+        val user = accountService.oAuthSignUp(email, userName, registrationId)
+            .getOrThrow(::mapToOAuthException)
 
-        return OAuthUserWrapper(user, oAuth2User)
+        return UserPrincipal(user, attributes = oAuth2User.attributes)
+
+        /*val accessTokenTest = userRequest.accessToken
+        println(accessTokenTest.toString())*/
+
+        /*oAuth2User.attributes.entries.forEach { entry ->
+           println("${entry.key} : ${entry.value}")
+       }*/
     }
 
     private fun getEmail(oauth2User: OAuth2User, registrationId: String): String {
@@ -35,7 +38,7 @@ class CustomOAuth2UserService(private val userRepo: UserRepoMem) : DefaultOAuth2
         //1 - In github case it should call getGithubEmail due to the odd cases of this function.
         return when (registrationId) {
             "google" -> oauth2User.getAttribute("email")!!
-            "github" -> oauth2User.getAttribute("email") ?: "Fallback To Be Changed + ${Random.nextInt()}"
+            "github" -> oauth2User.getAttribute("email") ?: "Fallback${temp++}"
             else -> throw OAuth2AuthenticationException("Unknown Provider")
         }
     }
@@ -46,14 +49,18 @@ class CustomOAuth2UserService(private val userRepo: UserRepoMem) : DefaultOAuth2
         //2 - If oauth2User has no email attribute then make call to github services to return email.
     }
 
-    private fun readOrCreateUser(email: String, userName: String, provider: String): User =
-        userRepo.read(email) ?: userRepo.create(newUser(email, userName, provider))
 
-    private fun newUser(email: String, userName: String, provider: String): User = User(
-        UserData.create(email = email, userName = userName),
-         listOf(UserAuthentication.OAuthAuthentication(provider))
-    )
+    private fun mapToOAuthException(error: AccountServiceError): OAuth2AuthenticationException =
+        when (error) {
+            is DuplicateAccountTypeError ->
+                OAuth2AuthenticationException("Account already linked for this provider")
 
+            is EmailAlreadyExists ->
+                OAuth2AuthenticationException("Tried to create but email already in use")
+
+            else ->
+                OAuth2AuthenticationException("Authentication failed - Unknown Error")
+        }
     //TODO: ADD LOGIC FOR GITHUB, GOOGLE AND GITLAB
     //TODO: TESTING
 }

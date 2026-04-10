@@ -1,16 +1,14 @@
-package pt.isel.domain
+package pt.isel.domain.account
 
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.oauth2.core.user.OAuth2User
 
 
 data class User(
-    val data: UserData,
-    val authentication: List<UserAuthentication>,
-)
-
-data class UserData(
-    val id: Int, val email: String, val userName: String
+    val id: Int,
+    val email: String,
+    val userName: String,
+    val role: Role = Role.USER
 ){
     //TODO: CONSIDER MORE THINGS LIKE TRIMMING, MINIMUM SIZES AND VALID EMAIL FORMATS
     init{
@@ -20,14 +18,11 @@ data class UserData(
     }
     companion object{
         fun create(id: Int = 0, email: String, userName: String) =
-            UserData(0, email, userName)
+            User(0, email, userName)
     }
 }
 
-sealed class UserAuthentication{
-    class OAuthAuthentication(val provider: String) : UserAuthentication()
-    data class FormAuthentication(val passwordHash: String) : UserAuthentication()
-}
+
 
 data class OAuthUserWrapper(
     val user: User,
@@ -37,5 +32,5 @@ data class OAuthUserWrapper(
 
     override fun getAuthorities(): Collection<GrantedAuthority?>? = oauthUser.authorities
 
-    override fun getName(): String = user.data.userName
+    override fun getName(): String = user.userName
 }

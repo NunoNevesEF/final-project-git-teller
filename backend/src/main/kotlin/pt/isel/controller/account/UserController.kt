@@ -1,4 +1,4 @@
-package pt.isel.controller.userController
+package pt.isel.controller.account
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CrossOrigin
@@ -9,32 +9,20 @@ import org.springframework.web.bind.annotation.RestController
 import pt.isel.model.UserDTO
 import pt.isel.service.Failure
 import pt.isel.service.Success
-import pt.isel.service.userServices.FormUserService
+import pt.isel.service.account.UserService
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
 @RequestMapping("/api/public/users")
-class PublicUserController(
-    private val userService: FormUserService,
+class UserController(
+    private val userService: UserService,
 ){
-    @GetMapping("/signup")
-    fun signUp(
-        @RequestParam email: String,
-        @RequestParam userName: String,
-        @RequestParam password: String
-    ): ResponseEntity<UserDTO> {
-        return when (val user = userService.create(email, userName, password)) {
-            is Success -> ResponseEntity.ok(user.right)
-            is Failure -> ResponseEntity.notFound().build()
-        }
-    }
-
     @GetMapping("/id")
     fun read(
         @RequestParam id: Int
     ): ResponseEntity<UserDTO> {
         return when (val user = userService.read(id)) {
-            is Success -> ResponseEntity.ok(user.right)
+            is Success -> ResponseEntity.ok(UserDTO.create(user.right))
             is Failure -> ResponseEntity.notFound().build()
         }
     }
@@ -44,7 +32,7 @@ class PublicUserController(
         @RequestParam email: String
     ): ResponseEntity<UserDTO> {
         return when (val user = userService.read(email)) {
-            is Success -> ResponseEntity.ok(user.right)
+            is Success -> ResponseEntity.ok(UserDTO.create(user.right))
             is Failure -> ResponseEntity.notFound().build()
         }
     }

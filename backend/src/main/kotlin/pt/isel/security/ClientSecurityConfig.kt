@@ -2,14 +2,15 @@ package pt.isel.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
-import pt.isel.service.userServices.CustomOAuth2UserService
+import pt.isel.service.account.CustomOAuth2UserService
 
 @Configuration
 @EnableWebSecurity
-class OAuthSecurity(
+class ClientSecurityConfig(
     private val customOAuth2UserService: CustomOAuth2UserService,
 ) {
     private val signUpPage = "/signup"
@@ -19,8 +20,9 @@ class OAuthSecurity(
     private val privateAPI = "/api/private/**"
 
     //TODO: Add defaultSuccessUrl/failureUrl redirect to login. Add logoutSuccessUrl to logout.
+    @Order(2)
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun clientSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .authorizeHttpRequests { authRequest -> authRequest
                     //.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
@@ -28,6 +30,7 @@ class OAuthSecurity(
                     .requestMatchers(privateAPI).authenticated()
                     .anyRequest().authenticated()
             }
+            .csrf{ it.disable() }
             .formLogin { formLogin -> formLogin.loginPage(loginPage).permitAll() }
             .oauth2Login{ oauthLogin -> oauthLogin
                 .loginPage(loginPage).permitAll()

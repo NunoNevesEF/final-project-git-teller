@@ -1,22 +1,18 @@
-package pt.isel.gitteller.repo.memory
+package pt.isel.gitteller.repo.memory.account
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
-import pt.isel.domain.User
-import pt.isel.domain.UserAuthentication
-import pt.isel.domain.UserData
-import pt.isel.repository.memory.UserRepoMem
+import pt.isel.domain.account.User
+import pt.isel.repository.memory.account.UserRepoMem
 import kotlin.test.Test
 
 class UserRepoMemTest{
     private lateinit var repo: UserRepoMem
 
     private fun newUser(id: Int = 0, email: String = "test@email.com", userName: String = "test") =
-        User(
-            UserData(id, email, userName),
-            listOf(UserAuthentication.FormAuthentication("test_pass"))
-        )
+        User(id, email, userName)
+
 
     @BeforeEach
     fun setup(){ repo = UserRepoMem() }
@@ -27,7 +23,7 @@ class UserRepoMemTest{
         val expectedId = repo.currId()
 
         val actual = repo.create(testUser)
-        val expected = testUser.copy(data = testUser.data.copy(id = expectedId))
+        val expected = testUser.copy(id = expectedId)
 
         assertEquals(expected, actual)
     }
@@ -38,14 +34,14 @@ class UserRepoMemTest{
         val created = repo.create(newUser())
         val newId = repo.currId()
 
-        assertEquals(oldId, created.data.id)
-        assertEquals(oldId+1, newId)
+        assertEquals(oldId, created.id)
+        assertEquals(oldId + 1, newId)
     }
 
     @Test
     fun `method read returns User by id`(){
         val expected = repo.create(newUser())
-        val actual = repo.read(expected.data.id)
+        val actual = repo.read(expected.id)
         assertEquals(expected, actual)
     }
 
@@ -58,7 +54,7 @@ class UserRepoMemTest{
     @Test
     fun `method read returns User by email`(){
         val expected = repo.create(newUser())
-        val actual = repo.read(expected.data.email)
+        val actual = repo.read(expected.email)
         assertEquals(expected, actual)
     }
 
@@ -78,10 +74,10 @@ class UserRepoMemTest{
     @Test
     fun `method readOrCreateByEmail creates User If email is not found`(){
         val testUser = newUser()
-        val confirmNotFound = repo.read(testUser.data.email)
+        val confirmNotFound = repo.read(testUser.email)
 
         val expected = repo.readOrCreateByEmail(testUser)
-        val confirmFound = repo.read(testUser.data.email)
+        val confirmFound = repo.read(testUser.email)
 
         assertNull(confirmNotFound)
         assertEquals(expected, confirmFound)
@@ -90,7 +86,7 @@ class UserRepoMemTest{
     @Test
     fun `method update returns updated User`(){
         val testUser = repo.create(newUser())
-        val expected = testUser.copy(data = testUser.data.copy(userName = "UpdatedUsername"))
+        val expected = testUser.copy(userName = "UpdatedUsername")
         val actual = repo.update(expected)
         assertEquals(expected, actual)
     }
@@ -104,30 +100,30 @@ class UserRepoMemTest{
     @Test
     fun `method update updates user in memory`(){
         val testUser = repo.create(newUser())
-        val updatedUser = testUser.copy(data = testUser.data.copy(userName = "UpdatedUsername"))
+        val updatedUser = testUser.copy(userName = "UpdatedUsername")
         val expected = repo.update(updatedUser)
-        val actual = repo.read(updatedUser.data.id)
+        val actual = repo.read(updatedUser.id)
         assertEquals(expected, actual)
     }
 
     @Test
     fun `method delete returns deleted User`(){
         val expected = repo.create(newUser())
-        val actual = repo.delete(expected.data.id)
+        val actual = repo.delete(expected.id)
         assertEquals(expected, actual)
     }
 
     @Test
     fun `method delete returns null if User not found`(){
-        val actual = repo.delete(newUser().data.id)
+        val actual = repo.delete(newUser().id)
         assertNull(actual)
     }
 
     @Test
     fun `method delete deletes user in memory`(){
         val testUser = repo.create(newUser())
-        repo.delete(testUser.data.id)
-        val actual = repo.read(testUser.data.id)
+        repo.delete(testUser.id)
+        val actual = repo.read(testUser.id)
         assertNull(actual)
     }
 
