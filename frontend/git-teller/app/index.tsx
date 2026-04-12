@@ -11,7 +11,7 @@ import { useAnalysisStore } from '@/store/useAnalysisStore';
  */
 export default function Index() {
   const router = useRouter();
-  const [text, setText] = useState('');
+  const [text, setText] = useState('https://github.com/NunoNevesEF/final-project-git-teller');
   const setResult = useAnalysisStore((state) => state.setResult);
 
   const handleSubmit = async () => {
