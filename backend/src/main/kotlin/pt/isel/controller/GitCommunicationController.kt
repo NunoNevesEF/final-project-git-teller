@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import pt.isel.domain.GitAnalysis
-import pt.isel.service.GitCommunicationService
+import pt.isel.service.git.GitCommunicationService
 import pt.isel.service.Success
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["http://localhost:8080"])
 @RestController
-@RequestMapping("/api/gitCommunication")
+@RequestMapping("/api/public/gitCommunication")
 class GitCommunicationController(
     private val gitCommunicationService: GitCommunicationService
 ){
@@ -26,7 +26,4 @@ class GitCommunicationController(
             else -> ResponseEntity.notFound().build()
         }
     }
-
-    @GetMapping("/test")
-    fun test() = "working"
 }

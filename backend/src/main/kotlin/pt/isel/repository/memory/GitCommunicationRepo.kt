@@ -1,4 +1,4 @@
-package pt.isel.repository
+package pt.isel.repository.memory
 
 import jakarta.inject.Named
 import pt.isel.domain.GitCommunication
