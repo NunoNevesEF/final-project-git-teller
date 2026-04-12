@@ -1,4 +1,4 @@
-package pt.isel.security
+package pt.isel.security.configs
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

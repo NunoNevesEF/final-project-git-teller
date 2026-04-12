@@ -1,4 +1,4 @@
-package pt.isel.security
+package pt.isel.security.filterChains
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -6,12 +6,14 @@ import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
-import pt.isel.service.account.CustomOAuth2UserService
+import pt.isel.security.successHandlers.CustomOAuth2AuthenticationSuccessHandler
+import pt.isel.service.account.auth.CustomOAuth2UserService
 
 @Configuration
 @EnableWebSecurity
 class ClientSecurityConfig(
     private val customOAuth2UserService: CustomOAuth2UserService,
+    private val customOAuth2AuthenticationSuccessHandler: CustomOAuth2AuthenticationSuccessHandler
 ) {
     private val signUpPage = "/signup"
     private val loginPage = "/login"
@@ -31,12 +33,17 @@ class ClientSecurityConfig(
                     .anyRequest().authenticated()
             }
             .csrf{ it.disable() }
-            .formLogin { formLogin -> formLogin.loginPage(loginPage).permitAll() }
+            .formLogin {
+                formLogin -> formLogin//.loginPage(loginPage).permitAll()
+                //.defaultSuccessUrl("/")
+            }
             .oauth2Login{ oauthLogin -> oauthLogin
-                .loginPage(loginPage).permitAll()
+                //.loginPage(loginPage).permitAll()
                 .userInfoEndpoint { userInfo -> userInfo
                     .userService(customOAuth2UserService)
                 }
+                .successHandler(customOAuth2AuthenticationSuccessHandler)
+                //.defaultSuccessUrl("/")
             }
             .logout{
                 logout -> logout

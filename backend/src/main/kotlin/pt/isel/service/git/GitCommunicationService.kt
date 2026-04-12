@@ -1,4 +1,4 @@
-package pt.isel.service
+package pt.isel.service.git
 
 import jakarta.inject.Named
 import pt.isel.domain.GitAnalysis
@@ -9,11 +9,11 @@ object RepoDoesNotExist: GitCommunicationServiceError()
 
 @Named
 class GitCommunicationService(private val gitCommunicationRepo: GitCommunicationRepo){
-    fun getRepoAnalysis(repoURI: String): Either<RepoDoesNotExist, GitAnalysis> {
+    fun getRepoAnalysis(repoURI: String): pt.isel.service.Either<RepoDoesNotExist, GitAnalysis> {
         return try{
-            success(GitAnalysis.create(gitCommunicationRepo.getOrCreate(repoURI)))
+            _root_ide_package_.pt.isel.service.success(GitAnalysis.create(gitCommunicationRepo.getOrCreate(repoURI)))
         } catch(_ : Exception){ //TODO: REPLACE WITH EXPLICIT HANDLING FOR NON-EXISTING REPO
-            failure(RepoDoesNotExist)
+            _root_ide_package_.pt.isel.service.failure(RepoDoesNotExist)
         }
 
     }
