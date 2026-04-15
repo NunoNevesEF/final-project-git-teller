@@ -47,7 +47,7 @@ export default function Index() {
 
     return (
         <View style={{ flex: 1 }}>
-            <Link href="/auth" asChild>
+            <Link href="/signup" asChild>
                 <Pressable
                     style={{
                         position: 'absolute',

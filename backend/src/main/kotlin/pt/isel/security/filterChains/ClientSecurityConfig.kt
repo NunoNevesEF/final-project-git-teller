@@ -33,8 +33,9 @@ class ClientSecurityConfig(
                     .anyRequest().authenticated()
             }
             .csrf{ it.disable() }
-            .formLogin {
+            /*.formLogin {
                 formLogin -> formLogin//.loginPage(loginPage).permitAll()
+                //.loginPage(loginPage).permitAll()
                 //.defaultSuccessUrl("/")
             }
             .oauth2Login{ oauthLogin -> oauthLogin
@@ -49,7 +50,30 @@ class ClientSecurityConfig(
                 logout -> logout
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)
+            }*/
+
+            .formLogin { formLogin ->
+                formLogin
+                    .loginPage(loginPage)   // use your custom /login endpoint
+                    .permitAll()            // allow unauthenticated users to access the login page
+                    .defaultSuccessUrl("/", true) // optional: redirect here after successful login
             }
+            .oauth2Login { oauthLogin ->
+                oauthLogin
+                    .loginPage(loginPage) // ensure OAuth2 redirect uses the same login page
+                    .userInfoEndpoint { userInfo -> userInfo
+                        .userService(customOAuth2UserService)
+                    }
+                    .successHandler(customOAuth2AuthenticationSuccessHandler)
+            }
+            .logout { logout ->
+                logout
+                    .invalidateHttpSession(true)
+                    .clearAuthentication(true)
+                    .logoutSuccessUrl("/") // where to go after logout
+                    .permitAll()
+            }
+
         return http.build()
     }
 }
