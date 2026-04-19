@@ -1,24 +1,73 @@
-import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
-
+import { useEffect, useRef, useState } from "react";
+import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import { useAuth } from "@/store/AuthProvider";
+import OAuthRedirectButton from "../components/OAuthButton";
+import { commonStyles } from "@/constants/commonStyles";
 
 const DEFAULT_API_BASE = "http://localhost:8080";
-const LOGIN_PATH = "/api/public/auth/login";
+const LOGIN_PATH = "/authApiClient/public/auth/login";
 const API_BASE = DEFAULT_API_BASE;
 
 export default function Login() {
-    const router = useRouter();
+    const { signIn } = useAuth();
+    const params = useLocalSearchParams<{
+        accessToken?: string | string[];
+        refreshToken?: string | string[];
+    }>();
+
     const [Email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    const oauthHandledRef = useRef(false);
 
+
+
+    // Handle OAuth redirect login if accessToken is present in URL params
+    useEffect(() => {
+        if (oauthHandledRef.current) return;
+
+        const accessTokenParam = params.accessToken;
+        const refreshTokenParam = params.refreshToken;
+
+        const accessToken =
+            typeof accessTokenParam === "string"
+                ? accessTokenParam
+                : Array.isArray(accessTokenParam)
+                    ? accessTokenParam[0]
+                    : undefined;
+
+        const refreshToken =
+            typeof refreshTokenParam === "string"
+                ? refreshTokenParam
+                : Array.isArray(refreshTokenParam)
+                    ? refreshTokenParam[0]
+                    : undefined;
+
+        if (!accessToken) return;
+
+        oauthHandledRef.current = true;
+
+        const finalizeOAuthLogin = async () => {
+            try {
+                setLoading(true);
+                setErrorMessage(null);
+                await signIn({ accessToken, refreshToken, username: "User" });
+                router.replace("/home");
+            } catch (err: any) {
+                oauthHandledRef.current = false;
+                setErrorMessage(err?.message || "Unable to complete Google login.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        finalizeOAuthLogin();
+    }, [params.accessToken, params.refreshToken, signIn]);
 
     const handleLogin = async () => {
-
-
         setLoading(true);
         setErrorMessage(null);
 
@@ -41,38 +90,50 @@ export default function Login() {
                             message = text;
                         }
                     }
-                } catch {
-                    /* ignore */
-                }
+                } catch {}
                 throw new Error(message);
             }
 
             const data = await response.json();
-            console.log("Login response:", data);
+            const accessToken = data?.id_token ?? data?.token ?? data?.accessToken ?? data?.tokenValue;
+            const refreshToken = data?.refreshToken;
 
+            const username =
+                data?.username ??
+                data?.user?.username ??
+                data?.name ??
+                (Email.includes("@") ? Email.split("@")[0] : Email);
 
-            const token = data?.id_token ?? data?.token ?? data?.accessToken ?? data?.tokenValue;
-            if (token) {
-                // TODO: token store
-                console.log("Received token:", token);
+            if (!accessToken) {
+                throw new Error("Login succeeded but no access token was returned.");
             }
-            router.replace("/");
+
+            await signIn({ accessToken, refreshToken, username });
+            router.replace("/home");
         } catch (err: any) {
+            const message = err?.message || "Unable to login. Please try again.";
+            setErrorMessage(message);
+            Alert.alert("Login error", message);
         } finally {
             setLoading(false);
         }
     };
 
-
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Log in</Text>
+        <View style={[commonStyles.screen, commonStyles.centered]}>
+            <Link href="/signup" asChild>
+                <Pressable style={commonStyles.topLeftActionButton}>
+                    <Text style={commonStyles.topLeftActionButtonText}>Sign Up</Text>
+                </Pressable>
+            </Link>
+
+            <Text style={commonStyles.authTitle}>Log in</Text>
 
             <TextInput
                 placeholder="Email"
                 value={Email}
                 onChangeText={setEmail}
-                style={styles.input}
+                style={commonStyles.authInput}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 editable={!loading}
@@ -82,30 +143,36 @@ export default function Login() {
                 placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
-                style={styles.input}
+                style={commonStyles.authInput}
                 secureTextEntry
                 editable={!loading}
             />
 
-            {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+            {errorMessage ? <Text style={commonStyles.errorText}>{errorMessage}</Text> : null}
 
-            <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
+            <Pressable
+                style={[commonStyles.primaryButton, loading && commonStyles.buttonDisabled, commonStyles.fullWidth]}
+                onPress={handleLogin}
+                disabled={loading}
+            >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={commonStyles.primaryButtonText}>Log In</Text>}
             </Pressable>
 
+            <OAuthRedirectButton
+                label="Continue with GitHub"
+                provider="github"
+                apiBase={API_BASE}
+                disabled={loading}
+                onError={setErrorMessage}
+            />
+
+            <OAuthRedirectButton
+                label="Continue with Google"
+                provider="google"
+                apiBase={API_BASE}
+                disabled={loading}
+                onError={setErrorMessage}
+            />
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
-    title: { fontSize: 28, fontWeight: "bold", marginBottom: 30, textAlign: "center" },
-    input: { borderWidth: 1, borderColor: "#ddd", padding: 15, borderRadius: 10, marginBottom: 15 },
-    button: { backgroundColor: "#007AFF", padding: 15, borderRadius: 10, alignItems: "center", marginTop: 10 },
-    buttonDisabled: { opacity: 0.7 },
-    buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-    link: { marginTop: 20, textAlign: "center", color: "#007AFF" },
-    error: { color: "red", marginBottom: 8, textAlign: "center" },
-    hint: { marginTop: 20 },
-    hintText: { color: "#666", fontSize: 12, textAlign: "center" },
-});

@@ -1,5 +1,6 @@
 import CustomTextInput from '@/components/textInput';
-import { View, Button, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { commonStyles } from '@/constants/commonStyles';
+import { View, Button, Text, TouchableOpacity } from 'react-native';
 
 interface RepositorySearchFormProps {
     searchType: 'url' | 'project';
@@ -29,10 +30,10 @@ export default function RepositorySearchForm({
                                                  onSubmit,
                                              }: RepositorySearchFormProps) {
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Analyze Repository</Text>
+        <View style={[commonStyles.screen, commonStyles.centered]}>
+            <Text style={commonStyles.formTitle}>Analyze Repository</Text>
 
-            <View style={styles.optionGroup}>
+            <View style={commonStyles.optionGroup}>
                 <OptionButton
                     label="By URL"
                     active={searchType === 'url'}
@@ -46,7 +47,7 @@ export default function RepositorySearchForm({
             </View>
 
             {searchType === 'url' ? (
-                <View style={styles.inputSection}>
+                <View style={commonStyles.inputSection}>
                     <CustomTextInput
                         value={text}
                         onChangeText={onTextChange}
@@ -54,8 +55,8 @@ export default function RepositorySearchForm({
                     />
                 </View>
             ) : (
-                <View style={styles.inputSection}>
-                    <View style={styles.optionGroup}>
+                <View style={commonStyles.inputSection}>
+                    <View style={commonStyles.optionGroup}>
                         <OptionButton
                             label="GitHub"
                             active={platform === 'github'}
@@ -95,60 +96,12 @@ interface OptionButtonProps {
 function OptionButton({ label, active, onPress }: OptionButtonProps) {
     return (
         <TouchableOpacity
-            style={[styles.button, active && styles.buttonActive]}
+            style={[commonStyles.optionButton, active && commonStyles.optionButtonActive]}
             onPress={onPress}
         >
-            <Text style={[styles.buttonText, active && styles.buttonTextActive]}>
+            <Text style={[commonStyles.optionButtonText, active && commonStyles.optionButtonTextActive]}>
                 {label}
             </Text>
         </TouchableOpacity>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#f5f5f5',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '700',
-        marginBottom: 30,
-        color: '#333',
-    },
-    optionGroup: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 20,
-        width: '100%',
-        justifyContent: 'center',
-    },
-    button: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 6,
-        backgroundColor: '#e8e8e8',
-        alignItems: 'center',
-    },
-    buttonActive: {
-        backgroundColor: '#007AFF',
-    },
-    buttonText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#666',
-    },
-    buttonTextActive: {
-        color: '#fff',
-    },
-    inputSection: {
-        width: '100%',
-        marginBottom: 20,
-        gap: 12,
-        maxWidth: 300,
-        alignSelf: 'center',
-    },
-});

@@ -1,16 +1,14 @@
-﻿import CustomTextInput from '@/components/textInput';
-import { useState } from 'react';
-import {View, Button, Pressable, Text} from 'react-native';
-import { analyzeRepo } from '../services/GitCommunicationService';
-import {Link, useRouter} from 'expo-router';
+﻿import { useState } from 'react';
+import { View, Pressable, Text } from 'react-native';
+import { analyzeRepo } from '@/services/GitCommunicationService';
+import { Link, useRouter } from 'expo-router';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import RepositorySearchForm from '@/components/RepositorySearchForm';
+import { commonStyles } from '@/constants/commonStyles';
+
 /**
  * Non Authenticated first page that user interacts with
- * @returns
  */
-
-
 export default function Index() {
     const router = useRouter();
     const [searchType, setSearchType] = useState<'url' | 'project'>('url');
@@ -21,48 +19,30 @@ export default function Index() {
     const setResult = useAnalysisStore((state) => state.setResult);
 
     const buildUrl = (): string => {
-        if (searchType === 'url') {
-            return text;
-        } else {
-            const baseUrl = platform === 'github' ? 'https://github.com' : 'https://gitlab.com';
-            return `${baseUrl}/${username}/${projectName}`;
-        }
+        if (searchType === 'url') return text;
+        const baseUrl = platform === 'github' ? 'https://github.com' : 'https://gitlab.com';
+        return `${baseUrl}/${username}/${projectName}`;
     };
 
     const handleSubmit = async () => {
         const input = searchType === 'url' ? text : `${username}/${projectName}`;
+        if (!input.length) return;
 
-        if (input.length > 0) {
-            try {
-                const url = buildUrl();
-                const result = await analyzeRepo(url);
-                setResult(result);
-                router.push("/Info");
-            } catch (error) {
-                console.error("An error has occurred: ", error);
-            }
+        try {
+            const url = buildUrl();
+            const result = await analyzeRepo(url);
+            setResult(result);
+            router.push('/Info');
+        } catch (error) {
+            console.error('An error has occurred: ', error);
         }
     };
 
-
     return (
-        <View style={{ flex: 1 }}>
-            <Link href="/signup" asChild>
-                <Pressable
-                    style={{
-                        position: 'absolute',
-                        top: 12,
-                        left: 12,
-                        zIndex: 10,
-                        paddingVertical: 8,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        backgroundColor: '#1f2937',
-                    }}
-                >
-                    <Text style={{ color: '#fff', fontWeight: '600' }}>
-                        LogIn / SignUp
-                    </Text>
+        <View style={commonStyles.root}>
+            <Link href="/login" asChild>
+                <Pressable style={commonStyles.topLeftActionButton}>
+                    <Text style={commonStyles.topLeftActionButtonText}>Log In</Text>
                 </Pressable>
             </Link>
 
@@ -81,6 +61,4 @@ export default function Index() {
             />
         </View>
     );
-
 }
-

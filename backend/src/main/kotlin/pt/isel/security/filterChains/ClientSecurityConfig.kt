@@ -54,25 +54,24 @@ class ClientSecurityConfig(
 
             .formLogin { formLogin ->
                 formLogin
-                    .loginPage(loginPage)   // use your custom /login endpoint
-                    .permitAll()            // allow unauthenticated users to access the login page
-                    .defaultSuccessUrl("/", true) // optional: redirect here after successful login
+                    .permitAll()
+                    .failureUrl("http://localhost:8081/login?formError=true")
+                    .defaultSuccessUrl("http://localhost:8081/home", true)
             }
             .oauth2Login { oauthLogin ->
                 oauthLogin
-                    .loginPage(loginPage) // ensure OAuth2 redirect uses the same login page
-                    .userInfoEndpoint { userInfo -> userInfo
-                        .userService(customOAuth2UserService)
-                    }
+                    .userInfoEndpoint { userInfo -> userInfo.userService(customOAuth2UserService) }
                     .successHandler(customOAuth2AuthenticationSuccessHandler)
+                    .failureUrl("http://localhost:8081/login?oauthError=true")
             }
             .logout { logout ->
                 logout
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)
-                    .logoutSuccessUrl("/") // where to go after logout
+                    .logoutSuccessUrl("http://localhost:8081/login")
                     .permitAll()
             }
+
 
         return http.build()
     }
