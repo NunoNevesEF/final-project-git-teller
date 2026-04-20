@@ -11,7 +11,7 @@ export default function RootLayout() {
       />
 
       <Stack.Screen
-        name="info"
+        name="Info"
         options={{
           title: "Info",
         }}
