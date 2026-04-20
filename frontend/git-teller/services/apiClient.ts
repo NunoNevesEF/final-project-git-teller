@@ -1,4 +1,9 @@
-export const API_BASE_URL = "http://localhost:8080/api";
+import Constants from "expo-constants";
+
+const debuggerHost = Constants.expoConfig?.hostUri;
+const host = debuggerHost?.split(":")[0] ?? "localhost";
+
+export const API_BASE_URL = `http://${host}:8080/api`;
 
 export async function apiGet(path: string) {
   const res = await fetch(`${API_BASE_URL}/${path}`);
