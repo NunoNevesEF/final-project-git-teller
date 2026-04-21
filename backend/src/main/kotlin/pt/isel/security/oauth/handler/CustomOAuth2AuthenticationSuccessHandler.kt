@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.stereotype.Component
+import org.springframework.web.util.UriComponentsBuilder
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.auth.JwtService
@@ -45,9 +46,15 @@ class CustomOAuth2AuthenticationSuccessHandler(
         )
 
         val tokenPair = jwtService.generateTokenPair(authentication)
-        response.status = HttpStatus.OK.value()
-        response.contentType = MediaType.APPLICATION_JSON_VALUE
 
-        ObjectMapper().writeValue(response.writer, tokenPair)
+        val frontendRedirectBase = "http://localhost:8081/login" // ou /home
+        val redirectUrl = UriComponentsBuilder
+            .fromUriString(frontendRedirectBase)
+            .queryParam("accessToken", tokenPair.accessToken)
+            .queryParam("refreshToken", tokenPair.refreshToken)
+            .build()
+            .toUriString()
+
+        response.sendRedirect(redirectUrl)
     }
 }

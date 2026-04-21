@@ -1,7 +1,7 @@
 import { GitAnalysis } from "@/models/GitAnalysis";
 import { apiGet } from "./apiClient";
 
-const SERVICE_PATH = "gitCommunication";
+const SERVICE_PATH = "public/gitCommunication";
 
 export async function analyzeRepo(repoURI: string): Promise<GitAnalysis> {
   return apiGet(

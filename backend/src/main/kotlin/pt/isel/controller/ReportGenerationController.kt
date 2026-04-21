@@ -19,6 +19,9 @@ class ReportGenerationController(private val reportGenerationService: ReportGene
     fun getGitAnalysis(
         @RequestBody image: String,
     ): ResponseEntity<ByteArray> {
+
+
+
         val imageBytes = Base64.getDecoder().decode(image)
         val pdf = reportGenerationService.createPdf(imageBytes)
         // if request is from an authenticated user, we should eventually store the report according to user

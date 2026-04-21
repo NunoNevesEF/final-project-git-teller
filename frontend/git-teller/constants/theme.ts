@@ -53,6 +53,39 @@ export const Fonts = Platform.select({
   },
 });
 
+export const colors = {
+    background: '#f5f5f5',
+    surface: '#ffffff',
+    textPrimary: '#333333',
+    textMuted: '#666666',
+    border: '#dddddd',
+    primary: '#007AFF',
+    primaryText: '#ffffff',
+    neutralButton: '#e8e8e8',
+};
+
+export const spacing = {
+    xs: 8,
+    sm: 12,
+    md: 16,
+    lg: 20,
+    xl: 30,
+};
+
+export const radius = {
+    sm: 6,
+    md: 10,
+};
+
+export const fontSize = {
+    sm: 12,
+    md: 14,
+    lg: 16,
+    xl: 28,
+};
+
+
+
 export const generateColor = (string: string) => {
   let hash = 0;
   for (const char of string) {

@@ -9,5 +9,5 @@ class GitTellerApplication
 
 
 fun main(args: Array<String>) {
-	runApplication<GitTellerApplication>(*args)
+    runApplication<GitTellerApplication>(*args)
 }

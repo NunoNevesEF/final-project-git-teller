@@ -39,6 +39,7 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
   const datasets = Object.entries(data).map(
     ([user, commits]) => {
       const grouped = groupByDayCumulative(commits, labels);
+      
 
       return {
         data: labels.map(day => grouped[day]),
@@ -47,6 +48,8 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
       };
     }
   );
+
+  const users = Object.keys(data);
 
   const maxCommits = Math.max(
     ...datasets.flatMap(d => d.data)
@@ -60,6 +63,7 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
         data={{
           labels,
           datasets,
+          legend: users
         }}
         width={screenWidth*0.7} 
         height={220}

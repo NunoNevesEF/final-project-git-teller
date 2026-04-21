@@ -33,23 +33,27 @@ class ClientSecurityConfig(
                     .anyRequest().authenticated()
             }
             .csrf{ it.disable() }
-            /*.formLogin {
-                formLogin -> formLogin//.loginPage(loginPage).permitAll()
-                //.defaultSuccessUrl("/")
-            }*/
-            .oauth2Login{ oauthLogin -> oauthLogin
-                //.loginPage(loginPage).permitAll()
-                .userInfoEndpoint { userInfo -> userInfo
-                    .userService(customOAuth2UserService)
-                }
-                .successHandler(customOAuth2AuthenticationSuccessHandler)
-                //.defaultSuccessUrl("/")
+            .formLogin { formLogin ->
+                formLogin
+                    .permitAll()
+                    .failureUrl("http://localhost:8081/login?formError=true")
+                    .defaultSuccessUrl("http://localhost:8081/home", true)
             }
-            .logout{
-                logout -> logout
+            .oauth2Login { oauthLogin ->
+                oauthLogin
+                    .userInfoEndpoint { userInfo -> userInfo.userService(customOAuth2UserService) }
+                    .successHandler(customOAuth2AuthenticationSuccessHandler)
+                    .failureUrl("http://localhost:8081/login?oauthError=true")
+            }
+            .logout { logout ->
+                logout
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)
+                    .logoutSuccessUrl("http://localhost:8081/login")
+                    .permitAll()
             }
+
+
         return http.build()
     }
 }
