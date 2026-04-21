@@ -1,5 +1,6 @@
 package pt.isel.model
 
+import pt.isel.domain.TokenPair
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
@@ -21,13 +22,17 @@ sealed class LinkedAccountDTO(
 data class OAuthLinkedAccountDTO(
     private val _id: Int,
     private val _userId: Int,
-    val provider: String
+    val provider: String,
+    val accessToken: String,
+    val refreshToken: String,
 ): LinkedAccountDTO(_id, _userId){
     companion object{
         fun create(oAuthLinkedAccount: OAuthLinkedAccount) = OAuthLinkedAccountDTO(
             oAuthLinkedAccount.id,
             oAuthLinkedAccount.userId,
-            oAuthLinkedAccount.provider
+            oAuthLinkedAccount.provider,
+            oAuthLinkedAccount.accessToken?.tokenValue ?: "",
+            oAuthLinkedAccount.refreshToken?.tokenValue ?: ""
         )
     }
 }

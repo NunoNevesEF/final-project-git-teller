@@ -1,4 +1,4 @@
-package pt.isel.security.filterChains
+package pt.isel.security.filterChain
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -6,8 +6,8 @@ import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
-import pt.isel.security.successHandlers.CustomOAuth2AuthenticationSuccessHandler
-import pt.isel.service.account.auth.CustomOAuth2UserService
+import pt.isel.security.oauth.handler.CustomOAuth2AuthenticationSuccessHandler
+import pt.isel.security.oauth.CustomOAuth2UserService
 
 @Configuration
 @EnableWebSecurity
@@ -33,10 +33,10 @@ class ClientSecurityConfig(
                     .anyRequest().authenticated()
             }
             .csrf{ it.disable() }
-            .formLogin {
+            /*.formLogin {
                 formLogin -> formLogin//.loginPage(loginPage).permitAll()
                 //.defaultSuccessUrl("/")
-            }
+            }*/
             .oauth2Login{ oauthLogin -> oauthLogin
                 //.loginPage(loginPage).permitAll()
                 .userInfoEndpoint { userInfo -> userInfo

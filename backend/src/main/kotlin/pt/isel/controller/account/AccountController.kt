@@ -2,10 +2,9 @@ package pt.isel.controller.account
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import pt.isel.domain.account.TokenPair
 import pt.isel.model.UserDTO
-import pt.isel.service.Failure
-import pt.isel.service.Success
+import pt.isel.utils.Failure
+import pt.isel.utils.Success
 import pt.isel.service.account.AccountService
 
 @CrossOrigin(origins = ["http://localhost:8081"])

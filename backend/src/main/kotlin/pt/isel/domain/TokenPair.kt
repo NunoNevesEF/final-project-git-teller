@@ -1,4 +1,4 @@
-package pt.isel.domain.account
+package pt.isel.domain
 
 data class TokenPair(
     val accessToken: String,

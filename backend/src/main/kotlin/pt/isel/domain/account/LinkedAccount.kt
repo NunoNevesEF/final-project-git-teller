@@ -1,5 +1,8 @@
 package pt.isel.domain.account
 
+import org.springframework.security.oauth2.core.OAuth2AccessToken
+import org.springframework.security.oauth2.core.OAuth2RefreshToken
+
 sealed class LinkedAccount(val id: Int, val userId: Int) {
     init{
         require(id >= 0) { "id must be >= 0" }
@@ -10,7 +13,11 @@ sealed class LinkedAccount(val id: Int, val userId: Int) {
 }
 
 data class OAuthLinkedAccount(
-    private val _id: Int, private val _userId: Int, val provider: String
+    private val _id: Int,
+    private val _userId: Int,
+    val provider: String,
+    val accessToken: OAuth2AccessToken? = null,
+    val refreshToken: OAuth2RefreshToken? = null,
 ) : LinkedAccount(_id, _userId) {
     init{
         require(!provider.isBlank()) { "provider cannot be blank" }

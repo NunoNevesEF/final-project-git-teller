@@ -2,11 +2,11 @@ package pt.isel.controller.account
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import pt.isel.domain.account.TokenPair
-import pt.isel.service.Failure
-import pt.isel.service.Success
-import pt.isel.service.account.auth.AuthService
-import pt.isel.service.rightOrNull
+import pt.isel.domain.TokenPair
+import pt.isel.utils.Failure
+import pt.isel.utils.Success
+import pt.isel.service.auth.AuthService
+import pt.isel.utils.rightOrNull
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController

@@ -13,12 +13,12 @@ import pt.isel.service.account.AccountService
 import pt.isel.service.account.DuplicateAccountTypeError
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.account.UserService
-import pt.isel.service.failure
-import pt.isel.service.isFailure
-import pt.isel.service.isSuccess
-import pt.isel.service.leftOrNull
-import pt.isel.service.rightOrNull
-import pt.isel.service.success
+import pt.isel.utils.failure
+import pt.isel.utils.isFailure
+import pt.isel.utils.isSuccess
+import pt.isel.utils.leftOrNull
+import pt.isel.utils.rightOrNull
+import pt.isel.utils.success
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

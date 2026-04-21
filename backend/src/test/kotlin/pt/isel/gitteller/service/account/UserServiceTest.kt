@@ -11,10 +11,10 @@ import pt.isel.repository.memory.account.UserRepoMem
 import pt.isel.service.account.EmailAlreadyExists
 import pt.isel.service.account.UserNotFound
 import pt.isel.service.account.UserService
-import pt.isel.service.isFailure
-import pt.isel.service.isSuccess
-import pt.isel.service.leftOrNull
-import pt.isel.service.rightOrNull
+import pt.isel.utils.isFailure
+import pt.isel.utils.isSuccess
+import pt.isel.utils.leftOrNull
+import pt.isel.utils.rightOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

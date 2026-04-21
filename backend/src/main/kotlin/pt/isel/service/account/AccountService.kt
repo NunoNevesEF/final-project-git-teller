@@ -1,12 +1,11 @@
 package pt.isel.service.account
 
-import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.stereotype.Service
 import pt.isel.domain.account.User
-import pt.isel.service.Either
-import pt.isel.service.flatMap
-import pt.isel.service.map
-import pt.isel.service.success
+import pt.isel.utils.Either
+import pt.isel.utils.flatMap
+import pt.isel.utils.map
+import pt.isel.utils.success
 
 sealed class AccountServiceError
 

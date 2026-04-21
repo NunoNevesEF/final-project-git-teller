@@ -7,11 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import pt.isel.model.LinkedAccountDTO
-import pt.isel.model.UserDTO
-import pt.isel.service.Failure
-import pt.isel.service.Success
+import pt.isel.utils.Failure
+import pt.isel.utils.Success
 import pt.isel.service.account.LinkedAccountService
-import pt.isel.service.account.UserService
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController

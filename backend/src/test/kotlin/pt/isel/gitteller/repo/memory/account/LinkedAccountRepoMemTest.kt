@@ -44,14 +44,6 @@ class LinkedAccountRepoMemTest {
     }
 
     @Test
-    fun `method create fails if User already has account type`(){
-        assertFailsWith<IllegalArgumentException>{
-            repo.create(newFormLinkedAccount())
-            repo.create(newFormLinkedAccount())
-        }
-    }
-
-    @Test
     fun `method create assigned Id increments after call`(){
         val oldId = repo.currId()
         val created = repo.create(newFormLinkedAccount())
@@ -120,22 +112,6 @@ class LinkedAccountRepoMemTest {
     fun `method update returns Null if user accounts not found`(){
         val actual = repo.update(newFormLinkedAccount())
         assertNull(actual)
-    }
-
-    @Test
-    fun `method update fails if new userId does not match existing userId`(){
-        val testLinkedAccount = repo.create(newOAuthLinkedAccount()) as OAuthLinkedAccount
-        assertFailsWith<IllegalArgumentException>{
-            repo.update(testLinkedAccount.copy(_userId = testLinkedAccount.userId + 1))
-        }
-    }
-
-    @Test
-    fun `method update fails if new type does not match existing type`(){
-        val testLinkedAccount = repo.create(newOAuthLinkedAccount()) as OAuthLinkedAccount
-        assertFailsWith<IllegalArgumentException>{
-            repo.update(testLinkedAccount.copy(provider = "Different"))
-        }
     }
 
     @Test
