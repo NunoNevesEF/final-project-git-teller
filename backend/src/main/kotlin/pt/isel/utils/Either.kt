@@ -1,7 +1,7 @@
-package pt.isel.service
+package pt.isel.utils
 
-import pt.isel.service.Either.Left
-import pt.isel.service.Either.Right
+import pt.isel.utils.Either.Left
+import pt.isel.utils.Either.Right
 
 sealed class Either<out L, out R>{
     data class Left<out L>(val left: L) : Either<L, Nothing>()
@@ -27,14 +27,14 @@ fun <L, R, T> Either<L, R>.flatMap(f: (R) -> Either<L, T>): Either<L, T> =
 
 fun <L, R, T> Either<L, R>.map(f: (R) -> T): Either<L, T> =
     when (this) {
-        is Either.Left -> this
-        is Either.Right -> success(f(this.right))
+        is Left -> this
+        is Right -> success(f(this.right))
     }
 
 fun <L, R> Either<L, R>.getOrThrow(mapError: (L) -> Throwable): R =
     when (this) {
-        is Either.Left -> throw mapError(this.left)
-        is Either.Right -> this.right
+        is Left -> throw mapError(this.left)
+        is Right -> this.right
     }
 
 typealias Success<S> = Right<S>

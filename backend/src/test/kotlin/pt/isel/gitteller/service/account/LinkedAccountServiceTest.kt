@@ -7,16 +7,17 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
+import org.springframework.security.crypto.password.PasswordEncoder
 import pt.isel.domain.account.FormLinkedAccount
-import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.repository.memory.account.LinkedAccountRepoMem
 import pt.isel.service.account.DuplicateAccountTypeError
 import pt.isel.service.account.LinkedAccountService
-import pt.isel.service.isFailure
-import pt.isel.service.isSuccess
-import pt.isel.service.leftOrNull
-import pt.isel.service.rightOrNull
+import pt.isel.service.account.PasswordEncodingError
+import pt.isel.utils.isFailure
+import pt.isel.utils.isSuccess
+import pt.isel.utils.leftOrNull
+import pt.isel.utils.rightOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -28,9 +29,13 @@ class LinkedAccountServiceTest(){
     @InjectMocks
     lateinit var service: LinkedAccountService
 
+    @Mock
+    private lateinit var passwordEncoder: PasswordEncoder
+
     val validId = 0
     val validUserId = 0
     val validProvider = "testProvider"
+    val validPassword = "testPassword"
     val validPasswordHash = "testPasswordHash"
 
     private fun newOAuthLinkedAccount(id: Int = validId, userId: Int = validUserId, provider : String = validProvider) =
@@ -39,21 +44,33 @@ class LinkedAccountServiceTest(){
         FormLinkedAccount(id, userId, passwordHash)
 
     @Test
-    fun `method createFormAccount returns the created FormLinkedAccount if account type is not duplicate`(){
+    fun `method createFormAccount returns the created FormLinkedAccount if account type is not duplicate`() {
         val expected = newFormLinkedAccount()
 
+        whenever(passwordEncoder.encode(any())).thenReturn(expected.passwordHash)
         whenever(linkedAccountRepo.create(any())).thenReturn(expected)
 
-        val actual = service.createFormAccount(expected.userId, expected.passwordHash)
+        val actual = service.createFormAccount(expected.userId, validPassword)
 
         assertTrue(actual.isSuccess())
         assertEquals(expected, actual.rightOrNull())
     }
 
     @Test
+    fun `method createFormAccount returns PasswordEncodingError if password encoding returns null`(){
+        whenever(passwordEncoder.encode(any())).thenReturn(null)
+
+        val actual = service.createFormAccount(validUserId, validPassword)
+
+        assertTrue(actual.isFailure())
+        assertEquals(PasswordEncodingError, actual.leftOrNull())
+    }
+
+    @Test
     fun `method createFormAccount returns DuplicateAccountTypeError if account type is duplicated`(){
-        whenever(linkedAccountRepo.create(any()))
-            .thenThrow(IllegalArgumentException())
+        whenever(passwordEncoder.encode(any())).thenReturn(validPasswordHash)
+        whenever(linkedAccountRepo.readByUserAndType(validUserId, FormLinkedAccount.getType()))
+            .thenReturn(newFormLinkedAccount())
 
         val actual = service.createFormAccount(validUserId, validPasswordHash)
         assertTrue(actual.isFailure())
@@ -74,8 +91,8 @@ class LinkedAccountServiceTest(){
 
     @Test
     fun `method createOAuthAccount returns DuplicateAccountTypeError if account type is duplicated`(){
-        whenever(linkedAccountRepo.create(any()))
-            .thenThrow(IllegalArgumentException())
+        whenever(linkedAccountRepo.readByUserAndType(validUserId, validProvider))
+            .thenReturn(newOAuthLinkedAccount())
 
         val actual = service.createOAuthAccount(validUserId, validProvider)
         assertTrue(actual.isFailure())

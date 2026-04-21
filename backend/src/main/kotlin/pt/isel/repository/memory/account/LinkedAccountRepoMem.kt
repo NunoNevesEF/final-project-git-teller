@@ -14,11 +14,6 @@ class LinkedAccountRepoMem : ILinkedAccountRepository {
     override fun create(entity: LinkedAccount): LinkedAccount =
         entity.accountCopy(id = nextId()).also{ account ->
             val userAccounts = usersLinkedAccounts.getOrPut(account.userId){ mutableMapOf() }
-
-            require(!userAccounts.containsKey(account.getType())) {
-                "User already has an account of type ${account.getType()}"
-            }
-
             linkedAccounts[account.id] = account
             userAccounts[account.getType()] = account
         }
@@ -30,10 +25,7 @@ class LinkedAccountRepoMem : ILinkedAccountRepository {
     override fun readByUserAndType(userId: Int, type: String) = usersLinkedAccounts[userId]?.get(type)
 
     override fun update(entity: LinkedAccount): LinkedAccount? {
-        val oldAccount = linkedAccounts[entity.id] ?: return null
-
-        require(oldAccount.userId == entity.userId) { "User must own the account" }
-        require(oldAccount.getType() == entity.getType()){ "Account provider cannot be replaced" }
+        linkedAccounts[entity.id] ?: return null
 
         linkedAccounts[entity.id] = entity
         usersLinkedAccounts[entity.userId]!![entity.getType()] = entity

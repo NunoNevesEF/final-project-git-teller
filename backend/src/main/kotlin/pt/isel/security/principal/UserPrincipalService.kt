@@ -1,8 +1,7 @@
-package pt.isel.service.account.auth
+package pt.isel.security.principal
 
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.UserPrincipal
 import pt.isel.service.account.UserService
 
 @Service

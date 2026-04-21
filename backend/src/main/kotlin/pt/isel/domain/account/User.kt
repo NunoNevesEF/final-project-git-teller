@@ -21,16 +21,3 @@ data class User(
             User(0, email, userName)
     }
 }
-
-
-
-data class OAuthUserWrapper(
-    val user: User,
-    val oauthUser: OAuth2User
-) : OAuth2User {
-    override fun getAttributes(): Map<String?, Any?>? = oauthUser.attributes
-
-    override fun getAuthorities(): Collection<GrantedAuthority?>? = oauthUser.authorities
-
-    override fun getName(): String = user.userName
-}

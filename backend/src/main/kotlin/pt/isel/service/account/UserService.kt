@@ -3,10 +3,10 @@ package pt.isel.service.account
 import org.springframework.stereotype.Service
 import pt.isel.domain.account.User
 import pt.isel.repository.memory.account.UserRepoMem
-import pt.isel.service.Either
-import pt.isel.service.failure
-import pt.isel.service.success
-import pt.isel.service.toEither
+import pt.isel.utils.Either
+import pt.isel.utils.failure
+import pt.isel.utils.success
+import pt.isel.utils.toEither
 
 
 sealed class UserServiceError : AccountServiceError()

@@ -1,16 +1,16 @@
-package pt.isel.service.account.auth
+package pt.isel.security.oauth
 
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.UserPrincipal
+import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.AccountService
 import pt.isel.service.account.AccountServiceError
 import pt.isel.service.account.DuplicateAccountTypeError
 import pt.isel.service.account.EmailAlreadyExists
-import pt.isel.service.getOrThrow
+import pt.isel.utils.getOrThrow
 import pt.isel.service.git.GithubCommunicationService
 
 @Service

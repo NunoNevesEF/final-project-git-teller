@@ -1,9 +1,10 @@
-package pt.isel.domain.account
+package pt.isel.security.principal
 
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.oauth2.core.user.OAuth2User
+import pt.isel.domain.account.User
 
 class UserPrincipal(
     private val user: User,
@@ -17,4 +18,6 @@ class UserPrincipal(
     override fun getPassword(): String? = passwordHash
     override fun getUsername(): String = user.email
     override fun getName(): String = user.email
+
+    fun getUserId() = user.id
 }

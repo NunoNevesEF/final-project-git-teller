@@ -1,13 +1,13 @@
-package pt.isel.service.account.auth
+package pt.isel.service.auth
 
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.TokenPair
-import pt.isel.service.Either
-import pt.isel.service.failure
-import pt.isel.service.success
+import pt.isel.domain.TokenPair
+import pt.isel.security.principal.UserPrincipalService
+import pt.isel.utils.Either
+import pt.isel.utils.failure
+import pt.isel.utils.success
 
 sealed class AuthServiceError
 object InvalidTokenError : AuthServiceError()

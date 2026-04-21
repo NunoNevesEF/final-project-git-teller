@@ -6,8 +6,8 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
-import pt.isel.service.Either
-import pt.isel.service.toEither
+import pt.isel.utils.Either
+import pt.isel.utils.toEither
 
 sealed class GithubCommunicationServiceError
 object PrimaryEmailNotFoundError : GithubCommunicationServiceError()
