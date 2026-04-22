@@ -22,11 +22,11 @@ class AccountService(
         }
     }
 
-    fun oAuthSignUp(email: String, userName: String, provider: String): Either<AccountServiceError, User> {
+    fun oAuthSignUp(email: String, userName: String, provider: String, providerId: String): Either<AccountServiceError, User> {
         val userEither =
             userService.findByEmail(email)?.let { readUser -> success(readUser) } ?: userService.create(email, userName)
         return userEither.flatMap { user ->
-            linkedAccountService.createOAuthAccount(user.id, provider).map { user }
+            linkedAccountService.createOAuthAccount(user.id, provider, providerId).map { user }
         }
     }
 }
