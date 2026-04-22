@@ -46,15 +46,13 @@ class LinkedAccountService(
     fun readByUser(userId: Int): Either<UserAccountsNotFoundError, List<LinkedAccount>> =
         linkedAccountRepo.readByUser(userId).toEither { UserAccountsNotFoundError }
 
-    fun readByUserAndType(userId: Int, type: String): Either<LinkedAccountServiceError, List<LinkedAccount>> {
-        val account = linkedAccountRepo.readByUserAndType(userId, type)
-            ?: return identifyMissingAccountError(userId)
-
+    fun readByUserAndType(userId: Int, type: AccountType): Either<LinkedAccountServiceError, List<LinkedAccount>> {
+        val account = findByUserAndType(userId, type) ?: return identifyMissingAccountError(userId)
         return success(account)
     }
 
-    fun readByUserTypeAndKey(userId: Int, type: String, key: String): Either<LinkedAccountServiceError, LinkedAccount> {
-        val account = linkedAccountRepo.readByUserTypeAndKey(userId, type, key)
+    fun readByUserTypeAndKey(userId: Int, type: AccountType, key: String): Either<LinkedAccountServiceError, LinkedAccount> {
+        val account = findByUserTypeAndKey(userId, type, key)
             ?: return identifyMissingAccountError(userId)
 
         return success(account)
@@ -62,16 +60,16 @@ class LinkedAccountService(
 
     fun update(
         userId: Int,
-        type: String,
+        type: AccountType,
         key: String = "",
         passwordHash: String? = null,
         accessToken: OAuth2AccessToken? = null,
         refreshToken: OAuth2RefreshToken? = null,
     ): Either<LinkedAccountServiceError, LinkedAccount> {
-        return if (type == AccountType.FORM.type) {
+        return if (type == AccountType.FORM) {
             updateFormAccount(userId, passwordHash)
         } else {
-            updateOAuthAccount(userId, type, key, accessToken, refreshToken)
+            updateOAuthAccount(userId, type.type, key, accessToken, refreshToken)
         }
     }
 
@@ -79,9 +77,9 @@ class LinkedAccountService(
         linkedAccountRepo.delete(id).toEither { AccountNotFoundError }
 
     fun deleteByUserTypeAndKey(
-        userId: Int, type: String, key: String
+        userId: Int, type: AccountType, key: String
     ): Either<LinkedAccountServiceError, LinkedAccount> {
-        val removedAccount = linkedAccountRepo.deleteByUserTypeAndKey(userId, type, key)
+        val removedAccount = linkedAccountRepo.deleteByUserTypeAndKey(userId, type.type, key)
             ?: return identifyMissingAccountError(userId)
 
         return success(removedAccount)
@@ -91,16 +89,23 @@ class LinkedAccountService(
     private fun <T : LinkedAccount> createLinkedAccount(
         linkedAccount: T,
     ): Either<DuplicateAccountTypeError, T> {
-        return if (isAccountTypeRepeated(linkedAccount.userId, linkedAccount.getType().type)) {
+        return if (isAccountTypeMaxed(linkedAccount.userId, linkedAccount.getType())) {
             failure(DuplicateAccountTypeError)
         } else success(linkedAccountRepo.create(linkedAccount) as T)
     }
+
+    fun findByUserAndType(userId: Int, type: AccountType) =
+        linkedAccountRepo.readByUserAndType(userId, type.type)
+
+    fun findByUserTypeAndKey(userId: Int, type: AccountType, key: String) =
+        linkedAccountRepo.readByUserTypeAndKey(userId, type.type, key)
+
 
     private fun updateFormAccount(
         userId: Int, passwordHash: String?,
     ): Either<LinkedAccountServiceError, LinkedAccount> {
         val account = linkedAccountRepo.readByUserTypeAndKey(userId, AccountType.FORM.type, null)
-                as FormLinkedAccount? ?: return identifyMissingAccountError(userId)
+                as? FormLinkedAccount? ?: return identifyMissingAccountError(userId)
 
         val updated = try{
             account.copy(passwordHash = passwordHash ?: account.passwordHash)
@@ -116,9 +121,8 @@ class LinkedAccountService(
         accessToken: OAuth2AccessToken?,
         refreshToken: OAuth2RefreshToken?
     ): Either<LinkedAccountServiceError, LinkedAccount> {
-        val account = linkedAccountRepo.readByUserTypeAndKey(
-            userId, provider, key
-        ) as OAuthLinkedAccount? ?: return identifyMissingAccountError(userId)
+        val account = linkedAccountRepo.readByUserTypeAndKey(userId, provider, key)
+                as? OAuthLinkedAccount? ?: return identifyMissingAccountError(userId)
 
         val updated = try{
             account.copy(
@@ -134,8 +138,11 @@ class LinkedAccountService(
         return linkedAccountRepo.update(updated).toEither{ AccountNotFoundError }
     }
 
-    private fun isAccountTypeRepeated(userId: Int, type: String): Boolean =
-        linkedAccountRepo.readByUserAndType(userId, type) != null
+    private fun isAccountTypeMaxed(userId: Int, type: AccountType): Boolean{
+        if(type.max == null) return false
+        val accountQuantity = linkedAccountRepo.readByUserAndType(userId, type.type)?.size ?: return false
+        return accountQuantity >= type.max
+    }
 
     private fun identifyMissingAccountError(userId: Int) =
         if (linkedAccountRepo.readByUser(userId) == null) failure(UserAccountsNotFoundError)

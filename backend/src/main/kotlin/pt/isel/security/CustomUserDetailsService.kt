@@ -19,7 +19,7 @@ class CustomUserDetailsService(
 ) : UserDetailsService {
     override fun loadUserByUsername(username: String): UserDetails {
         val user = userService.findByEmail(username) ?: throw UsernameNotFoundException("User not found")
-        val account = linkedAccountService.readByUserAndType(user.id, AccountType.FORM.type)
+        val account = linkedAccountService.readByUserAndType(user.id, AccountType.FORM)
         if(account.isFailure()) throw UsernameNotFoundException("User not found")
 
         val passwordHash = (account.rightOrNull() as FormLinkedAccount).passwordHash

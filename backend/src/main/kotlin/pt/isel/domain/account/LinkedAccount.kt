@@ -36,8 +36,8 @@ data class FormLinkedAccount(
 data class OAuthLinkedAccount(
     private val _id: Int,
     private val _userId: Int,
-    val accessToken: OAuth2AccessToken?,
-    val refreshToken: OAuth2RefreshToken?,
+    val accessToken: OAuth2AccessToken? = null,
+    val refreshToken: OAuth2RefreshToken? = null,
     val provider: AccountType,
     val providerId: String
 ) : LinkedAccount(_id, _userId) {

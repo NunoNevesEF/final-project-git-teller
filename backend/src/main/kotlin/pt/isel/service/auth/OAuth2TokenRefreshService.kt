@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.client.endpoint.RestClientRefreshToke
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.stereotype.Service
+import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.service.account.LinkedAccountService
@@ -21,14 +22,14 @@ class OAuth2TokenRefreshService(
     private val clientRegistrationRepository: ClientRegistrationRepository,
     private val linkedAccountService: LinkedAccountService,
 ) {
-    fun refreshAccessToken(userId: Int, provider: String): LinkedAccount? {
+    fun refreshAccessToken(userId: Int, provider: AccountType): LinkedAccount? {
         val account = linkedAccountService.readByUserAndType(userId, provider)
         if(account.isFailure()) { return null } //TODO: THINK ABOUT BEHAVIOR ON EARLY RETURN
 
         val oauthAccount = account.rightOrNull() as OAuthLinkedAccount
 
         val clientRegistration = clientRegistrationRepository
-            .findByRegistrationId(provider)
+            .findByRegistrationId(provider.type)
 
         if(oauthAccount.refreshToken == null) { return null } //TODO: THINK ABOUT BEHAVIOR ON EARLY RETURN
 
