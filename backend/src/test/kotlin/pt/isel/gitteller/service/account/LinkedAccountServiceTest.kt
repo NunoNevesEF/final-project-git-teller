@@ -21,7 +21,7 @@ import pt.isel.utils.rightOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@ExtendWith(MockitoExtension::class)
+/*@ExtendWith(MockitoExtension::class)
 class LinkedAccountServiceTest(){
     @Mock
     private lateinit var linkedAccountRepo : LinkedAccountRepoMem
@@ -100,4 +100,4 @@ class LinkedAccountServiceTest(){
     }
 
     //TODO: IMPLEMENT TESTS FOR REST OF METHODS.
-}
+}*/

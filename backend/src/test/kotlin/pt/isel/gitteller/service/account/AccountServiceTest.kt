@@ -36,15 +36,21 @@ class AccountServiceTest() {
     val validLinkedAccountId = 0
     val validUserId = 0
     val validProvider = "testProvider"
+    val validProviderId = "1"
     val validPassword = "testPassword"
     val validPasswordHash = "testPasswordHash"
 
     private fun newUser(id: Int = validUserId, email: String = "test@email.com", userName: String = "test") =
         User(id, email, userName)
-    private fun newOAuthLinkedAccount(id: Int = validLinkedAccountId, userId: Int = validUserId, provider : String = validProvider) =
-        OAuthLinkedAccount(id, userId, provider)
-    private fun newFormLinkedAccount(id: Int = validLinkedAccountId, userId: Int = validUserId, passwordHash: String = validPasswordHash) =
-        FormLinkedAccount(id, userId, passwordHash)
+
+    private fun newOAuthLinkedAccount(
+        id: Int = validLinkedAccountId, userId: Int = validUserId,
+        provider : String = validProvider, providerId: String = validProviderId
+    ) = OAuthLinkedAccount.create(id, userId, provider = provider, providerId = providerId)
+
+    private fun newFormLinkedAccount(
+        id: Int = validLinkedAccountId, userId: Int = validUserId, passwordHash: String = validPasswordHash
+    ) = FormLinkedAccount.create(id, userId, passwordHash)
 
     @Test
     fun `method formSignUp returns User if it already exists and linked account type is not duplicate`(){
@@ -95,10 +101,10 @@ class AccountServiceTest() {
         val expected = newUser()
 
         whenever(userService.findByEmail(expected.email)).thenReturn(expected)
-        whenever(linkedAccountService.createOAuthAccount(expected.id, validProvider))
+        whenever(linkedAccountService.createOAuthAccount(expected.id, validProvider, validProviderId))
             .thenReturn(success(newOAuthLinkedAccount()))
 
-        val actual = service.oAuthSignUp(expected.email, expected.userName, validProvider)
+        val actual = service.oAuthSignUp(expected.email, expected.userName, validProvider, validProviderId)
 
         assertTrue(actual.isSuccess())
         assertEquals(expected, actual.rightOrNull())
@@ -111,10 +117,10 @@ class AccountServiceTest() {
         whenever(userService.findByEmail(expected.email)).thenReturn(null)
         whenever(userService.create(expected.email, expected.userName))
             .thenReturn(success(expected))
-        whenever(linkedAccountService.createOAuthAccount(expected.id, validProvider))
+        whenever(linkedAccountService.createOAuthAccount(expected.id, validProvider, validProviderId))
             .thenReturn(success(newOAuthLinkedAccount()))
 
-        val actual = service.oAuthSignUp(expected.email, expected.userName, validProvider)
+        val actual = service.oAuthSignUp(expected.email, expected.userName, validProvider, validProviderId)
 
         assertTrue(actual.isSuccess())
         assertEquals(expected, actual.rightOrNull())
@@ -125,10 +131,10 @@ class AccountServiceTest() {
         val expected = newUser()
 
         whenever(userService.findByEmail(expected.email)).thenReturn(expected)
-        whenever(linkedAccountService.createOAuthAccount(expected.id, validProvider))
+        whenever(linkedAccountService.createOAuthAccount(expected.id, validProvider, validProviderId))
             .thenReturn(failure(DuplicateAccountTypeError))
 
-        val actual = service.oAuthSignUp(expected.email, expected.userName, validProvider)
+        val actual = service.oAuthSignUp(expected.email, expected.userName, validProvider, validProviderId)
 
         assertTrue(actual.isFailure())
         assertEquals(DuplicateAccountTypeError, actual.leftOrNull())

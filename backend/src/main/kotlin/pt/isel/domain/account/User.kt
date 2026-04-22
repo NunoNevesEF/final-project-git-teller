@@ -1,9 +1,5 @@
 package pt.isel.domain.account
 
-import org.springframework.security.core.GrantedAuthority
-import org.springframework.security.oauth2.core.user.OAuth2User
-
-
 data class User(
     val id: Int,
     val email: String,
@@ -18,6 +14,6 @@ data class User(
     }
     companion object{
         fun create(id: Int = 0, email: String, userName: String) =
-            User(0, email, userName)
+            User(id, email, userName)
     }
 }

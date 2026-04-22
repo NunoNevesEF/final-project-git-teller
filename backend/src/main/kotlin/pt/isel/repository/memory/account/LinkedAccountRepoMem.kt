@@ -9,26 +9,37 @@ import java.util.concurrent.atomic.AtomicInteger
 class LinkedAccountRepoMem : ILinkedAccountRepository {
     private val idCounter = AtomicInteger(0)
     private val linkedAccounts = mutableMapOf<Int, LinkedAccount>()
-    private val usersLinkedAccounts = mutableMapOf<Int, MutableMap<String, LinkedAccount>>()
+    private val usersLinkedAccounts = //UserId -> Provider -> Key -> Account
+        mutableMapOf<Int, MutableMap<String, MutableMap<String?, LinkedAccount>>>()
 
     override fun create(entity: LinkedAccount): LinkedAccount =
         entity.accountCopy(id = nextId()).also{ account ->
-            val userAccounts = usersLinkedAccounts.getOrPut(account.userId){ mutableMapOf() }
             linkedAccounts[account.id] = account
-            userAccounts[account.getType()] = account
+
+            val userAccounts = usersLinkedAccounts.getOrPut(account.userId){ mutableMapOf() }
+            val providerAccounts = userAccounts.getOrPut(account.getType().type){ mutableMapOf() }
+
+            providerAccounts[account.uniqueKey()] = account
         }
 
     override fun read(id: Int): LinkedAccount? = linkedAccounts[id]
 
-    override fun readByUser(userId: Int) = usersLinkedAccounts[userId]?.values?.toList()
+    override fun readByUser(userId: Int) = usersLinkedAccounts[userId]?.values?.flatMap { it.values }
 
-    override fun readByUserAndType(userId: Int, type: String) = usersLinkedAccounts[userId]?.get(type)
+    override fun readByUserAndType(userId: Int, type: String) =
+        usersLinkedAccounts[userId]?.get(type)?.values?.toList()
+
+    override fun readByUserTypeAndKey(userId: Int, type: String, key: String?) =
+        usersLinkedAccounts[userId]?.get(type)?.get(key)
 
     override fun update(entity: LinkedAccount): LinkedAccount? {
         linkedAccounts[entity.id] ?: return null
 
+        val userAccounts = usersLinkedAccounts[entity.userId] ?: return null
+        val providerAccounts = userAccounts[entity.getType().type] ?: return null
+
         linkedAccounts[entity.id] = entity
-        usersLinkedAccounts[entity.userId]!![entity.getType()] = entity
+        providerAccounts[entity.uniqueKey()] = entity
 
         return entity
     }
@@ -36,18 +47,28 @@ class LinkedAccountRepoMem : ILinkedAccountRepository {
     override fun delete(id: Int): LinkedAccount? {
         val removedAccount = linkedAccounts.remove(id) ?: return null
 
-        val userAccounts = usersLinkedAccounts[removedAccount.userId]!!
-        userAccounts.remove(removedAccount.getType())
+        val provider = removedAccount.getType().type
 
-        if (userAccounts.isEmpty()) { usersLinkedAccounts.remove(removedAccount.userId) }
+        val userAccounts = usersLinkedAccounts[removedAccount.userId]!!
+        val providerAccounts = userAccounts[provider]!!
+
+        providerAccounts.remove(removedAccount.uniqueKey())
+
+        if (providerAccounts.isEmpty()) { userAccounts.remove(provider) }
+        if (userAccounts.isEmpty()) { usersLinkedAccounts.remove(removedAccount.id) }
 
         return removedAccount
     }
 
-    override fun deleteByUserAndType(userId: Int, type: String): LinkedAccount? {
+    override fun deleteByUserTypeAndKey(
+        userId: Int,
+        type: String,
+        key: String?
+    ): LinkedAccount? {
         val userAccounts = usersLinkedAccounts[userId] ?: return null
-        val removedAccount = userAccounts.remove(type) ?: return null
+        val providerAccounts = userAccounts[type] ?: return null
 
+        val removedAccount = providerAccounts.remove(key) ?: return null
         linkedAccounts.remove(removedAccount.id)
 
         return removedAccount

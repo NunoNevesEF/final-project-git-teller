@@ -25,7 +25,7 @@ class CustomOAuth2UserService(
         val email = getEmail(oAuth2User, registrationId, userRequest.accessToken.tokenValue)
         val userName = oAuth2User.name
 
-        val user = accountService.oAuthSignUp(email, userName, registrationId)
+        val user = accountService.oAuthSignUp(email, userName, registrationId, userRequest.clientRegistration.clientId)
             .getOrThrow(::mapToOAuthException)
 
         return UserPrincipal(user, attributes = oAuth2User.attributes)
