@@ -9,6 +9,7 @@ import pt.isel.domain.account.User
 class UserPrincipal(
     private val user: User,
     private val passwordHash: String? = null,
+    private val oAuth2Id: String = "",
     private val attributes: Map<String, Any> = emptyMap()
 ) : UserDetails, OAuth2User {
     override fun getAttributes(): Map<String, Any> = attributes
@@ -20,4 +21,5 @@ class UserPrincipal(
     override fun getName(): String = user.email
 
     fun getUserId() = user.id
+    fun getOAuth2Id() = oAuth2Id
 }

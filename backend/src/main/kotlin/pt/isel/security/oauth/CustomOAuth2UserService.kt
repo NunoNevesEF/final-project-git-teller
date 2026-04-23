@@ -5,36 +5,59 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.AccountService
 import pt.isel.service.account.AccountServiceError
-import pt.isel.service.account.DuplicateAccountTypeError
+import pt.isel.service.account.AccountTypeMaxedError
 import pt.isel.service.account.EmailAlreadyExists
+import pt.isel.service.auth.JwtService
 import pt.isel.utils.getOrThrow
 import pt.isel.service.git.GithubCommunicationService
 
 @Service
 class CustomOAuth2UserService(
     private val accountService: AccountService,
-    private val githubCommunicationService: GithubCommunicationService
+    private val githubCommunicationService: GithubCommunicationService,
+    private val jwtService: JwtService,
 ) : DefaultOAuth2UserService() {
     override fun loadUser(userRequest: OAuth2UserRequest): OAuth2User {
         val oAuth2User = super.loadUser(userRequest)
 
         val registrationId = userRequest.clientRegistration.registrationId
         val email = getEmail(oAuth2User, registrationId, userRequest.accessToken.tokenValue)
-        val userName = oAuth2User.name
+        val oAuth2id = getId(oAuth2User, registrationId)
 
-        val user = accountService.oAuthSignUp(email, userName, registrationId)
-            .getOrThrow(::mapToOAuthException)
+        val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
+        val state = request.getParameter("state")
 
-        return UserPrincipal(user, attributes = oAuth2User.attributes)
+        if(state != null && jwtService.isValidLinkState(state, registrationId)) {
+            val payload = jwtService.parseLinkState(state)
+            val user = accountService.oAuthAccountLink(payload.userId, registrationId, oAuth2id)
+                .getOrThrow(::mapToOAuthException)
+
+            return UserPrincipal(user.user, oAuth2Id = oAuth2id, attributes = oAuth2User.attributes) //temp
+        } else{
+            val user = accountService.oAuthSignUp(email, registrationId, oAuth2id)
+                .getOrThrow(::mapToOAuthException)
+
+            return UserPrincipal(user.user, oAuth2Id = oAuth2id, attributes = oAuth2User.attributes)
+        }
     }
 
     private fun getEmail(oauth2User: OAuth2User, registrationId: String, accessTokenValue: String): String {
         return when (registrationId) {
             "google" -> getGoogleEmail(oauth2User)
             "github" -> getGithubEmail(oauth2User, accessTokenValue)
+            else -> throw OAuth2AuthenticationException("Unknown Provider")
+        }
+    }
+
+    private fun getId(oauth2User: OAuth2User, registrationId: String): String {
+        return when (registrationId) {
+            "google" -> oauth2User.name
+            "github" -> getGithubId(oauth2User)
             else -> throw OAuth2AuthenticationException("Unknown Provider")
         }
     }
@@ -48,9 +71,13 @@ class CustomOAuth2UserService(
             ?: (githubCommunicationService.getPrimaryEmailOrNull(accessTokenValue)
                 ?: throw OAuth2AuthenticationException("Github Authentication Failed - Email Not Found"))
 
+    private fun getGithubId(oauth2User: OAuth2User): String =
+        oauth2User.getAttribute<Int?>("id")?.toString() ?:
+            throw OAuth2AuthenticationException("Github Authentication Failed - Id Not Found")
+
     private fun mapToOAuthException(error: AccountServiceError): OAuth2AuthenticationException =
         when (error) {
-            is DuplicateAccountTypeError ->
+            is AccountTypeMaxedError ->
                 OAuth2AuthenticationException("Account already linked for this provider")
 
             is EmailAlreadyExists ->

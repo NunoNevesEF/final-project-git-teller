@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.stereotype.Component
 import org.springframework.web.util.UriComponentsBuilder
+import pt.isel.domain.account.AccountType
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.auth.JwtService
@@ -41,6 +42,7 @@ class CustomOAuth2AuthenticationSuccessHandler(
         linkedAccountService.update(
             userId = principal.getUserId(),
             type = registrationId, //provider
+            key = principal.getOAuth2Id(), //providerId
             accessToken = client.accessToken,
             refreshToken = client.refreshToken
         )

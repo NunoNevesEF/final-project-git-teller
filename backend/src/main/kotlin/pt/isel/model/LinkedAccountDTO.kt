@@ -23,6 +23,7 @@ data class OAuthLinkedAccountDTO(
     private val _id: Int,
     private val _userId: Int,
     val provider: String,
+    val providerId: String,
     val accessToken: String,
     val refreshToken: String,
 ): LinkedAccountDTO(_id, _userId){
@@ -30,7 +31,8 @@ data class OAuthLinkedAccountDTO(
         fun create(oAuthLinkedAccount: OAuthLinkedAccount) = OAuthLinkedAccountDTO(
             oAuthLinkedAccount.id,
             oAuthLinkedAccount.userId,
-            oAuthLinkedAccount.provider,
+            oAuthLinkedAccount.provider.type,
+            oAuthLinkedAccount.providerId,
             oAuthLinkedAccount.accessToken?.tokenValue ?: "",
             oAuthLinkedAccount.refreshToken?.tokenValue ?: ""
         )

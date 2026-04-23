@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.client.endpoint.RestClientRefreshToke
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.stereotype.Service
+import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.service.account.LinkedAccountService
