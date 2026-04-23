@@ -12,7 +12,7 @@ import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.repository.memory.account.LinkedAccountRepoMem
-import pt.isel.service.account.DuplicateAccountTypeError
+import pt.isel.service.account.AccountTypeMaxedError
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.account.PasswordEncodingError
 import pt.isel.utils.isFailure
@@ -59,7 +59,7 @@ class LinkedAccountServiceTest(){
         whenever(linkedAccountRepo.create(any())).thenReturn(expected)
 
         val actual = service.createFormAccount(expected.userId, validPassword)
-        val accounts = service.readByUserAndType(expected.userId, accountType).rightOrNull()
+        val accounts = service.readByUserAndType(expected.userId, accountType.type).rightOrNull()
 
         assertTrue(actual.isSuccess())
         assertEquals(expected, actual.rightOrNull())
@@ -85,7 +85,7 @@ class LinkedAccountServiceTest(){
 
         val actual = service.createFormAccount(validUserId, validPasswordHash)
         assertTrue(actual.isFailure())
-        assertEquals(DuplicateAccountTypeError, actual.leftOrNull())
+        assertEquals(AccountTypeMaxedError, actual.leftOrNull())
     }
 
     @Test
@@ -96,7 +96,7 @@ class LinkedAccountServiceTest(){
         whenever(linkedAccountRepo.create(any())).thenReturn(expected)
 
         val actual = service.createOAuthAccount(expected.userId, accountType.type, expected.providerId)
-        val accounts = service.readByUserAndType(expected.userId, accountType).rightOrNull()
+        val accounts = service.readByUserAndType(expected.userId, accountType.type).rightOrNull()
 
         assertTrue(actual.isSuccess())
         assertEquals(expected, actual.rightOrNull())
@@ -113,7 +113,7 @@ class LinkedAccountServiceTest(){
 
         val actual = service.createOAuthAccount(validUserId, provider, validProviderId)
         assertTrue(actual.isFailure())
-        assertEquals(DuplicateAccountTypeError, actual.leftOrNull())
+        assertEquals(AccountTypeMaxedError, actual.leftOrNull())
     }
 
     @Test

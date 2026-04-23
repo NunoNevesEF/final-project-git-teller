@@ -17,12 +17,12 @@ class CustomUserDetailsService(
     private val userService: UserService,
     private val linkedAccountService: LinkedAccountService
 ) : UserDetailsService {
-    override fun loadUserByUsername(username: String): UserDetails {
-        val user = userService.findByEmail(username) ?: throw UsernameNotFoundException("User not found")
-        val account = linkedAccountService.readByUserAndType(user.id, AccountType.FORM)
+    override fun loadUserByUsername(email: String): UserDetails {
+        val user = userService.findByEmail(email) ?: throw UsernameNotFoundException("User not found")
+        val account = linkedAccountService.readByUserAndType(user.id, AccountType.FORM.type)
         if(account.isFailure()) throw UsernameNotFoundException("User not found")
 
-        val passwordHash = (account.rightOrNull() as FormLinkedAccount).passwordHash
+        val passwordHash = (account.rightOrNull()!!.first() as FormLinkedAccount).passwordHash
         return UserPrincipal(user, passwordHash)
     }
 }

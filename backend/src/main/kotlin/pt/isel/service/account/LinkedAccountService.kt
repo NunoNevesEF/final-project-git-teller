@@ -16,10 +16,9 @@ import pt.isel.utils.toEither
 
 sealed class LinkedAccountServiceError : AccountServiceError()
 object PasswordEncodingError : LinkedAccountServiceError()
-object DuplicateAccountTypeError : LinkedAccountServiceError()
+object AccountTypeMaxedError : LinkedAccountServiceError()
 object AccountNotFoundError : LinkedAccountServiceError()
 object UserAccountsNotFoundError : LinkedAccountServiceError()
-object InvalidUpdateError : LinkedAccountServiceError()
 object LinkedAccountDomainError : LinkedAccountServiceError()
 
 @Service
@@ -35,7 +34,7 @@ class LinkedAccountService(
 
     fun createOAuthAccount(
         userId: Int, provider: String, providerId : String
-    ): Either<DuplicateAccountTypeError, OAuthLinkedAccount> {
+    ): Either<AccountTypeMaxedError, OAuthLinkedAccount> {
         val account = OAuthLinkedAccount.create(userId = userId, provider = provider, providerId = providerId)
         return createLinkedAccount(account)
     }
@@ -46,12 +45,12 @@ class LinkedAccountService(
     fun readByUser(userId: Int): Either<UserAccountsNotFoundError, List<LinkedAccount>> =
         linkedAccountRepo.readByUser(userId).toEither { UserAccountsNotFoundError }
 
-    fun readByUserAndType(userId: Int, type: AccountType): Either<LinkedAccountServiceError, List<LinkedAccount>> {
+    fun readByUserAndType(userId: Int, type: String): Either<LinkedAccountServiceError, List<LinkedAccount>> {
         val account = findByUserAndType(userId, type) ?: return identifyMissingAccountError(userId)
         return success(account)
     }
 
-    fun readByUserTypeAndKey(userId: Int, type: AccountType, key: String): Either<LinkedAccountServiceError, LinkedAccount> {
+    fun readByUserTypeAndKey(userId: Int, type: String, key: String): Either<LinkedAccountServiceError, LinkedAccount> {
         val account = findByUserTypeAndKey(userId, type, key)
             ?: return identifyMissingAccountError(userId)
 
@@ -60,16 +59,15 @@ class LinkedAccountService(
 
     fun update(
         userId: Int,
-        type: AccountType,
+        type: String,
         key: String = "",
         passwordHash: String? = null,
         accessToken: OAuth2AccessToken? = null,
         refreshToken: OAuth2RefreshToken? = null,
     ): Either<LinkedAccountServiceError, LinkedAccount> {
-        return if (type == AccountType.FORM) {
-            updateFormAccount(userId, passwordHash)
-        } else {
-            updateOAuthAccount(userId, type.type, key, accessToken, refreshToken)
+        return when(type){
+            AccountType.FORM.type -> updateFormAccount(userId, passwordHash)
+            else -> updateOAuthAccount(userId, type, key, accessToken, refreshToken)
         }
     }
 
@@ -77,9 +75,9 @@ class LinkedAccountService(
         linkedAccountRepo.delete(id).toEither { AccountNotFoundError }
 
     fun deleteByUserTypeAndKey(
-        userId: Int, type: AccountType, key: String
+        userId: Int, type: String, key: String
     ): Either<LinkedAccountServiceError, LinkedAccount> {
-        val removedAccount = linkedAccountRepo.deleteByUserTypeAndKey(userId, type.type, key)
+        val removedAccount = linkedAccountRepo.deleteByUserTypeAndKey(userId, type, key)
             ?: return identifyMissingAccountError(userId)
 
         return success(removedAccount)
@@ -88,17 +86,17 @@ class LinkedAccountService(
     @Suppress("UNCHECKED_CAST")
     private fun <T : LinkedAccount> createLinkedAccount(
         linkedAccount: T,
-    ): Either<DuplicateAccountTypeError, T> {
+    ): Either<AccountTypeMaxedError, T> {
         return if (isAccountTypeMaxed(linkedAccount.userId, linkedAccount.getType())) {
-            failure(DuplicateAccountTypeError)
+            failure(AccountTypeMaxedError)
         } else success(linkedAccountRepo.create(linkedAccount) as T)
     }
 
-    fun findByUserAndType(userId: Int, type: AccountType) =
-        linkedAccountRepo.readByUserAndType(userId, type.type)
+    fun findByUserAndType(userId: Int, type: String) =
+        linkedAccountRepo.readByUserAndType(userId, type)
 
-    fun findByUserTypeAndKey(userId: Int, type: AccountType, key: String) =
-        linkedAccountRepo.readByUserTypeAndKey(userId, type.type, key)
+    fun findByUserTypeAndKey(userId: Int, type: String, key: String) =
+        linkedAccountRepo.readByUserTypeAndKey(userId, type, key)
 
 
     private fun updateFormAccount(
@@ -111,7 +109,7 @@ class LinkedAccountService(
             account.copy(passwordHash = passwordHash ?: account.passwordHash)
         } catch(e: IllegalArgumentException){ return failure(LinkedAccountDomainError) }
 
-        return persistUpdate(userId, updated)
+        return persistUpdate(updated)
     }
 
     private fun updateOAuthAccount(
@@ -131,10 +129,10 @@ class LinkedAccountService(
             )
         } catch(e: IllegalArgumentException){ return failure(LinkedAccountDomainError) }
 
-        return persistUpdate(userId, updated)
+        return persistUpdate(updated)
     }
 
-    private fun persistUpdate(userId: Int, updated: LinkedAccount): Either<AccountNotFoundError, LinkedAccount> {
+    private fun persistUpdate(updated: LinkedAccount): Either<AccountNotFoundError, LinkedAccount> {
         return linkedAccountRepo.update(updated).toEither{ AccountNotFoundError }
     }
 

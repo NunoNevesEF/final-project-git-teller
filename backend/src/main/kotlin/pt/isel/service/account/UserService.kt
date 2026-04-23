@@ -24,7 +24,7 @@ object AuthenticationFailure : UserServiceError()
  * **/
 @Service
 class UserService(private val userRepo: UserRepoMem) {
-    fun create(email: String, userName: String): Either<EmailAlreadyExists, User> {
+    fun create(email: String, userName: String? = null): Either<EmailAlreadyExists, User> {
         if (userRepo.read(email) != null) return failure(EmailAlreadyExists)
         val user =  User.create(email = email, userName = userName)
         return success(userRepo.create(user))
@@ -34,9 +34,9 @@ class UserService(private val userRepo: UserRepoMem) {
 
     fun read(email: String): Either<UserNotFound, User> = findByEmail(email).toEither { UserNotFound }
 
-    fun update(id: Int, userName: String): Either<UserNotFound, User> {
+    fun update(id: Int, newUsername: String): Either<UserNotFound, User> {
         val oldUser = userRepo.read(id) ?: return failure(UserNotFound)
-        val updatedUser = oldUser.copy(userName = userName)
+        val updatedUser = oldUser.copy(userName = newUsername)
         return success(userRepo.update(updatedUser)!!)
     }
 

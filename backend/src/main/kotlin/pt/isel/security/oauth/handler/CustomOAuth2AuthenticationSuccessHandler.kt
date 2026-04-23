@@ -41,7 +41,8 @@ class CustomOAuth2AuthenticationSuccessHandler(
 
         linkedAccountService.update(
             userId = principal.getUserId(),
-            type = AccountType.fromString(registrationId), //provider
+            type = registrationId, //provider
+            key = principal.getOAuth2Id(), //providerId
             accessToken = client.accessToken,
             refreshToken = client.refreshToken
         )

@@ -22,14 +22,14 @@ class OAuth2TokenRefreshService(
     private val clientRegistrationRepository: ClientRegistrationRepository,
     private val linkedAccountService: LinkedAccountService,
 ) {
-    fun refreshAccessToken(userId: Int, provider: AccountType): LinkedAccount? {
+    fun refreshAccessToken(userId: Int, provider: String): LinkedAccount? {
         val account = linkedAccountService.readByUserAndType(userId, provider)
         if(account.isFailure()) { return null } //TODO: THINK ABOUT BEHAVIOR ON EARLY RETURN
 
         val oauthAccount = account.rightOrNull() as OAuthLinkedAccount
 
         val clientRegistration = clientRegistrationRepository
-            .findByRegistrationId(provider.type)
+            .findByRegistrationId(provider)
 
         if(oauthAccount.refreshToken == null) { return null } //TODO: THINK ABOUT BEHAVIOR ON EARLY RETURN
 

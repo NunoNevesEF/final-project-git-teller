@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.oauth2.core.OAuth2Token
 import org.springframework.security.oauth2.jwt.JwtClaimsSet
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.jwt.JwtEncoder
@@ -79,6 +80,49 @@ class JwtService(
 
     private fun generateToken(claims: JwtClaimsSet): String =
         jwtEncoder.encode(JwtEncoderParameters.from(claims)).tokenValue
+
+    fun generateLinkState(userId: Int, provider: String): String{
+        val now = Instant.now()
+
+        val claims = JwtClaimsSet.builder()
+            .issuer(appName)
+            .issuedAt(now)
+            .expiresAt(now.plusSeconds(300))
+            .subject("oauth-link")
+            .claim("userId", userId)
+            .claim("provider", provider)
+            .claim("link", true)
+            .build()
+
+        return generateToken(claims)
+    }
+
+    fun parseLinkState(token: String): OAuthLinkState {
+        val jwt = jwtDecoder.decode(token)
+
+        return OAuthLinkState(
+            link = jwt.getClaim("link"),
+            userId = (jwt.getClaim("userId")),
+            provider = jwt.getClaim("provider"),
+        )
+    }
+
+    fun isValidLinkState(token: String, provider: String): Boolean{
+        return try{
+            val jwt = jwtDecoder.decode(token)
+
+            jwt.getClaim<Boolean>("link") == true &&
+                    jwt.getClaim<String>("provider") == provider
+        } catch(e: Exception){
+            false
+        }
+    }
+
+    data class OAuthLinkState(
+        val link: Boolean = false,
+        val userId: Int,
+        val provider: String
+    )
 }
 
 @ConfigurationProperties("app.jwt")

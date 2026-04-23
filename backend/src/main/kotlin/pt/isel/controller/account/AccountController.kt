@@ -1,5 +1,6 @@
 package pt.isel.controller.account
 
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pt.isel.model.UserDTO
@@ -10,7 +11,7 @@ import pt.isel.service.account.AccountService
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
 @RequestMapping("/api/public/accounts")
-class AccountController(
+class PublicAccountController(
     private val accountService: AccountService,
 ){
     @PostMapping("/signup")
@@ -19,9 +20,22 @@ class AccountController(
         @RequestParam username: String,
         @RequestParam password: String
     ): ResponseEntity<UserDTO> {
-        return when(val user = accountService.formSignUp(email,username,password)){
-            is Success -> ResponseEntity.ok(UserDTO.create(user.right))
+        return when(val user = accountService.formSignUp(email, username, password)){
+            is Success -> ResponseEntity.ok(UserDTO.create(user.right.user))
             is Failure -> ResponseEntity.badRequest().build()
         }
+    }
+}
+
+@CrossOrigin(origins = ["http://localhost:8081"])
+@RestController
+@RequestMapping("/api/private/accounts")
+class PrivateAccountController(){
+    @GetMapping("/link/{provider}")
+    fun link(
+        @PathVariable provider: String,
+        response: HttpServletResponse,
+    ){
+        response.sendRedirect("/oauth2/authorization/$provider?link=true")
     }
 }

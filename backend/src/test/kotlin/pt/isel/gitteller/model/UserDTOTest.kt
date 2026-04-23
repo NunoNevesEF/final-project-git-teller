@@ -13,7 +13,7 @@ class UserDTOTest() {
     @Test
     fun `companion method create successfully creates UserDTO from User`(){
         val testUser = newUser()
-        val expected = UserDTO(id = testUser.id, email = testUser.email, userName = testUser.userName)
+        val expected = UserDTO(id = testUser.id, email = testUser.email, userName = testUser.userName!!)
         val actual = UserDTO.create(testUser)
         assertEquals(expected, actual)
     }
