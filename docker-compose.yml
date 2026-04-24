@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: gitteller-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gitteller
+      POSTGRES_USER: gitteller
+      POSTGRES_PASSWORD: gitteller
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/src/main/resources/db/schema-postgresql.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+volumes:
+  pgdata:

@@ -2,7 +2,7 @@ package pt.isel.service.account
 
 import org.springframework.stereotype.Service
 import pt.isel.domain.account.User
-import pt.isel.repository.memory.account.UserRepoMem
+import pt.isel.repository.IUserRepository
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
@@ -23,7 +23,7 @@ object AuthenticationFailure : UserServiceError()
  * 2.B  If DB User Authentication does not include Form then send confirmation email and when confirmed add Form login to User.
  * **/
 @Service
-class UserService(private val userRepo: UserRepoMem) {
+class UserService(private val userRepo: IUserRepository) {
     fun create(email: String, userName: String? = null): Either<EmailAlreadyExists, User> {
         if (userRepo.read(email) != null) return failure(EmailAlreadyExists)
         val user =  User.create(email = email, userName = userName)

@@ -5,7 +5,7 @@ import OAuthRedirectButton from "../components/OAuthButton";
 import { commonStyles } from "@/constants/commonStyles";
 
 const DEFAULT_API_BASE = "http://localhost:8080";
-const SIGNUP_PATH = "/authApiClient/public/accounts/signup";
+const SIGNUP_PATH = "/api/public/accounts/signup";
 const API_BASE = DEFAULT_API_BASE;
 
 export default function Signup() {

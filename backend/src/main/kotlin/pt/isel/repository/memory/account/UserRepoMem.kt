@@ -1,12 +1,14 @@
 package pt.isel.repository.memory.account
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Repository
 import pt.isel.domain.account.User
-import pt.isel.repository.IRepository
+import pt.isel.repository.IUserRepository
 import java.util.concurrent.atomic.AtomicInteger
 
 @Repository
-class UserRepoMem: IRepository<User> {
+@ConditionalOnProperty(prefix = "app.repository", name = ["mode"], havingValue = "memory", matchIfMissing = true)
+class UserRepoMem : IUserRepository {
     private val idCounter = AtomicInteger(0)
     private val users = mutableMapOf<Int, User>()
 
@@ -15,9 +17,9 @@ class UserRepoMem: IRepository<User> {
 
     override fun read(id: Int): User? = users[id]
 
-    fun read(email: String): User? = users.values.firstOrNull { it.email == email }
+    override fun read(email: String): User? = users.values.firstOrNull { it.email == email }
 
-    fun readOrCreateByEmail(entity: User): User =
+    override fun readOrCreateByEmail(entity: User): User =
         read(entity.email) ?: create(entity)
 
     override fun update(entity: User): User?{

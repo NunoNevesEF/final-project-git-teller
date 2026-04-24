@@ -1,11 +1,13 @@
 package pt.isel.repository.memory.account
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Repository
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.repository.ILinkedAccountRepository
 import java.util.concurrent.atomic.AtomicInteger
 
 @Repository
+@ConditionalOnProperty(prefix = "app.repository", name = ["mode"], havingValue = "memory", matchIfMissing = true)
 class LinkedAccountRepoMem : ILinkedAccountRepository {
     private val idCounter = AtomicInteger(0)
     private val linkedAccounts = mutableMapOf<Int, LinkedAccount>()
