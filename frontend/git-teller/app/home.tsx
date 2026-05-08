@@ -17,6 +17,8 @@ export default function HomePage() {
     const [usernameRepo, setUsernameRepo] = useState('NunoNevesEF');
     const setResult = useAnalysisStore((state) => state.setResult);
 
+
+
     const buildUrl = (): string => {
         if (searchType === 'url') {
             return text;

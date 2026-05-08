@@ -1,5 +1,4 @@
 package pt.isel.repository.jdbc.account
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
