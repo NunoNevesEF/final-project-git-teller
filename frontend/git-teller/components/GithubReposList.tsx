@@ -47,8 +47,8 @@ export default function GithubReposList({
                     <Text style={commonStyles.repoName}>{item.fullName}</Text>
                     {item.description ? <Text style={commonStyles.repoDesc}>{item.description}</Text> : null}
                     <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <Text style={commonStyles.repoMeta}>⭐ {item.starsCount}</Text>
-                        <Text style={commonStyles.repoMeta}>🍴 {item.forksCount}</Text>
+                        <Text style={commonStyles.repoMeta}> Stars - {item.starsCount}</Text>
+                        <Text style={commonStyles.repoMeta}> Forks - {item.forksCount}</Text>
                         {item.language ? <Text style={commonStyles.repoMeta}>{item.language}</Text> : null}
                     </View>
                 </Pressable>
