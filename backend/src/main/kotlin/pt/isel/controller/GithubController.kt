@@ -36,7 +36,7 @@ class GithubController(
     fun getUserRepositories(authentication: Authentication): ResponseEntity<Any> =
         withAuthenticated(authentication) { githubService.getAuthenticatedUserRepositories(it) }
 
-    @GetMapping("/repos/{owner}/{repo}")
+    /*@GetMapping("/repos/{owner}/{repo}")
     fun getRepository(
         authentication: Authentication,
         @PathVariable owner: String,
@@ -75,6 +75,6 @@ class GithubController(
         @PathVariable repo: String,
         @PathVariable sha: String
     ): ResponseEntity<Any> =
-        withAuthenticated(authentication, 404) { githubService.getCommitDetails(it, owner, repo, sha) }
+        withAuthenticated(authentication, 404) { githubService.getCommitDetails(it, owner, repo, sha) }*/
 }
 

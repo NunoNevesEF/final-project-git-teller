@@ -38,7 +38,7 @@ internal data class GitHubRepositoryDTO(
     )
 }
 
-internal data class GitHubBranchDTO(
+/*internal data class GitHubBranchDTO(
     val name: String,
     val protected: Boolean,
     val commit: GitHubCommitReferenceDTO
@@ -110,4 +110,4 @@ internal data class GitHubCommitFileDTO(
         changes = changes,
         patch = patch
     )
-}
+}*/

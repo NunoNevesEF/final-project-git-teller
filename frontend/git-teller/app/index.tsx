@@ -40,11 +40,7 @@ export default function Index() {
 
     return (
         <View style={commonStyles.root}>
-            <Link href="/login" asChild>
-                <Pressable style={commonStyles.topLeftActionButton}>
-                    <Text style={commonStyles.topLeftActionButtonText}>Log In</Text>
-                </Pressable>
-            </Link>
+
 
             <RepositorySearchForm
                 searchType={searchType}

@@ -167,6 +167,20 @@ export const commonStyles = StyleSheet.create({
         width: '100%',
         flex: 1,
     },
+    analyzeButton: {
+        backgroundColor: '#007AFF',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+    },
+    analyzeButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
+    },
 
 
 });

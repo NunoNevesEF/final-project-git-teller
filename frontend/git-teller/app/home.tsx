@@ -72,9 +72,7 @@ export default function HomePage() {
                 onSubmit={handleSubmit}
             />
 
-            <Pressable style={commonStyles.dangerButton} onPress={signOut}>
-                <Text style={commonStyles.dangerButtonText}>Log out</Text>
-            </Pressable>
+
         </View>
     );
 }

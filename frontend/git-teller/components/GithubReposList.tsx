@@ -8,11 +8,13 @@ export default function GithubReposList({
                                             loading,
                                             error,
                                             onRetry,
+                                            onAnalyze,
                                         }: {
     repos: RepositorySummary[] | null;
     loading: boolean;
     error: string | null;
     onRetry?: () => void;
+    onAnalyze?: (repo: RepositorySummary) => void;
 }) {
     if (loading) return <ActivityIndicator />;
 
@@ -38,20 +40,32 @@ export default function GithubReposList({
             data={repos}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => (
-                <Pressable
-                    onPress={() => {
-                        Linking.openURL(item.htmlUrl).catch(() => {}); // apenas abre no browser por agora
-                    }}
-                    style={[commonStyles.repoItem]}
-                >
-                    <Text style={commonStyles.repoName}>{item.fullName}</Text>
-                    {item.description ? <Text style={commonStyles.repoDesc}>{item.description}</Text> : null}
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <Text style={commonStyles.repoMeta}> Stars - {item.starsCount}</Text>
-                        <Text style={commonStyles.repoMeta}> Forks - {item.forksCount}</Text>
-                        {item.language ? <Text style={commonStyles.repoMeta}>{item.language}</Text> : null}
-                    </View>
-                </Pressable>
+                <View style={commonStyles.repoItem}>
+                    <Pressable
+                        onPress={() => {
+                            Linking.openURL(item.htmlUrl).catch(() => {});
+                        }}
+                    >
+                        <Text style={commonStyles.repoName}>{item.fullName}</Text>
+                        {item.description ? (
+                            <Text style={commonStyles.repoDesc}>{item.description}</Text>
+                        ) : null}
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <Text style={commonStyles.repoMeta}> Stars - {item.starsCount}</Text>
+                            <Text style={commonStyles.repoMeta}> Forks - {item.forksCount}</Text>
+                            {item.language ? (
+                                <Text style={commonStyles.repoMeta}>{item.language}</Text>
+                            ) : null}
+                        </View>
+                    </Pressable>
+
+                    <Pressable
+                        style={commonStyles.analyzeButton}
+                        onPress={() => onAnalyze?.(item)}
+                    >
+                        <Text style={commonStyles.analyzeButtonText}>Analyze</Text>
+                    </Pressable>
+                </View>
             )}
         />
     );

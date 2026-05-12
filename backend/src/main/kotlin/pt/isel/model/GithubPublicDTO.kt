@@ -16,7 +16,7 @@ data class RepositorySummary(
     val updatedAt: Instant
 )
 
-data class BranchSummary(
+/*data class BranchSummary(
     val name: String,
     val protected: Boolean,
     val lastCommitSha: String
@@ -53,4 +53,4 @@ data class CommitFileSummary(
     val deletions: Int,
     val changes: Int,
     val patch: String?
-)
+)*/

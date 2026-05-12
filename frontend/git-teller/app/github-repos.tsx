@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
-import { Link } from 'expo-router';
+import { View, Text } from 'react-native';
+import { useRouter, Redirect } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
-import { Redirect } from 'expo-router';
 import GithubReposList from '@/components/GithubReposList';
 import { getMyGithubRepos, RepositorySummary } from '@/services/GithubService';
+import { analyzeRepo } from '@/services/GitCommunicationService';
+import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { commonStyles } from '@/constants/commonStyles';
 
 export default function GithubReposPage() {
     const { isAuthenticated, loading } = useAuth();
+    const router = useRouter();
+    const setResult = useAnalysisStore((state) => state.setResult);
+
     const [repos, setRepos] = useState<RepositorySummary[] | null>(null);
     const [reposLoading, setReposLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [analyzingId, setAnalyzingId] = useState<number | null>(null);
 
     useEffect(() => {
         loadRepos();
@@ -35,15 +40,26 @@ export default function GithubReposPage() {
         }
     };
 
+    const handleAnalyze = async (repo: RepositorySummary) => {
+        try {
+            setAnalyzingId(repo.id);
+            const result = await analyzeRepo(repo.htmlUrl);
+            setResult(result);
+            router.push('/Info');
+        } catch (err) {
+            console.error('Error analyzing repo:', err);
+        } finally {
+            setAnalyzingId(null);
+        }
+    };
+
     if (loading) return null;
     if (!isAuthenticated) return <Redirect href="/login" />;
 
     return (
-        <View style={[commonStyles.screen]}>
-
-
+        <View style={commonStyles.screen}>
             <Text style={commonStyles.pageTitle}>My Repos</Text>
-            <Text style={commonStyles.pageSubtitle}>GitHub Repositorys</Text>
+            <Text style={commonStyles.pageSubtitle}>GitHub Repositories</Text>
 
             <View style={commonStyles.reposList}>
                 <GithubReposList
@@ -51,8 +67,15 @@ export default function GithubReposPage() {
                     loading={reposLoading}
                     error={error}
                     onRetry={loadRepos}
+                    onAnalyze={handleAnalyze}
                 />
             </View>
+
+            {analyzingId !== null ? (
+                <Text style={{ textAlign: 'center', marginTop: 12 }}>
+                    Analyzing repository...
+                </Text>
+            ) : null}
         </View>
     );
 }

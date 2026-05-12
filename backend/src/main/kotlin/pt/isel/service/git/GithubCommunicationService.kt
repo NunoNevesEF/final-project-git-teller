@@ -91,7 +91,7 @@ class GithubCommunicationService(
             response.body?.map { it.toSummary() } ?: emptyList()
         }
 
-    fun getRepository(
+    /*fun getRepository(
         userId: Int,
         owner: String,
         repo: String
@@ -164,5 +164,5 @@ class GithubCommunicationService(
             val response = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubCommitDetailsDTO::class.java)
             val commit = response.body ?: throw RestClientException("404")
             commit.toSummary()
-        }
+        }*/
 }
