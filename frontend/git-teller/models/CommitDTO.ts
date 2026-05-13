@@ -5,4 +5,6 @@ export interface CommitDTO {
   parentCount: number;
   timestamp: string;
   message: string;
+  additions: number;
+  deletions: number;
 }

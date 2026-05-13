@@ -7,7 +7,11 @@ import pt.isel.repository.ILinkedAccountRepository
 import java.util.concurrent.atomic.AtomicInteger
 
 @Repository
-@ConditionalOnProperty(prefix = "app.repository", name = ["mode"], havingValue = "memory", matchIfMissing = true)
+@ConditionalOnProperty(
+    name = ["app.repository.mode"],
+    havingValue = "memory",
+    matchIfMissing = true
+)
 class LinkedAccountRepoMem : ILinkedAccountRepository {
     private val idCounter = AtomicInteger(0)
     private val linkedAccounts = mutableMapOf<Int, LinkedAccount>()
@@ -24,7 +28,9 @@ class LinkedAccountRepoMem : ILinkedAccountRepository {
             providerAccounts[account.uniqueKey()] = account
         }
 
-    override fun read(id: Int): LinkedAccount? = linkedAccounts[id]
+    override fun findById(id: Int): LinkedAccount? {
+        return linkedAccounts[id]
+    }
 
     override fun readByUser(userId: Int) = usersLinkedAccounts[userId]?.values?.flatMap { it.values }
 

@@ -54,7 +54,7 @@ class LinkedAccountRepoMemTest {
     @Test
     fun `method read returns LinkedAccount by id`(){
         val expected = repo.create(newFormLinkedAccount())
-        val actual = repo.read(expected.id)
+        val actual = repo.findById(expected.id)
         assertEquals(expected, actual)
     }
 

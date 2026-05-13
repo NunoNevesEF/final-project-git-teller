@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "reac
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import OAuthRedirectButton from "../components/OAuthButton";
-import { commonStyles } from "@/constants/commonStyles";
+import { useCommonStyles } from "@/constants/useCommonStyles";
 
 const DEFAULT_API_BASE = "http://localhost:8080";
 const LOGIN_PATH = "/api/public/auth/login";
@@ -20,10 +20,8 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
     const oauthHandledRef = useRef(false);
-
-
+    const commonStyles = useCommonStyles();
 
     // Handle OAuth redirect login if accessToken is present in URL params
     useEffect(() => {
@@ -151,11 +149,11 @@ export default function Login() {
             {errorMessage ? <Text style={commonStyles.errorText}>{errorMessage}</Text> : null}
 
             <Pressable
-                style={[commonStyles.primaryButton, loading && commonStyles.buttonDisabled, commonStyles.fullWidth]}
+                style={[commonStyles.oauthButton, loading && commonStyles.buttonDisabled]}
                 onPress={handleLogin}
                 disabled={loading}
             >
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={commonStyles.primaryButtonText}>Log In</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={commonStyles.oauthButtonText}>Log In</Text>}
             </Pressable>
 
             <OAuthRedirectButton

@@ -17,13 +17,11 @@ import java.util.Base64
 class ReportGenerationController(private val reportGenerationService: ReportGenerationService) {
     @PostMapping("/create")
     fun getGitAnalysis(
-        @RequestBody image: String,
+        @RequestBody image: List<String>,
     ): ResponseEntity<ByteArray> {
-
-
-
-        val imageBytes = Base64.getDecoder().decode(image)
-        val pdf = reportGenerationService.createPdf(imageBytes)
+//        val imageBytes = Base64.getDecoder().decode(image)
+        val imagesBytes = image.map { Base64.getDecoder().decode(it) }
+        val pdf = reportGenerationService.createPdf(imagesBytes)
         // if request is from an authenticated user, we should eventually store the report according to user
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report.pdf")

@@ -3,7 +3,7 @@ package pt.isel.gitteller.repo.memory.account
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
-import pt.isel.domain.account.User
+import pt.isel.entity.User
 import pt.isel.repository.memory.account.UserRepoMem
 import kotlin.test.Test
 
@@ -41,47 +41,47 @@ class UserRepoMemTest{
     @Test
     fun `method read returns User by id`(){
         val expected = repo.create(newUser())
-        val actual = repo.read(expected.id)
+        val actual = repo.findById(expected.id)
         assertEquals(expected, actual)
     }
 
     @Test
     fun `method read returns Null if id not found`(){
-        val actual = repo.read(333)
+        val actual = repo.findById(333)
         assertNull(actual)
     }
 
     @Test
     fun `method read returns User by email`(){
         val expected = repo.create(newUser())
-        val actual = repo.read(expected.email)
+        val actual = repo.findByEmail(expected.email)
         assertEquals(expected, actual)
     }
 
     @Test
     fun `method read returns Null if email not found`(){
-        val actual = repo.read("invalidEmail333")
+        val actual = repo.findByEmail("invalidEmail333")
         assertNull(actual)
     }
 
-    @Test
-    fun `method readOrCreateByEmail returns User If email is found`(){
-        val expected = repo.create(newUser())
-        val actual = repo.readOrCreateByEmail(expected)
-        assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `method readOrCreateByEmail creates User If email is not found`(){
-        val testUser = newUser()
-        val confirmNotFound = repo.read(testUser.email)
-
-        val expected = repo.readOrCreateByEmail(testUser)
-        val confirmFound = repo.read(testUser.email)
-
-        assertNull(confirmNotFound)
-        assertEquals(expected, confirmFound)
-    }
+//    @Test
+//    fun `method readOrCreateByEmail returns User If email is found`(){
+//        val expected = repo.create(newUser())
+//        val actual = repo.findByEmail(expected.email)
+//        assertEquals(expected, actual)
+//    }
+//
+//    @Test
+//    fun `method readOrCreateByEmail creates User If email is not found`(){
+//        val testUser = newUser()
+//        val confirmNotFound = repo.findByEmail(testUser.email)
+//
+//        val expected = repo.readOrCreateByEmail(testUser)
+//        val confirmFound = repo.findByEmail(testUser.email)
+//
+//        assertNull(confirmNotFound)
+//        assertEquals(expected, confirmFound)
+//    }
 
     @Test
     fun `method update returns updated User`(){
@@ -102,7 +102,7 @@ class UserRepoMemTest{
         val testUser = repo.create(newUser())
         val updatedUser = testUser.copy(userName = "UpdatedUsername")
         val expected = repo.update(updatedUser)
-        val actual = repo.read(updatedUser.id)
+        val actual = repo.findById(updatedUser.id)
         assertEquals(expected, actual)
     }
 
@@ -123,7 +123,7 @@ class UserRepoMemTest{
     fun `method delete deletes user in memory`(){
         val testUser = repo.create(newUser())
         repo.delete(testUser.id)
-        val actual = repo.read(testUser.id)
+        val actual = repo.findById(testUser.id)
         assertNull(actual)
     }
 

@@ -9,7 +9,7 @@ import org.mockito.kotlin.whenever
 import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
-import pt.isel.domain.account.User
+import pt.isel.entity.User
 import pt.isel.service.account.AccountService
 import pt.isel.service.account.CreatedNewAccount
 import pt.isel.service.account.AccountTypeMaxedError
@@ -17,6 +17,7 @@ import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.account.LinkedNewProvider
 import pt.isel.service.account.LoggedIntoAccount
 import pt.isel.service.account.PasswordEncodingError
+import pt.isel.service.account.UserNotFound
 import pt.isel.service.account.UserService
 import pt.isel.utils.failure
 import pt.isel.utils.isFailure
@@ -62,7 +63,7 @@ class AccountServiceTest() {
         val testUser = newUser()
         val expected = CreatedNewAccount(testUser)
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(null)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(failure(UserNotFound))
         whenever(userService.create(testUser.email, testUser.userName))
             .thenReturn(success(testUser))
         whenever(linkedAccountService.createFormAccount(testUser.id, validPassword))
@@ -79,7 +80,7 @@ class AccountServiceTest() {
         val testUser = newUser()
         val expected = LinkedNewProvider(testUser)
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.findByUserAndType(testUser.id, AccountType.FORM.type))
             .thenReturn(null)
         whenever(linkedAccountService.createFormAccount(testUser.id, validPassword))
@@ -96,7 +97,7 @@ class AccountServiceTest() {
         val testUser = newUser()
         val expected = LoggedIntoAccount(testUser)
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.findByUserAndType(testUser.id, AccountType.FORM.type))
             .thenReturn(listOf(newFormLinkedAccount()))
 
@@ -110,7 +111,7 @@ class AccountServiceTest() {
     fun `method formSignUp returns PasswordEncodingError from LinkedAccountService layer`(){
         val testUser = newUser()
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.findByUserAndType(testUser.id, AccountType.FORM.type))
             .thenReturn(null)
         whenever(linkedAccountService.createFormAccount(testUser.id, validPassword))
@@ -126,7 +127,7 @@ class AccountServiceTest() {
     fun `method formSignUp returns AccountTypeMaxedError from LinkedAccountService layer`(){
         val testUser = newUser()
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.findByUserAndType(testUser.id, AccountType.FORM.type))
             .thenReturn(null)
         whenever(linkedAccountService.createFormAccount(testUser.id, validPassword))
@@ -143,8 +144,8 @@ class AccountServiceTest() {
         val testUser = newUser()
         val expected = CreatedNewAccount(testUser)
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(null)
-        whenever(userService.create(testUser.email, testUser.userName))
+        whenever(userService.findByEmail(testUser.email)).thenReturn(failure(UserNotFound))
+        whenever(userService.create(testUser.email, null))
             .thenReturn(success(testUser))
         whenever(linkedAccountService.createOAuthAccount(testUser.id, validOAuthProvider, validProviderId))
             .thenReturn(success(newOAuthLinkedAccount()))
@@ -160,7 +161,7 @@ class AccountServiceTest() {
         val testUser = newUser()
         val expected = LinkedNewProvider(testUser)
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.findByUserTypeAndKey(testUser.id, validOAuthProvider, validProviderId))
             .thenReturn(null)
         whenever(linkedAccountService.createOAuthAccount(testUser.id, validOAuthProvider, validProviderId))
@@ -177,7 +178,7 @@ class AccountServiceTest() {
         val testUser = newUser()
         val expected = LoggedIntoAccount(testUser)
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.findByUserTypeAndKey(testUser.id, validOAuthProvider, validProviderId))
             .thenReturn(newOAuthLinkedAccount())
 
@@ -191,7 +192,7 @@ class AccountServiceTest() {
     fun `method oAuthSignUp returns DuplicateAccountTypeError if account type is duplicate`(){
         val testUser = newUser()
 
-        whenever(userService.findByEmail(testUser.email)).thenReturn(testUser)
+        whenever(userService.findByEmail(testUser.email)).thenReturn(success(testUser))
         whenever(linkedAccountService.createOAuthAccount(testUser.id, validOAuthProvider, validProviderId))
             .thenReturn(failure(AccountTypeMaxedError))
 
