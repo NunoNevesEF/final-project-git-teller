@@ -7,6 +7,7 @@ import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { analyzeRepo } from '@/services/GitCommunicationService';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 
+
 export default function HomePage() {
     const { isAuthenticated, username, loading, signOut } = useAuth();
     const router = useRouter();
@@ -17,6 +18,8 @@ export default function HomePage() {
     const [usernameRepo, setUsernameRepo] = useState('NunoNevesEF');
     const setResult = useAnalysisStore((state) => state.setResult);
     const commonStyles = useCommonStyles();
+
+
 
     const buildUrl = (): string => {
         if (searchType === 'url') {
@@ -43,10 +46,18 @@ export default function HomePage() {
     if (loading) return null;
     if (!isAuthenticated) return <Redirect href="/login" />;
 
+
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
             <Text style={commonStyles.pageTitle}>Hello User {username ?? 'User'}</Text>
             <Text style={commonStyles.pageSubtitle}>Search a repository</Text>
+
+            <Pressable
+                style={[commonStyles.primaryButton, commonStyles.fullWidth, { marginTop: 16 }]}
+                onPress={() => router.push('/github-repos')}
+            >
+                <Text style={commonStyles.primaryButtonText}>GitHub Repos</Text>
+            </Pressable>
 
             <RepositorySearchForm
                 searchType={searchType}
@@ -62,9 +73,7 @@ export default function HomePage() {
                 onSubmit={handleSubmit}
             />
 
-            <Pressable style={commonStyles.dangerButton} onPress={signOut}>
-                <Text style={commonStyles.dangerButtonText}>Log out</Text>
-            </Pressable>
+
         </View>
     );
 }

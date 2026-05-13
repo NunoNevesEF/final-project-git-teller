@@ -11,6 +11,7 @@ const API_BASE = DEFAULT_API_BASE;
 
 export default function Login() {
     const { signIn } = useAuth();
+
     const params = useLocalSearchParams<{
         accessToken?: string | string[];
         refreshToken?: string | string[];
@@ -61,6 +62,8 @@ export default function Login() {
                 setLoading(false);
             }
         };
+
+        console.log(accessToken)
 
         finalizeOAuthLogin();
     }, [params.accessToken, params.refreshToken, signIn]);

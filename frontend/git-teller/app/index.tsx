@@ -50,6 +50,7 @@ export default function Index() {
 
     return (
         <View style={commonStyles.root}>
+<<<<<<< HEAD
             <Link href="/login" asChild>
                 <Pressable style={commonStyles.topLeftActionButton}>
                     <Text style={commonStyles.topLeftActionButtonText}>Log In</Text>
@@ -58,6 +59,9 @@ export default function Index() {
             <Pressable onPress={toggleTheme} style={commonStyles.topLeftActionButton}>
                 <Text style={commonStyles.topLeftActionButtonText}>🌙 Theme</Text>
             </Pressable>
+=======
+
+>>>>>>> 09e07b4fc7db063a9f20d1a722211be530fb6886
 
             <RepositorySearchForm
                 searchType={searchType}
