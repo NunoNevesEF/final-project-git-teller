@@ -5,7 +5,7 @@ import { useAuth } from '@/store/AuthProvider';
 import RepositorySearchForm from '@/components/RepositorySearchForm';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { analyzeRepo } from '@/services/GitCommunicationService';
-import { commonStyles } from '@/constants/commonStyles';
+import { useCommonStyles } from '@/constants/useCommonStyles';
 
 
 export default function HomePage() {
@@ -17,6 +17,7 @@ export default function HomePage() {
     const [projectName, setProjectName] = useState('final-project-git-teller');
     const [usernameRepo, setUsernameRepo] = useState('NunoNevesEF');
     const setResult = useAnalysisStore((state) => state.setResult);
+    const commonStyles = useCommonStyles();
 
 
 

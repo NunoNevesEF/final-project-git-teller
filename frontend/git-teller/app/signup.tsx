@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import OAuthRedirectButton from "../components/OAuthButton";
-import { commonStyles } from "@/constants/commonStyles";
+import { useCommonStyles } from "@/constants/useCommonStyles";
 
 const DEFAULT_API_BASE = "http://localhost:8080";
 const SIGNUP_PATH = "/api/public/accounts/signup";
@@ -15,6 +15,7 @@ export default function Signup() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const commonStyles = useCommonStyles();
 
     const handleSubmit = async () => {
         setLoading(true);

@@ -1,8 +1,7 @@
 package pt.isel.repository
 
-import pt.isel.domain.account.User
+import pt.isel.entity.User
 
 interface IUserRepository : IRepository<User> {
-    fun read(email: String): User?
-    fun readOrCreateByEmail(entity: User): User
+    fun findByEmail(email: String): User?
 }

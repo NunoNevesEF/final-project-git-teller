@@ -1,6 +1,6 @@
 package pt.isel.model
 
-import pt.isel.domain.account.User
+import pt.isel.entity.User
 
 data class UserDTO(val id: Int, val email: String, val userName: String){
     companion object {

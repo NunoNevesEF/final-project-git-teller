@@ -21,7 +21,7 @@ class UserController(
     fun read(
         @RequestParam id: Int
     ): ResponseEntity<UserDTO> {
-        return when (val user = userService.read(id)) {
+        return when (val user = userService.findById(id)) {
             is Success -> ResponseEntity.ok(UserDTO.create(user.right))
             is Failure -> ResponseEntity.notFound().build()
         }
@@ -31,7 +31,7 @@ class UserController(
     fun read(
         @RequestParam email: String
     ): ResponseEntity<UserDTO> {
-        return when (val user = userService.read(email)) {
+        return when (val user = userService.findByEmail(email)) {
             is Success -> ResponseEntity.ok(UserDTO.create(user.right))
             is Failure -> ResponseEntity.notFound().build()
         }

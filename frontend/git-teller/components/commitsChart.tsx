@@ -1,14 +1,14 @@
 import React from "react";
-import { Dimensions, View, useColorScheme } from "react-native";
+import { Dimensions, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
-import { Colors, generateColor } from "@/constants/theme";
+import { generateColor } from "@/constants/theme";
+import { useTheme } from "@/constants/themeProvider";
 
 const screenWidth = Dimensions.get("window").width;
 
 export default function CommitsChart({ data }: { data: Record<string, CommitDTO[]> }) {
-  const theme = useColorScheme();
-  const themeColors = Colors[theme ?? "light"];
+  const { colors } = useTheme()
   const groupByDayCumulative = (commits: CommitDTO[], labels: string[]) => {
     const map: Record<string, number> = {};
     let cumulative = 0;
@@ -70,18 +70,18 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
         formatYLabel={(yValue) => Math.round(Number(yValue)).toString()}
         segments={segments}
         chartConfig={{
-          backgroundColor: themeColors.background,
-          backgroundGradientFrom: themeColors.background,
-          backgroundGradientTo: themeColors.background,
-          color: () => themeColors.icon,
-          labelColor: () => themeColors.icon,
+          backgroundColor: colors.backgroundCard,
+          backgroundGradientFrom: colors.backgroundCard,
+          backgroundGradientTo: colors.backgroundCard,
+          color: () => colors.icon,
+          labelColor: () => colors.icon,
           style: {
             borderRadius: 16
           },
           propsForDots: {
             r: "6",
             strokeWidth: "2",
-            stroke: themeColors.tint
+            stroke: colors.tint
           }
         }}
         style={{

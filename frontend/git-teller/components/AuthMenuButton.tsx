@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, Pressable } from 'react-native';
+import { Modal, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
-import { commonStyles } from '@/constants/commonStyles';
+import { useTheme } from '@/constants/themeProvider';
+import { useCommonStyles } from '@/constants/useCommonStyles';
 
 export default function AuthMenuButton() {
     const [visible, setVisible] = useState(false);
     const router = useRouter();
     const { isAuthenticated, loading, signOut } = useAuth();
+    const { toggleTheme } = useTheme();
+    const commonStyles = useCommonStyles();
 
     const closeMenu = () => setVisible(false);
 
@@ -66,7 +69,6 @@ export default function AuthMenuButton() {
                         <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12 }}>
                             Menu
                         </Text>
-
                         {!isAuthenticated ? (
                             <>
                                 <Pressable
@@ -91,6 +93,17 @@ export default function AuthMenuButton() {
                                 <Text style={commonStyles.dangerButtonText}>Log out</Text>
                             </Pressable>
                         )}
+                                                <Pressable
+    style={[commonStyles.primaryButton, { marginBottom: 10 }]}
+    onPress={() => {
+        toggleTheme();
+        closeMenu();
+    }}
+>
+    <Text style={commonStyles.primaryButtonText}>
+        🌙 Toggle Theme
+    </Text>
+</Pressable>
                     </Pressable>
                 </Pressable>
             </Modal>

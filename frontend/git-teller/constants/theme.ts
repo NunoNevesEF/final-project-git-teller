@@ -11,19 +11,21 @@ const tintColorDark = "#fff";
 export const Colors = {
   light: {
     text: "#11181C",
-    background: "#fff",
+    background: "#f9fafb",
     tint: tintColorLight,
     icon: "#687076",
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
+    backgroundCard: "#fefefe",
   },
   dark: {
     text: "#ECEDEE",
-    background: "#151718",
+    background: "#0d141e",
     tint: tintColorDark,
     icon: "#9BA1A6",
     tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
+    backgroundCard: "#0d141e",
   },
 };
 
@@ -54,44 +56,37 @@ export const Fonts = Platform.select({
 });
 
 export const colors = {
-    background: '#f5f5f5',
-    surface: '#ffffff',
-    textPrimary: '#333333',
-    textMuted: '#666666',
-    border: '#dddddd',
-    primary: '#007AFF',
-    primaryText: '#ffffff',
-    neutralButton: '#e8e8e8',
+  background: "#f5f5f5",
+  surface: "#ffffff",
+  textPrimary: "#333333",
+  textMuted: "#666666",
+  border: "#dddddd",
+  primary: "#007AFF",
+  primaryText: "#ffffff",
+  neutralButton: "#e8e8e8",
 };
 
 export const spacing = {
-    xs: 8,
-    sm: 12,
-    md: 16,
-    lg: 20,
-    xl: 30,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 30,
 };
 
 export const radius = {
-    sm: 6,
-    md: 10,
+  sm: 6,
+  md: 10,
 };
 
 export const fontSize = {
-    sm: 12,
-    md: 14,
-    lg: 16,
-    xl: 28,
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 28,
 };
 
-
-
-export const generateColor = (string: string) => {
-  let hash = 0;
-  for (const char of string) {
-    hash = (hash << 5) - hash + char.charCodeAt(0);
-    hash |= 0;
-  }
-  const hue = Math.abs(hash % 300);
+export const generateColor = (str: string) => {
+  const hue = [...str].reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
   return `hsl(${hue}, 55%, 65%)`;
 };

@@ -1,5 +1,5 @@
 import CustomTextInput from '@/components/textInput';
-import { commonStyles } from '@/constants/commonStyles';
+import { useCommonStyles } from '@/constants/useCommonStyles';
 import { View, Button, Text, TouchableOpacity } from 'react-native';
 
 interface RepositorySearchFormProps {
@@ -29,6 +29,7 @@ export default function RepositorySearchForm({
                                                  onUsernameChange,
                                                  onSubmit,
                                              }: RepositorySearchFormProps) {
+    const commonStyles = useCommonStyles();
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
             <Text style={commonStyles.formTitle}>Analyze Repository</Text>
@@ -38,11 +39,13 @@ export default function RepositorySearchForm({
                     label="By URL"
                     active={searchType === 'url'}
                     onPress={() => onSearchTypeChange('url')}
+                    commonStyles={commonStyles}
                 />
                 <OptionButton
                     label="By Project Name"
                     active={searchType === 'project'}
                     onPress={() => onSearchTypeChange('project')}
+                    commonStyles={commonStyles}
                 />
             </View>
 
@@ -61,11 +64,13 @@ export default function RepositorySearchForm({
                             label="GitHub"
                             active={platform === 'github'}
                             onPress={() => onPlatformChange('github')}
+                            commonStyles={commonStyles}
                         />
                         <OptionButton
                             label="GitLab"
                             active={platform === 'gitlab'}
                             onPress={() => onPlatformChange('gitlab')}
+                            commonStyles={commonStyles}
                         />
                     </View>
 
@@ -91,9 +96,10 @@ interface OptionButtonProps {
     label: string;
     active: boolean;
     onPress: () => void;
+    commonStyles: any
 }
 
-function OptionButton({ label, active, onPress }: OptionButtonProps) {
+function OptionButton({ label, active, onPress, commonStyles }: OptionButtonProps) {
     return (
         <TouchableOpacity
             style={[commonStyles.optionButton, active && commonStyles.optionButtonActive]}
