@@ -21,7 +21,7 @@ class ScheduledReportRepoMem(
             scheduledReports[scheduledReport.id] = scheduledReport
         }
 
-    override fun read(id: Int): ScheduledReport? = scheduledReports[id]
+    override fun findById(id: Int): ScheduledReport? = scheduledReports[id]
 
     override fun readScheduledReportsByUser(userId: Int): List<ScheduledReport> =
         scheduledReports.values.filter{ it.userId == userId }

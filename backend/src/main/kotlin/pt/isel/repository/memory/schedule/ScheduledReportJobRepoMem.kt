@@ -1,7 +1,6 @@
 package pt.isel.repository.memory.schedule
 
 import org.springframework.stereotype.Repository
-import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
 import pt.isel.repository.IScheduledReportJobRepository
 import java.util.concurrent.atomic.AtomicInteger
@@ -16,7 +15,7 @@ class ScheduledReportJobRepoMem : IScheduledReportJobRepository {
             scheduledReportJobs[scheduledReportJob.id] = scheduledReportJob
         }
 
-    override fun read(id: Int): ScheduledReportJob? = scheduledReportJobs[id]
+    override fun findById(id: Int): ScheduledReportJob? = scheduledReportJobs[id]
 
     override fun readIncompleteJobs(): List<ScheduledReportJob> =
         scheduledReportJobs.values.filter { !it.state.isComplete }

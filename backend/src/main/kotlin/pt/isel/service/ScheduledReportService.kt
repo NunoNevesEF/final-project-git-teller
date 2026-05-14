@@ -88,7 +88,7 @@ class ScheduledReportService(
     fun calculateNextReport(endedJob: ScheduledReportJob): Either<ScheduledReportServiceError, ScheduledReport> {
         when(val state = endedJob.state){
             is CompletedState -> {
-                val schedule = scheduledReportRepo.read(endedJob.id) ?: return failure(ScheduledReportNotFound)
+                val schedule = scheduledReportRepo.findById(endedJob.id) ?: return failure(ScheduledReportNotFound)
                 val updatedSchedule = schedule.completeCurrentExecution(state.startedAt)
                 return updateSchedule(updatedSchedule)
             }

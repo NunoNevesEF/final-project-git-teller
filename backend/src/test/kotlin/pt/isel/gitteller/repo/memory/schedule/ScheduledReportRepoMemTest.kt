@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
@@ -75,7 +74,7 @@ class ScheduledReportRepoMemTest {
     @Test
     fun `method read returns LinkedAccount by id`(){
         val expected = repo.create(newScheduledReport())
-        val actual = repo.read(expected.id)
+        val actual = repo.findById(expected.id)
         assertEquals(expected, actual)
     }
 
@@ -120,7 +119,7 @@ class ScheduledReportRepoMemTest {
         val actual = repo.update(expected)
 
         assertEquals(expected, actual)
-        assertEquals(expected, repo.read(expected.id))
+        assertEquals(expected, repo.findById(expected.id))
     }
 
     @Test
@@ -134,7 +133,7 @@ class ScheduledReportRepoMemTest {
         val expected = repo.create(newScheduledReport())
         val actual = repo.delete(expected.id)
         assertEquals(expected, actual)
-        assertNull(repo.read(expected.id))
+        assertNull(repo.findById(expected.id))
     }
 
     @Test
