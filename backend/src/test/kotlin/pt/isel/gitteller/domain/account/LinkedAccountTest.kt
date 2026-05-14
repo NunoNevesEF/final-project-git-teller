@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.security.oauth2.core.OAuth2AccessToken
@@ -21,7 +20,7 @@ abstract class LinkedAccountTest<T: LinkedAccount>{
     val validId = 0
     val validUserId = 0
 
-    abstract fun createLinkedAccount(id: Int = 0, userId: Int = 0): T
+    abstract fun createLinkedAccount(id: Int = validId, userId: Int = validUserId): T
 
     @Test
     fun `creation fails if id less than 0`(){
