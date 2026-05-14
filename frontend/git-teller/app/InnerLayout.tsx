@@ -33,6 +33,13 @@ export function InnerLayout() {
                     headerRight: () => <AuthMenuButton />,
                 }}
             />
+            <Stack.Screen
+                name="user-reports"
+                options={{
+                    title: 'My reports',
+                    headerRight: () => <AuthMenuButton />,
+                }}
+            />
         </Stack>
     );
 }

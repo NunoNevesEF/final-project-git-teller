@@ -58,6 +58,12 @@ export default function HomePage() {
             >
                 <Text style={commonStyles.primaryButtonText}>GitHub Repos</Text>
             </Pressable>
+            <Pressable
+                style={[commonStyles.primaryButton, commonStyles.fullWidth, { marginTop: 16 }]}
+                onPress={() => router.push('/user-reports')}
+            >
+                <Text style={commonStyles.primaryButtonText}>My reports</Text>
+            </Pressable>
 
             <RepositorySearchForm
                 searchType={searchType}
