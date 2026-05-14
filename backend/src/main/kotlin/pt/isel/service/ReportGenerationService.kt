@@ -33,15 +33,6 @@ class ReportGenerationService {
             document.add(image)
         }
 
-//        val imageData = ImageDataFactory.create(componentImageBytes)
-//        val image = Image(imageData)
-//
-//        val pageWidth = pdf.defaultPageSize.width - document.leftMargin - document.rightMargin
-//        val scale = pageWidth / image.imageWidth
-//        image.scale(scale, scale)
-//
-//        document.add(image)
-
         document.close()
         return outputStream.toByteArray()
     }
