@@ -138,6 +138,49 @@ export const commonStyles = StyleSheet.create({
         maxWidth: 280,
         alignSelf: 'center',
     },
+    repoItem: {
+        padding: spacing.md,
+        marginBottom: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: '#f3f4f6',
+        borderLeftWidth: 4,
+        borderLeftColor: '#007AFF',
+    },
+    repoName: {
+        fontSize: fontSize.sm,
+        fontWeight: '700',
+        color: colors.textPrimary,
+        marginBottom: spacing.xs,
+    },
+    repoDesc: {
+        fontSize: fontSize.sm,
+        color: colors.textMuted,
+        marginBottom: spacing.sm,
+        lineHeight: 18,
+    },
+    repoMeta: {
+        fontSize: fontSize.sm,
+        color: colors.textMuted,
+        fontWeight: '500',
+    },
+    reposList: {
+        width: '100%',
+        flex: 1,
+    },
+    analyzeButton: {
+        backgroundColor: '#007AFF',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+    },
+    analyzeButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
+    },
 
 
 });

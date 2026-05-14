@@ -1,6 +1,5 @@
 package pt.isel.model
 
-import pt.isel.domain.TokenPair
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount

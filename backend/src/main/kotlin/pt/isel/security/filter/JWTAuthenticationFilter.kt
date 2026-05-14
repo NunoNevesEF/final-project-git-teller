@@ -25,20 +25,33 @@ class JWTAuthenticationFilter(
     ) {
         val authHeader = request.getHeader("Authorization")
 
-        if(authHeader != null && authHeader.startsWith(tokenPrefix)) {
-            val token = authHeader.substring(tokenPrefix.length)
-            val userDetails = userPrincipalService.loadUserByUsername(jwtService.getUsername(token))
-
-            if(SecurityContextHolder.getContext().authentication == null) {
-                if(jwtService.isValidToken(token)) {
-                    val authToken = UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.authorities
-                    )
-                    authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
-                    SecurityContextHolder.getContext().authentication = authToken
-                }
-            }
+        if (authHeader == null || !authHeader.startsWith(tokenPrefix)) {
+            filterChain.doFilter(request, response)
+            return
         }
+
+        val token = authHeader.substring(tokenPrefix.length)
+
+        try {
+            if (SecurityContextHolder.getContext().authentication == null &&
+                jwtService.isValidToken(token)
+            ) {
+                val username = jwtService.getUsername(token)
+                val userDetails = userPrincipalService.loadUserByUsername(username)
+
+                val authToken = UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.authorities
+                )
+
+                authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
+                SecurityContextHolder.getContext().authentication = authToken
+            }
+
+        } catch (ex: Exception) {
+            println(ex.message)
+            SecurityContextHolder.clearContext()
+        }
+
         filterChain.doFilter(request, response)
     }
 }

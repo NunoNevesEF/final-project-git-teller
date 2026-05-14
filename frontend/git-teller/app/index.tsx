@@ -4,19 +4,21 @@ import { analyzeRepo } from '@/services/GitCommunicationService';
 import { Link, useRouter } from 'expo-router';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import RepositorySearchForm from '@/components/RepositorySearchForm';
-import { commonStyles } from '@/constants/commonStyles';
+import { useCommonStyles } from '@/constants/useCommonStyles';
 
 /**
  * Non Authenticated first page that user interacts with
  */
 export default function Index() {
     const router = useRouter();
+    const setInput = useAnalysisStore((state) => state.setInput);
     const [searchType, setSearchType] = useState<'url' | 'project'>('url');
     const [platform, setPlatform] = useState<'github' | 'gitlab'>('github');
     const [text, setText] = useState('https://github.com/NunoNevesEF/final-project-git-teller');
     const [projectName, setProjectName] = useState('final-project-git-teller');
     const [username, setUsername] = useState('NunoNevesEF');
     const setResult = useAnalysisStore((state) => state.setResult);
+    const commonStyles = useCommonStyles();
 
     const buildUrl = (): string => {
         if (searchType === 'url') return text;
@@ -32,6 +34,12 @@ export default function Index() {
             const url = buildUrl();
             const result = await analyzeRepo(url);
             setResult(result);
+            setInput({
+                repositoryUrl: url,
+                repositoryName: projectName,
+                repositoryOwner: username,
+                platform,
+            });
             router.push('/Info');
         } catch (error) {
             console.error('An error has occurred: ', error);

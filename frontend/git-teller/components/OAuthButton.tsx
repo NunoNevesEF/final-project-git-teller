@@ -1,4 +1,5 @@
-import { Pressable, Text, StyleSheet, Linking, Platform } from "react-native";
+import { useCommonStyles } from "@/constants/useCommonStyles";
+import { Pressable, Text, Linking, Platform } from "react-native";
 
 type Props = {
     label: string;
@@ -17,6 +18,7 @@ export default function OAuthRedirectButton({
                                                 disabled,
                                                 onError,
                                             }: Props) {
+    const styles = useCommonStyles();
     const handlePress = async () => {
         const url = `${apiBase}/oauth2/authorization/${provider}`;
         try {
@@ -31,20 +33,12 @@ export default function OAuthRedirectButton({
     };
 
     return (
-        <Pressable style={[styles.button, disabled && styles.disabled]} onPress={handlePress} disabled={disabled}>
-            <Text style={styles.text}>{label}</Text>
+        <Pressable
+            style={[styles.oauthButton, disabled && styles.buttonDisabled]}
+            onPress={handlePress}
+            disabled={disabled}
+        >
+            <Text style={styles.oauthButtonText}>{label}</Text>
         </Pressable>
     );
 }
-
-const styles = StyleSheet.create({
-    button: {
-        padding: 15,
-        borderRadius: 10,
-        alignItems: "center",
-        marginTop: 10,
-        backgroundColor: "#24292e", // GitHub dark
-    },
-    disabled: { opacity: 0.7 },
-    text: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-});

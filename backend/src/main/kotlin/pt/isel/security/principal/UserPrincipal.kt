@@ -4,7 +4,7 @@ import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.oauth2.core.user.OAuth2User
-import pt.isel.domain.account.User
+import pt.isel.entity.User
 
 class UserPrincipal(
     private val user: User,

@@ -5,12 +5,35 @@ const host = debuggerHost?.split(":")[0] ?? "localhost";
 
 export const API_BASE_URL = `http://${host}:8080/api`;
 
-export async function apiGet(path: string) {
-  const res = await fetch(`${API_BASE_URL}/${path}`);
+export async function apiGet(path: string, token?: string | null) {
+  const res = await fetch(`${API_BASE_URL}/${path}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
   if (!res.ok) {
     throw new Error(`GET ${path} falhou com status ${res.status}`);
   }
+
   return res.json();
+}
+
+export async function apiGetBlob(path: string, token?: string | null) {
+  const res = await fetch(`${API_BASE_URL}/${path}`, {
+    method: "GET",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`GET ${path} falhou com status ${res.status}`);
+  }
+
+  return res.blob();
 }
 
 export async function apiPost(path: string, body: object) {
@@ -25,11 +48,18 @@ export async function apiPost(path: string, body: object) {
   return res.json();
 }
 
-export async function apiPostBlob(path: string, body: string) {
+export async function apiPostBlob(
+  path: string,
+  body: string[],
+  token?: string | null,
+) {
   const res = await fetch(`${API_BASE_URL}/${path}`, {
     method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: body,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(`POST ${path} falhou com status ${res.status}`);

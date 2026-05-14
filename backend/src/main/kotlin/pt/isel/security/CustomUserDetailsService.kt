@@ -18,7 +18,7 @@ class CustomUserDetailsService(
     private val linkedAccountService: LinkedAccountService
 ) : UserDetailsService {
     override fun loadUserByUsername(email: String): UserDetails {
-        val user = userService.findByEmail(email) ?: throw UsernameNotFoundException("User not found")
+        val user = userService.findByEmail(email).rightOrNull() ?: throw UsernameNotFoundException("User not found")
         val account = linkedAccountService.readByUserAndType(user.id, AccountType.FORM.type)
         if(account.isFailure()) throw UsernameNotFoundException("User not found")
 

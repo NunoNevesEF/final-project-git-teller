@@ -16,7 +16,8 @@ import kotlin.collections.iterator
 
 data class GitAnalysis(
     val commitsByUser: Map<String, List<CommitDTO>>,
-    val commitsByBranch: Map<String, List<CommitDTO>>,
+//    val commitsByBranch: Map<String, List<CommitDTO>>,
+    val mostModifiedFiles : List<Pair<String, Int>>?,
     val firstCommitTime: Instant,
     val lastCommitTime: Instant,
 ){
@@ -24,13 +25,11 @@ data class GitAnalysis(
         fun create(gitCommunication: GitCommunication): GitAnalysis {
             val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
             return GitAnalysis(
-                gitCommunication.getCommitsByUser().mapValues{ (_, commitList) ->
-                    commitList.map{CommitDTO.create(it)}
-                },
-
-                gitCommunication.getCommitsByBranch().mapValues{ (_, commitList) ->
-                    commitList.map{ CommitDTO.create(it)}
-                },
+                commitsByUser = gitCommunication.getCommitsByUser(),
+//                gitCommunication.getCommitsByBranch().mapValues{ (_, commitList) ->
+//                    commitList.map{ CommitDTO.create(it)}
+//                },
+                mostModifiedFiles = gitCommunication.getMostModifiedFiles(),
                 firstCommitTime,
                 lastCommitTime
             )
@@ -45,16 +44,20 @@ class CommitDTO(
     val parentCount: Int,
     val timestamp: Instant,
     val message: String,
+    val additions: Int,
+    val deletions: Int
 ){
     companion object {
-        fun create(revCommit: RevCommit): CommitDTO {
+        fun create(revCommit: RevCommit, additions: Int, deletions: Int): CommitDTO {
             return CommitDTO(
                 id = revCommit.id.name,
                 name = revCommit.name,
                 author = revCommit.authorIdent.name,
                 parentCount = revCommit.parentCount,
                 timestamp = Instant.ofEpochSecond(revCommit.commitTime.toLong()),
-                message = revCommit.firstMessageLine
+                message = revCommit.firstMessageLine,
+                additions = additions,
+                deletions = deletions
             )
         }
     }
@@ -156,8 +159,95 @@ data class GitCommunication(val git: Git) {
         return branchCommits
     }
 
-    fun getCommitsByUser(): Map<String, List<RevCommit>> {
-        return commits.groupBy{ it.authorIdent.name }
+    fun getCommitsByUser(): Map<String, List<CommitDTO>> {
+
+        return commits
+            .groupBy { it.authorIdent.name }
+            .mapValues { (_, commits) ->
+
+                commits.map { commit ->
+
+                    val (additions, deletions) =
+                        getCommitChanges(commit)
+
+                    CommitDTO(
+                        id = commit.id.name,
+                        name = commit.name,
+                        author = commit.authorIdent.name,
+                        parentCount = commit.parentCount,
+                        timestamp = Instant.ofEpochSecond(commit.commitTime.toLong()),
+                        message = commit.firstMessageLine,
+                        additions = additions,
+                        deletions = deletions
+                    )
+                }
+            }
+    }
+
+    private fun getCommitChanges(commit: RevCommit): Pair<Int, Int> {
+        if (commit.parentCount == 0) {
+            return Pair(0, 0)
+        }
+
+        val parent = commit.getParent(0)
+
+        val diffs = git.diff()
+            .setOldTree(getTreeParser(parent))
+            .setNewTree(getTreeParser(commit))
+            .call()
+
+        var additions = 0
+        var deletions = 0
+
+        val diffFormatter = DiffFormatter(ByteArrayOutputStream())
+        diffFormatter.setRepository(git.repository)
+
+        for (diff in diffs) {
+
+            val edits = diffFormatter
+                .toFileHeader(diff)
+                .toEditList()
+
+            for (edit in edits) {
+
+                additions += edit.endB - edit.beginB
+                deletions += edit.endA - edit.beginA
+            }
+        }
+        return Pair(additions, deletions)
+    }
+
+    fun getMostModifiedFiles(): List<Pair<String, Int>>? {
+        val fileFrequency = mutableMapOf<String, Int>()
+
+        for ( commit in commits) {
+            if (commit.parentCount == 0) continue
+
+            val parent = commit.getParent(0)
+
+            val diffs = git.diff()
+                .setOldTree(getTreeParser(parent))
+                .setNewTree(getTreeParser(commit))
+                .call()
+
+            for (diff in diffs) {
+
+                val path =
+                    if (diff.newPath != "/dev/null")
+                        diff.newPath
+                    else
+                        diff.oldPath
+
+                if (path == "/dev/null") continue
+
+                fileFrequency[path] =
+                    (fileFrequency[path] ?: 0) + 1
+            }
+        }
+        return fileFrequency.entries
+            .sortedByDescending { it.value }
+            .take(10)
+            .map { Pair(it.key, it.value) };
     }
 
     fun getFirstAndLastCommitDate(): Pair<Instant, Instant> {

@@ -40,7 +40,7 @@ class LinkedAccountService(
     }
 
     fun read(id: Int): Either<AccountNotFoundError, LinkedAccount> =
-        linkedAccountRepo.read(id).toEither { AccountNotFoundError }
+        linkedAccountRepo.findById(id).toEither { AccountNotFoundError }
 
     fun readByUser(userId: Int): Either<UserAccountsNotFoundError, List<LinkedAccount>> =
         linkedAccountRepo.readByUser(userId).toEither { UserAccountsNotFoundError }

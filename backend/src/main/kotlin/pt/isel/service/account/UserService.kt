@@ -1,7 +1,8 @@
 package pt.isel.service.account
 
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.User
+import pt.isel.entity.User
 import pt.isel.repository.IUserRepository
 import pt.isel.utils.Either
 import pt.isel.utils.failure
@@ -24,25 +25,22 @@ object AuthenticationFailure : UserServiceError()
  * **/
 @Service
 class UserService(private val userRepo: IUserRepository) {
-    fun create(email: String, userName: String? = null): Either<EmailAlreadyExists, User> {
-        if (userRepo.read(email) != null) return failure(EmailAlreadyExists)
-        val user =  User.create(email = email, userName = userName)
-        return success(userRepo.create(user))
+    fun create(email: String, userName: String? = null): Either<UserServiceError, User> {
+        if (userRepo.findByEmail(email) != null) return failure(EmailAlreadyExists)
+        return success(userRepo.create(User(email = email, userName = userName)))
     }
 
-    fun read(id: Int): Either<UserNotFound, User> = userRepo.read(id).toEither { UserNotFound }
+    fun findById(id: Int): Either<UserNotFound, User> = userRepo.findById(id).toEither{ UserNotFound }
 
-    fun read(email: String): Either<UserNotFound, User> = findByEmail(email).toEither { UserNotFound }
+    fun findByEmail(email: String): Either<UserNotFound, User> = userRepo.findByEmail(email).toEither { UserNotFound }
 
     fun update(id: Int, newUsername: String): Either<UserNotFound, User> {
-        val oldUser = userRepo.read(id) ?: return failure(UserNotFound)
+        val oldUser = userRepo.findById(id) ?: return failure(UserNotFound)
         val updatedUser = oldUser.copy(userName = newUsername)
         return success(userRepo.update(updatedUser)!!)
     }
 
     fun delete(id: Int): Either<UserNotFound, User> = userRepo.delete(id).toEither { UserNotFound }
-
-    fun findByEmail(email: String): User? = userRepo.read(email)
 }
 
 

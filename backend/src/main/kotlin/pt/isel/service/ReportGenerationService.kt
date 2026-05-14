@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service
 @Service
 class ReportGenerationService {
 
-    fun createPdf(componentImageBytes: ByteArray): ByteArray {
+    fun createPdf(componentsImageBytes: List<ByteArray>): ByteArray {
         val outputStream = ByteArrayOutputStream()
 
         val writer = PdfWriter(outputStream)
@@ -22,14 +22,16 @@ class ReportGenerationService {
         document.add(Paragraph("Git Analysis Report").setBold().setFontSize(18f))
         document.add(Paragraph("\n"))
 
-        val imageData = ImageDataFactory.create(componentImageBytes)
-        val image = Image(imageData)
-
         val pageWidth = pdf.defaultPageSize.width - document.leftMargin - document.rightMargin
-        val scale = pageWidth / image.imageWidth
-        image.scale(scale, scale)
 
-        document.add(image)
+        componentsImageBytes.forEach { componentBytes ->
+            val imageData = ImageDataFactory.create(componentBytes);
+            val image = Image(imageData)
+            val scale = pageWidth / image.imageWidth
+            image.scale(scale, scale)
+            image.scale(scale, scale)
+            document.add(image)
+        }
 
         document.close()
         return outputStream.toByteArray()
