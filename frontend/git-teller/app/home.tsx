@@ -10,6 +10,7 @@ import { useCommonStyles } from '@/constants/useCommonStyles';
 
 export default function HomePage() {
     const { isAuthenticated, username, loading, signOut } = useAuth();
+    const setInput = useAnalysisStore((state) => state.setInput);
     const router = useRouter();
     const [searchType, setSearchType] = useState<'url' | 'project'>('url');
     const [platform, setPlatform] = useState<'github' | 'gitlab'>('github');
@@ -36,6 +37,12 @@ export default function HomePage() {
                 const url = buildUrl();
                 const result = await analyzeRepo(url);
                 setResult(result);
+                setInput({
+                    repositoryUrl: url,
+                    repositoryName: projectName,
+                    repositoryOwner: usernameRepo,
+                    platform,
+                });
                 router.push('/Info');
             } catch (error) {
                 console.error('An error has occurred: ', error);
