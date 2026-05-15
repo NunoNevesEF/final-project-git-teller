@@ -36,6 +36,10 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
 
   const labels = Array.from(allDaysSet).sort();
 
+  const visibleLabels = labels.map((label, index) => {
+    return index % 2 === 0 ? label : "";
+  });
+
   const datasets = Object.entries(data).map(
     ([user, commits]) => {
       const grouped = groupByDayCumulative(commits, labels);
@@ -61,7 +65,7 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
     <View>
       <LineChart
         data={{
-          labels,
+          labels : visibleLabels,
           datasets,
           legend: users
         }}

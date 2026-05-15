@@ -87,10 +87,10 @@ export default function AuthMenuButton() {
                             </>
                         ) : (
                             <Pressable
-                                style={commonStyles.dangerButton}
+                                style={commonStyles.primaryButton }
                                 onPress={handleLogout}
                             >
-                                <Text style={commonStyles.dangerButtonText}>Log out</Text>
+                                <Text style={commonStyles.primaryButtonText}>Log out</Text>
                             </Pressable>
                         )}
                                                 <Pressable
