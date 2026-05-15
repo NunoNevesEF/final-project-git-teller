@@ -9,9 +9,9 @@ const screenWidth = Dimensions.get("window").width;
 
 export default function DeletionsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
-  const totaldeletions = Object.values(data)
-  .flat()
-  .reduce((sum, commit) => sum + commit.deletions, 0);
+  const totaldeletions = Object.values(data).flat().reduce((sum, commit) => sum + commit.deletions, 0);
+  const shortUser = (user: string) => user.length > 18 ? user.slice(0, 18) + "…" : user;
+
 
   const sortedEntries = Object.entries(data)
     .map(([user, commits]) => {
@@ -23,7 +23,7 @@ export default function DeletionsChangesChart({ data }: { data: Record<string, C
   const percent = ((deletions / totaldeletions) * 100).toFixed(0);
 
   return {
-      name: `\u00A0\u00A0${user}\u00A0\u00A0(${percent}%)`,
+      name: `\u00A0\u00A0${shortUser(user)}\u00A0\u00A0(${percent}%)`,
       population: deletions,
       color: generateColor(user),
       legendFontColor: colors.text,

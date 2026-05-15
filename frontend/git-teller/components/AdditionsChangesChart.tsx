@@ -9,9 +9,9 @@ const screenWidth = Dimensions.get("window").width;
 
 export default function AdditionsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
-  const totalAdditions = Object.values(data)
-  .flat()
-  .reduce((sum, commit) => sum + commit.additions, 0);
+  const totalAdditions = Object.values(data).flat().reduce((sum, commit) => sum + commit.additions, 0);
+
+  const shortUser = (user: string) => user.length > 18 ? user.slice(0, 18) + "…" : user;
 
   const sortedEntries = Object.entries(data)
     .map(([user, commits]) => {
@@ -23,7 +23,7 @@ export default function AdditionsChangesChart({ data }: { data: Record<string, C
   const percent = ((additions / totalAdditions) * 100).toFixed(0);
 
   return {
-    name: `\u00A0\u00A0${user}\u00A0\u00A0(${percent}%)`,
+    name: `\u00A0\u00A0${shortUser(user)}\u00A0\u00A0(${percent}%)`,
     population: additions,
     color: generateColor(user),
     legendFontColor: colors.text,
