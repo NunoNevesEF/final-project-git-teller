@@ -181,6 +181,28 @@ export const commonStyles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 8,
+        color: colors.textPrimary,
+    },
+    secondaryButton: {
+        backgroundColor: 'transparent',
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+    },
+    secondaryButtonText: {
+        color: colors.textPrimary,
+        fontWeight: '600',
+        fontSize: 14,
+    },
 
 
 });

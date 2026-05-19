@@ -16,13 +16,15 @@ import pt.isel.domain.account.AccountType
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.auth.JwtService
+import pt.isel.service.git.GitHubInstallationLinkService
 import tools.jackson.databind.ObjectMapper
 
 @Component
 class CustomOAuth2AuthenticationSuccessHandler(
     private val jwtService: JwtService,
     private val authorizedClientService: OAuth2AuthorizedClientService,
-    private val linkedAccountService: LinkedAccountService
+    private val linkedAccountService: LinkedAccountService,
+    private val githubInstallationLinkService: GitHubInstallationLinkService
 ) : AuthenticationSuccessHandler {
     override fun onAuthenticationSuccess(
         request: HttpServletRequest,
@@ -46,6 +48,18 @@ class CustomOAuth2AuthenticationSuccessHandler(
             accessToken = client.accessToken,
             refreshToken = client.refreshToken
         )
+
+        if (registrationId == AccountType.GITHUB.type) {
+            val githubToken = client.accessToken?.tokenValue
+            if (!githubToken.isNullOrBlank()) {
+                runCatching {
+                    githubInstallationLinkService.discoverAndAutoLink(
+                        userId = principal.getUserId(),
+                        userOAuthToken = githubToken
+                    )
+                }
+            }
+        }
 
         val tokenPair = jwtService.generateTokenPair(authentication)
 

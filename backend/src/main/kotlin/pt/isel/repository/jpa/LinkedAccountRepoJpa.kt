@@ -14,4 +14,9 @@ interface LinkedAccountRepoJpa : JpaRepository<LinkedAccountEntity, Int> {
         type: String,
         providerId: String?
     ): LinkedAccountEntity?
+
+    fun findFirstByTypeAndProviderId(
+        type: String,
+        providerId: String?
+    ): LinkedAccountEntity?
 }

@@ -9,11 +9,15 @@ import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
 import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.OAuthLinkedAccount
+import pt.isel.model.GitHubEmailDTO
+import pt.isel.model.GitHubRepositoryDTO
+import pt.isel.model.RepositorySummary
 import pt.isel.repository.ILinkedAccountRepository
+import pt.isel.repository.jpa.GithubInstallationRepoJpa
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
-import pt.isel.model.*
+import tools.jackson.databind.ObjectMapper
 
 sealed class GithubCommunicationServiceError
 object PrimaryEmailNotFoundError : GithubCommunicationServiceError()
@@ -22,36 +26,44 @@ object InvalidTokenError : GithubCommunicationServiceError()
 object RateLimitError : GithubCommunicationServiceError()
 object NetworkError : GithubCommunicationServiceError()
 
-
-// SUGESTãO Para o Futuro -> reduzir a quantidade de restTemplate, headers e entity repetidos, criando funções auxiliares para isso
 @Service
 class GithubCommunicationService(
-    private val linkedAccountRepo: ILinkedAccountRepository
+    private val linkedAccountRepo: ILinkedAccountRepository,
+    private val githubInstallationRepo: GithubInstallationRepoJpa,
+    private val gitHubAppService: GitHubAppService
 ) {
+    private val objectMapper = ObjectMapper()
+
     private fun createHeaders(accessToken: String): HttpHeaders = HttpHeaders().apply {
         setBearerAuth(accessToken)
-        accept = listOf(MediaType.APPLICATION_JSON)
+        set("Accept", "application/vnd.github+json")
     }
 
-    private fun getTokenOrNull(userId: Int): String? =
+    private fun getOAuthTokenOrNull(userId: Int): String? =
         linkedAccountRepo.readByUserAndType(userId, AccountType.GITHUB.type)
             ?.filterIsInstance<OAuthLinkedAccount>()
-            ?.firstOrNull()
+            ?.firstOrNull { it.accessToken != null }
             ?.accessToken
             ?.tokenValue
 
-    private fun <T> callGitHub(userId: Int, block: (String) -> T): Either<GithubCommunicationServiceError, T> {
-        return try {
-            val token = getTokenOrNull(userId) ?: return failure(InvalidTokenError)
-            val result = block(token)
-            success(result)
-        } catch (e: RestClientException) {
-            when {
-                e.message?.contains("401") == true || e.message?.contains("403") == true -> failure(InvalidTokenError)
-                e.message?.contains("404") == true -> failure(RepositoryNotFoundError)
-                e.message?.contains("rate limit") == true || e.message?.contains("rate_limit") == true -> failure(RateLimitError)
-                else -> failure(NetworkError)
-            }
+    private fun parseRepositoryList(body: String?, repositoriesField: String? = null): List<RepositorySummary> {
+        if (body.isNullOrBlank()) return emptyList()
+
+        val root = objectMapper.readTree(body)
+
+        val nodes = if (repositoriesField == null) {
+            if (!root.isArray) return emptyList()
+            root
+        } else {
+            val nested = root[repositoriesField] ?: return emptyList()
+            if (!nested.isArray) return emptyList()
+            nested
+        }
+
+        return nodes.mapNotNull { node ->
+            runCatching {
+                objectMapper.treeToValue(node, GitHubRepositoryDTO::class.java).toSummary()
+            }.getOrNull()
         }
     }
 
@@ -72,7 +84,7 @@ class GithubCommunicationService(
             )
             val emails = response.body ?: return null
             emails.firstOrNull { it.primary }?.email
-        } catch (e: RestClientException) {
+        } catch (_: RestClientException) {
             null
         }
     }
@@ -81,88 +93,67 @@ class GithubCommunicationService(
         userId: Int,
         page: Int = 1,
         perPage: Int = 30
-    ): Either<GithubCommunicationServiceError, List<RepositorySummary>> =
-        callGitHub(userId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
-            val url = "https://api.github.com/user/repos?page=$page&per_page=$perPage&sort=updated&direction=desc"
-            val response = restTemplate.exchange(url, HttpMethod.GET, entity, Array<GitHubRepositoryDTO>::class.java)
-            response.body?.map { it.toSummary() } ?: emptyList()
-        }
+    ): Either<GithubCommunicationServiceError, List<RepositorySummary>> {
+        val restTemplate = RestTemplate()
 
-    /*fun getRepository(
-        userId: Int,
-        owner: String,
-        repo: String
-    ): Either<GithubCommunicationServiceError, RepositorySummary> =
-        callGitHub(userId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
-            val url = "https://api.github.com/repos/$owner/$repo"
-            val response = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubRepositoryDTO::class.java)
-            response.body?.toSummary() ?: throw RestClientException("404")
-        }
+        return try {
+            val installationRecords = githubInstallationRepo.findByUserId(userId)
 
-    fun getRepositoryBranches(
-        userId: Int,
-        owner: String,
-        repo: String,
-        page: Int = 1
-    ): Either<GithubCommunicationServiceError, List<BranchSummary>> =
-        callGitHub(userId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
-            val url = "https://api.github.com/repos/$owner/$repo/branches?page=$page&per_page=100"
-            val response = restTemplate.exchange(url, HttpMethod.GET, entity, Array<GitHubBranchDTO>::class.java)
-            response.body?.map { it.toSummary() } ?: emptyList()
-        }
+            if (installationRecords.isNotEmpty()) {
+                val repos = mutableListOf<RepositorySummary>()
+                var anySuccessfulRequest = false
 
-    fun getRepositoryCommits(
-        userId: Int,
-        owner: String,
-        repo: String,
-        page: Int = 1
-    ): Either<GithubCommunicationServiceError, List<CommitSummary>> =
-        callGitHub(userId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
-            val url = "https://api.github.com/repos/$owner/$repo/commits?page=$page&per_page=30"
-            val response = restTemplate.exchange(url, HttpMethod.GET, entity, Array<GitHubCommitDTO>::class.java)
-            response.body?.map { it.toSummary() } ?: emptyList()
-        }
+                installationRecords.forEach { installation ->
+                    val result = runCatching {
+                        val token = gitHubAppService.getInstallationToken(installation.installationId)
+                        val headers = createHeaders(token)
+                        val entity = HttpEntity<Unit>(headers)
 
-    fun getRepositoryLanguages(
-        userId: Int,
-        owner: String,
-        repo: String
-    ): Either<GithubCommunicationServiceError, LanguagesSummary> =
-        callGitHub(userId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
-            val url = "https://api.github.com/repos/$owner/$repo/languages"
-            val response = restTemplate.exchange(url, HttpMethod.GET, entity, Map::class.java)
-            val languages = (response.body as? Map<String, Int>) ?: emptyMap()
-            LanguagesSummary(languages)
-        }
+                        val response = restTemplate.exchange(
+                            "https://api.github.com/installation/repositories?page=$page&per_page=$perPage",
+                            HttpMethod.GET,
+                            entity,
+                            String::class.java
+                        )
 
-    fun getCommitDetails(
-        userId: Int,
-        owner: String,
-        repo: String,
-        sha: String
-    ): Either<GithubCommunicationServiceError, CommitDetailsSummary> =
-        callGitHub(userId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
-            val url = "https://api.github.com/repos/$owner/$repo/commits/$sha"
-            val response = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubCommitDetailsDTO::class.java)
-            val commit = response.body ?: throw RestClientException("404")
-            commit.toSummary()
-        }*/
+                        parseRepositoryList(response.body, "repositories")
+                    }
+
+                    if (result.isSuccess) {
+                        anySuccessfulRequest = true
+                        repos += result.getOrThrow()
+                    }
+                }
+
+                if (anySuccessfulRequest) {
+                    success(repos.distinctBy { it.fullName })
+                } else {
+                    failure(InvalidTokenError)
+                }
+            } else {
+                val token = getOAuthTokenOrNull(userId) ?: return failure(InvalidTokenError)
+
+                val headers = createHeaders(token)
+                val entity = HttpEntity<Unit>(headers)
+
+                val response = restTemplate.exchange(
+                    "https://api.github.com/user/repos?page=$page&per_page=$perPage&sort=updated&direction=desc",
+                    HttpMethod.GET,
+                    entity,
+                    String::class.java
+                )
+
+                success(parseRepositoryList(response.body))
+            }
+        } catch (e: RestClientException) {
+            when {
+                e.message?.contains("401") == true || e.message?.contains("403") == true -> failure(InvalidTokenError)
+                e.message?.contains("404") == true -> failure(RepositoryNotFoundError)
+                e.message?.contains("rate limit") == true || e.message?.contains("rate_limit") == true -> failure(RateLimitError)
+                else -> failure(NetworkError)
+            }
+        } catch (_: Exception) {
+            failure(NetworkError)
+        }
+    }
 }

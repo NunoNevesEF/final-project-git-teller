@@ -15,15 +15,15 @@ import java.util.concurrent.atomic.AtomicInteger
 class LinkedAccountRepoMem : ILinkedAccountRepository {
     private val idCounter = AtomicInteger(0)
     private val linkedAccounts = mutableMapOf<Int, LinkedAccount>()
-    private val usersLinkedAccounts = //UserId -> Provider -> Key -> Account
+    private val usersLinkedAccounts =
         mutableMapOf<Int, MutableMap<String, MutableMap<String?, LinkedAccount>>>()
 
     override fun create(entity: LinkedAccount): LinkedAccount =
-        entity.accountCopy(id = nextId()).also{ account ->
+        entity.accountCopy(id = nextId()).also { account ->
             linkedAccounts[account.id] = account
 
-            val userAccounts = usersLinkedAccounts.getOrPut(account.userId){ mutableMapOf() }
-            val providerAccounts = userAccounts.getOrPut(account.getType().type){ mutableMapOf() }
+            val userAccounts = usersLinkedAccounts.getOrPut(account.userId) { mutableMapOf() }
+            val providerAccounts = userAccounts.getOrPut(account.getType().type) { mutableMapOf() }
 
             providerAccounts[account.uniqueKey()] = account
         }
@@ -39,6 +39,9 @@ class LinkedAccountRepoMem : ILinkedAccountRepository {
 
     override fun readByUserTypeAndKey(userId: Int, type: String, key: String?) =
         usersLinkedAccounts[userId]?.get(type)?.get(key)
+
+    override fun readByTypeAndKey(type: String, key: String?): LinkedAccount? =
+        linkedAccounts.values.firstOrNull { it.getType().type == type && it.uniqueKey() == key }
 
     override fun update(entity: LinkedAccount): LinkedAccount? {
         linkedAccounts[entity.id] ?: return null

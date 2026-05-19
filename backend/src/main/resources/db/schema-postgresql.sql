@@ -19,3 +19,18 @@ CREATE TABLE IF NOT EXISTS linked_accounts (
         OR (type <> 'form')
     )
 );
+
+
+CREATE TABLE IF NOT EXISTS github_installations (
+                                                    id SERIAL PRIMARY KEY,
+                                                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                                                    installation_id BIGINT NOT NULL UNIQUE,
+                                                    account_login VARCHAR(255),
+                                                    installed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_github_installations_user_id
+    ON github_installations(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_github_installations_installation_id
+    ON github_installations(installation_id);

@@ -46,6 +46,9 @@ class LinkedAccountRepoAdapter(private val jpa: LinkedAccountRepoJpa) : ILinkedA
         jpa.findByUserIdAndTypeAndProviderId(userId, type, key)
             ?.toDomain()
 
+    override fun readByTypeAndKey(type: String, key: String?): LinkedAccount? =
+        jpa.findFirstByTypeAndProviderId(type, key)?.toDomain()
+
     override fun deleteByUserTypeAndKey(userId: Int, type: String, key: String?): LinkedAccount? {
         val existing = jpa.findByUserIdAndTypeAndProviderId(userId, type, key)?.toDomain() ?: return null
         jpa.deleteById(existing.id)

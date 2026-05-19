@@ -7,6 +7,7 @@ import { getMyGithubRepos, RepositorySummary } from '@/services/GithubService';
 import { analyzeRepo } from '@/services/GitCommunicationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { commonStyles } from '@/constants/commonStyles';
+import InstallGitHubApp from '@/components/InstallGithubApp';
 
 export default function GithubReposPage() {
     const { isAuthenticated, loading } = useAuth();
@@ -60,6 +61,8 @@ export default function GithubReposPage() {
         <View style={commonStyles.screen}>
             <Text style={commonStyles.pageTitle}>My Repos</Text>
             <Text style={commonStyles.pageSubtitle}>GitHub Repositories</Text>
+
+            <InstallGitHubApp />
 
             <View style={commonStyles.reposList}>
                 <GithubReposList
