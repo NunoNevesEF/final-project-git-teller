@@ -16,6 +16,7 @@ import MostModifiedFiles from '@/components/MostModifiedFiles';
 import GitInputInfo from '@/components/GitInputInfo';
 import ChartCard from '@/components/ChartCard';
 import { chartDescriptions } from '@/constants/chartDescriptions';
+import HeatMpaCommits from '@/components/HeatMapCommits';
 
 export default function Info() {
   const result = useAnalysisStore((state) => state.result);
@@ -157,6 +158,11 @@ export default function Info() {
             </View>
           </ChartCard> 
         </View>
+      </View>
+      <View ref={commitsChartRef} collapsable={false}>
+        <ChartCard title="HeatMap commits of collaborators" description={chartDescriptions.heatMapCommits}>
+          <HeatMpaCommits data={result.commitsByUser} />
+        </ChartCard>
       </View>
       <View ref={commitsChartRef} collapsable={false}>
         <ChartCard title="Commits by user over time" description={chartDescriptions.commitsOverTime}>

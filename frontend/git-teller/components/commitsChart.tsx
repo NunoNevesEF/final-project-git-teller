@@ -84,8 +84,8 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
           },
           propsForDots: {
             r: "6",
-            strokeWidth: "2",
-            stroke: colors.tint
+            strokeWidth: "1",
+            stroke: colors.text
           }
         }}
         style={{
