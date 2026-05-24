@@ -88,5 +88,5 @@ export const fontSize = {
 
 export const generateColor = (str: string) => {
   const hue = [...str].reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
-  return `hsl(${hue}, 55%, 65%)`;
+  return `hsl(${hue}, 75%, 55%)`;
 };

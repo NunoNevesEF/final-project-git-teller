@@ -9,6 +9,7 @@ import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.treewalk.AbstractTreeIterator
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
+import pt.isel.model.ModifiedFiles
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
@@ -17,7 +18,7 @@ import kotlin.collections.iterator
 data class GitAnalysis(
     val commitsByUser: Map<String, List<CommitDTO>>,
 //    val commitsByBranch: Map<String, List<CommitDTO>>,
-    val mostModifiedFiles : List<Pair<String, Int>>?,
+    val mostModifiedFiles : List<ModifiedFiles>?,
     val firstCommitTime: Instant,
     val lastCommitTime: Instant,
 ){
@@ -83,6 +84,7 @@ data class GitCommunication(val git: Git) {
             return Git.cloneRepository()
                 .setURI(repoURI)
                 .setDirectory(repoPathFile)
+                .setBare(true)
                 .call()
         }
 
@@ -217,12 +219,11 @@ data class GitCommunication(val git: Git) {
         return Pair(additions, deletions)
     }
 
-    fun getMostModifiedFiles(): List<Pair<String, Int>>? {
-        val fileFrequency = mutableMapOf<String, Int>()
+    fun getMostModifiedFiles(): List<ModifiedFiles> {
+        val fileStats = mutableMapOf<String, Pair<Int, Long>>()
 
-        for ( commit in commits) {
+        for (commit in commits) {
             if (commit.parentCount == 0) continue
-
             val parent = commit.getParent(0)
 
             val diffs = git.diff()
@@ -230,24 +231,33 @@ data class GitCommunication(val git: Git) {
                 .setNewTree(getTreeParser(commit))
                 .call()
 
+            val commitTime = commit.commitTime.toLong()
             for (diff in diffs) {
-
-                val path =
-                    if (diff.newPath != "/dev/null")
-                        diff.newPath
-                    else
-                        diff.oldPath
-
+                val path = if (diff.newPath != "/dev/null")
+                    diff.newPath
+                else
+                    diff.oldPath
                 if (path == "/dev/null") continue
+                val (currentChanges, currentLast) =
+                    fileStats[path] ?: (0 to 0L)
+                val updatedChanges = currentChanges + 1
+                val updatedLast = maxOf(currentLast, commitTime)
 
-                fileFrequency[path] =
-                    (fileFrequency[path] ?: 0) + 1
+                fileStats[path] = updatedChanges to updatedLast
             }
         }
-        return fileFrequency.entries
-            .sortedByDescending { it.value }
+
+        return fileStats.entries
+            .sortedByDescending { it.value.first }
             .take(10)
-            .map { Pair(it.key, it.value) };
+            .map { (path, data) ->
+                ModifiedFiles(
+                    path = path,
+                    changes = data.first,
+                    lastModified = data.second,
+                    extension = path.substringAfterLast('.', "")
+                )
+            }
     }
 
     fun getFirstAndLastCommitDate(): Pair<Instant, Instant> {

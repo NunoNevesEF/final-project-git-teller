@@ -1,4 +1,6 @@
 export interface ModifiedFile {
-  first: string;
-  second: number;
+  path: string;
+  changes: number;
+  lastModified: number;
+  extension: string;
 }
