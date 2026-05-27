@@ -1,6 +1,6 @@
 import { createReport } from '@/services/ReportGenerationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
-import { View, ScrollView, Button, Platform } from 'react-native';
+import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
 import CommitsChart from "@/components/commitsChart";
 import { useRef } from 'react';
 import { captureRef } from 'react-native-view-shot';
@@ -17,11 +17,18 @@ import GitInputInfo from '@/components/GitInputInfo';
 import ChartCard from '@/components/ChartCard';
 import { chartDescriptions } from '@/constants/chartDescriptions';
 import HeatMpaCommits from '@/components/HeatMapCommits';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/store/AuthProvider';
+import { useTheme } from '@/constants/themeProvider';
 
 export default function Info() {
+  const router = useRouter();
+  const { colors } = useTheme()
+  const { isAuthenticated } = useAuth();
   const result = useAnalysisStore((state) => state.result);
   const input = useAnalysisStore((state) => state.input);
   const gitInputInfoRef = useRef(null);
+  const heatMapCharRef = useRef(null);
   const commitsChartRef = useRef(null);
   const commitsBarRef = useRef(null);
   const commitsPieRef = useRef(null);
@@ -32,6 +39,7 @@ export default function Info() {
 
   const refs = [
     gitInputInfoRef,
+    heatMapCharRef,
     commitsChartRef,
     commitsBarRef,
     commitsPieRef,
@@ -116,8 +124,21 @@ export default function Info() {
     }
   };
 
+  const back = () => {
+    if (isAuthenticated) {
+      router.push("/(app)/home");
+    } else {
+      router.push("/search");
+    }
+  };
+
   return (
     <ScrollView style={{ flex: 1, padding: 20}} contentContainerStyle={{ paddingBottom: 120 }}>
+      <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom : 20 }}>
+        <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
+          ← Back to search
+        </Text>
+      </Pressable>
       <View style={{flexDirection: "row",gap:12}} ref={gitInputInfoRef}>
         <View style={{ flex: 1 }}>
           <ChartCard title="Repository Information" description="" showToolTip={false} icon="folder-outline">
@@ -159,7 +180,7 @@ export default function Info() {
           </ChartCard> 
         </View>
       </View>
-      <View ref={commitsChartRef} collapsable={false}>
+      <View ref={heatMapCharRef} collapsable={false}>
         <ChartCard title="HeatMap commits of collaborators" description={chartDescriptions.heatMapCommits}>
           <HeatMpaCommits data={result.commitsByUser} />
         </ChartCard>

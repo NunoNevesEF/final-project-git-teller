@@ -6,9 +6,10 @@ import RepositorySearchForm from '@/components/RepositorySearchForm';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { analyzeRepo } from '@/services/GitCommunicationService';
 import { useCommonStyles } from '@/constants/useCommonStyles';
+import RepositorySearch from '@/components/RepositorySearch';
 
 
-export default function HomePage() {
+/* export default function HomePage() {
     const { isAuthenticated, username, loading, signOut } = useAuth();
     const setInput = useAnalysisStore((state) => state.setInput);
     const router = useRouter();
@@ -51,26 +52,11 @@ export default function HomePage() {
     };
 
     if (loading) return null;
-    if (!isAuthenticated) return <Redirect href="/login" />;
-
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
             <Text style={commonStyles.pageTitle}>Hello User {username ?? 'User'}</Text>
             <Text style={commonStyles.pageSubtitle}>Search a repository</Text>
-
-            <Pressable
-                style={[commonStyles.primaryButton, commonStyles.fullWidth, { marginTop: 16 }]}
-                onPress={() => router.push('/github-repos')}
-            >
-                <Text style={commonStyles.primaryButtonText}>GitHub Repos</Text>
-            </Pressable>
-            <Pressable
-                style={[commonStyles.primaryButton, commonStyles.fullWidth, { marginTop: 16 }]}
-                onPress={() => router.push('/user-reports')}
-            >
-                <Text style={commonStyles.primaryButtonText}>My reports</Text>
-            </Pressable>
 
             <RepositorySearchForm
                 searchType={searchType}
@@ -89,4 +75,21 @@ export default function HomePage() {
 
         </View>
     );
+}
+ */
+
+export default function HomePage() {
+  const commonStyles = useCommonStyles();
+  const { username, loading } = useAuth();
+
+  if (loading) return null;
+
+  return (
+    <View style={commonStyles.screen}>
+      <Text style={commonStyles.pageTitle}>Hello User {username ?? 'User'}</Text>
+      <Text style={commonStyles.pageSubtitle}>Search a repository</Text>
+
+      <RepositorySearch />
+    </View>
+  );
 }
