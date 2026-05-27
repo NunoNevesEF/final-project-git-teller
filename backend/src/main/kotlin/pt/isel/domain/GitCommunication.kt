@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
 import kotlin.collections.iterator
+import org.eclipse.jgit.revwalk.RevWalk
 
 data class GitAnalysis(
     val commitsByUser: Map<String, List<CommitDTO>>,
@@ -108,6 +109,17 @@ data class GitCommunication(val git: Git) {
         /**Temporary function for testing JGIT behavior, creates file from directory path**/
         private fun getRepoFile(repoPath: String): File{
             return File(repoPath)
+        }
+
+        fun openExisting(repoURI: String): GitCommunication {
+            val repoPath = getRepoPath(repoURI)
+            val repoPathFile = File(repoPath)
+
+            if (!repoPathFile.exists() || !File(repoPathFile, ".git").exists()) {
+                throw RepositoryNotFoundException("Local repository not found: $repoPath")
+            }
+
+            return GitCommunication(Git.open(repoPathFile))
         }
     }
 
@@ -285,6 +297,37 @@ data class GitCommunication(val git: Git) {
         parser.reset(reader, commit.tree.id)
         return parser
     }
+
+    fun findCommitBySha(commitSha: String): RevCommit? {
+        val objectId = git.repository.resolve("${commitSha}^{commit}")
+            ?: git.repository.resolve(commitSha)
+            ?: return null
+
+        return RevWalk(git.repository).use { walk ->
+            walk.parseCommit(objectId)
+        }
+    }
+
+    fun getMissingCommitShas(commitShas: List<String>): List<String> {
+        return commitShas.filter { findCommitBySha(it) == null }
+    }
+
+    fun getCommitsByShas(commitShas: List<String>): List<RevCommit> {
+        return commitShas.mapNotNull { findCommitBySha(it) }
+    }
+
+    fun getCommitsBetween(from: Instant, to: Instant): List<RevCommit> {
+        require(!from.isAfter(to)) { "fromDate não pode ser depois de toDate" }
+
+        return commits
+            .filter { commit ->
+                val commitInstant = Instant.ofEpochSecond(commit.commitTime.toLong())
+                !commitInstant.isBefore(from) && !commitInstant.isAfter(to)
+            }
+            .sortedBy { it.commitTime }
+    }
+
+
 }
 
 /**Temporary function for testing JGIT behavior, Lazy get repo, doesn't verify it exists on creation**/
