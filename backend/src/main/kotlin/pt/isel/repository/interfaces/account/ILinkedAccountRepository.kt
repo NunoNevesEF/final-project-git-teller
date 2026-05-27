@@ -1,8 +1,9 @@
-package pt.isel.repository
+package pt.isel.repository.interfaces.account
 
 import pt.isel.domain.account.LinkedAccount
+import pt.isel.repository.interfaces.IRepository
 
-interface ILinkedAccountRepository : IRepository<LinkedAccount>{
+interface ILinkedAccountRepository : IRepository<LinkedAccount> {
     fun readByUser(userId: Int): List<LinkedAccount>?
     fun readByUserAndType(userId: Int, type: String): List<LinkedAccount>?
     fun readByUserTypeAndKey(userId: Int, type: String, key: String?): LinkedAccount?

@@ -6,16 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import pt.isel.domain.schedule.Failure
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.domain.schedule.Success
 import pt.isel.model.CreateScheduleReportDTO
-import pt.isel.model.UserDTO
 import pt.isel.service.ScheduledReportService
-import pt.isel.utils.Either
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController

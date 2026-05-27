@@ -2,6 +2,10 @@ package pt.isel.model
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import pt.isel.domain.schedule.OneTimeScheduledReport
+import pt.isel.domain.schedule.PeriodicScheduledReport
+import pt.isel.domain.schedule.ScheduledReport
+import pt.isel.utils.CronInput
 import pt.isel.utils.FrequencyMode
 import java.time.Instant
 import java.time.LocalTime
@@ -24,6 +28,8 @@ import java.time.LocalTime
 sealed interface CreateScheduleReportDTO{
     val userId: Int
     val repoURI: String
+
+    fun toDomain(): ScheduledReport
 }
 
 data class CreateOneTimeScheduledReportDTO(
@@ -31,7 +37,12 @@ data class CreateOneTimeScheduledReportDTO(
     override val repoURI: String,
     val dataStart: Instant,
     val runAt: Instant,
-): CreateScheduleReportDTO
+): CreateScheduleReportDTO{
+    override fun toDomain() =
+        OneTimeScheduledReport.create(
+            userId = userId, repoURI = repoURI, nextRun = runAt, dataStart = dataStart
+        )
+}
 
 data class CreatePeriodicScheduledReportDTO(
     override val userId: Int,
@@ -41,5 +52,11 @@ data class CreatePeriodicScheduledReportDTO(
     val time: LocalTime,
 
     val freqMode: FrequencyMode,
-): CreateScheduleReportDTO
+): CreateScheduleReportDTO{
+    override fun toDomain() =
+        PeriodicScheduledReport.create(
+            userId = userId, repoURI = repoURI,
+            timeZone = timeZone, cronInput = CronInput(time.minute, time.hour, freqMode)
+        )
+}
 

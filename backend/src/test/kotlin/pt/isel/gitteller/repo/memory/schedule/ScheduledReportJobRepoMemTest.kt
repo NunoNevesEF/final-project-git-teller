@@ -3,10 +3,9 @@ package pt.isel.gitteller.repo.memory.schedule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
-import pt.isel.domain.schedule.Pending
+import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.ScheduledJobReportPolicy
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.repository.memory.schedule.ScheduledReportJobRepoMem
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
@@ -19,10 +18,10 @@ class ScheduledReportJobRepoMemTest{
     private val validDataFrom: Instant = Instant.now()
     private val validScheduledRunAt : Instant = Instant.now().plus(Duration.ofDays(1))
 
-    private val pending = Pending(validScheduledRunAt)
-    private val running = pending.run()
+    private val pendingJob = PendingJob(validScheduledRunAt)
+    private val running = pendingJob.run()
     private val success = running.end(true)
-    private val failed = running.copy(attempt = ScheduledJobReportPolicy.MAX_ATTEMPTS + 1).end(false)
+    private val failed = running.copy(retryCount = ScheduledJobReportPolicy.MAX_RETRIES + 1).end(false)
 
     private fun newScheduledReportJob(
         id: Int = validId, scheduledReportId: Int = validScheduleId, repoUri: String = validRepoUri,
@@ -65,7 +64,7 @@ class ScheduledReportJobRepoMemTest{
     @Test
     fun `method readIncompleteJobs returns all jobs with state Pending or Running`(){
         val job = newScheduledReportJob()
-        val pendingJob = repo.create(job.copy(state = pending))
+        val pendingJob = repo.create(job.copy(state = pendingJob))
         val runningJob = repo.create(job.copy(state = running))
         repo.create(job.copy(state = success))
         repo.create(job.copy(state = failed))

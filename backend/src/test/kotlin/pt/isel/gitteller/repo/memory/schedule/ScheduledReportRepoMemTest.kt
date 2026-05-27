@@ -8,10 +8,9 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
 import pt.isel.domain.schedule.OneTimeScheduledReport
-import pt.isel.domain.schedule.Pending
+import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.repository.memory.schedule.ScheduledReportJobRepoMem
-import pt.isel.repository.memory.schedule.ScheduledReportRepoMem
+import pt.isel.repository.memory.ScheduledReportRepoMem
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
@@ -33,7 +32,7 @@ class ScheduledReportRepoMemTest {
     private val validDataStart: Instant = Instant.now()
     private val validNextRun : Instant = Instant.now().plus(Duration.ofDays(1))
 
-    private val active = Pending(validNextRun).run()
+    private val active = PendingJob(validNextRun).run()
     private val complete = active.end(true)
 
     private fun newScheduledReport(
@@ -108,7 +107,7 @@ class ScheduledReportRepoMemTest {
 
         whenever(jobRepo.readIncompleteJobs()).thenReturn(listOf(activeJob))
         val expected = listOf(pendingSoon, withCompletedJob)
-        val actual = repo.readPending()
+        val actual = repo.findDue()
         assertEquals(expected.sortedBy { it.id }, actual.sortedBy { it.id })
     }
 

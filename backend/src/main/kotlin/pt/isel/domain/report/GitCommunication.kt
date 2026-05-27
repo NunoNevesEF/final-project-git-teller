@@ -1,4 +1,4 @@
-package pt.isel.domain
+package pt.isel.domain.report
 
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
@@ -12,56 +12,6 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
-import kotlin.collections.iterator
-
-data class GitAnalysis(
-    val commitsByUser: Map<String, List<CommitDTO>>,
-//    val commitsByBranch: Map<String, List<CommitDTO>>,
-    val mostModifiedFiles : List<Pair<String, Int>>?,
-    val firstCommitTime: Instant,
-    val lastCommitTime: Instant,
-){
-    companion object {
-        fun create(gitCommunication: GitCommunication): GitAnalysis {
-            val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
-            return GitAnalysis(
-                commitsByUser = gitCommunication.getCommitsByUser(),
-//                gitCommunication.getCommitsByBranch().mapValues{ (_, commitList) ->
-//                    commitList.map{ CommitDTO.create(it)}
-//                },
-                mostModifiedFiles = gitCommunication.getMostModifiedFiles(),
-                firstCommitTime,
-                lastCommitTime
-            )
-        }
-    }
-}
-
-class CommitDTO(
-    val id: String,
-    val name: String,
-    val author: String,
-    val parentCount: Int,
-    val timestamp: Instant,
-    val message: String,
-    val additions: Int,
-    val deletions: Int
-){
-    companion object {
-        fun create(revCommit: RevCommit, additions: Int, deletions: Int): CommitDTO {
-            return CommitDTO(
-                id = revCommit.id.name,
-                name = revCommit.name,
-                author = revCommit.authorIdent.name,
-                parentCount = revCommit.parentCount,
-                timestamp = Instant.ofEpochSecond(revCommit.commitTime.toLong()),
-                message = revCommit.firstMessageLine,
-                additions = additions,
-                deletions = deletions
-            )
-        }
-    }
-}
 
 data class GitCommunication(val git: Git) {
     val commits by lazy{ getAllCommits() }
@@ -83,6 +33,7 @@ data class GitCommunication(val git: Git) {
             return Git.cloneRepository()
                 .setURI(repoURI)
                 .setDirectory(repoPathFile)
+                .setBare(true)
                 .call()
         }
 
@@ -110,10 +61,6 @@ data class GitCommunication(val git: Git) {
             return File(repoPath)
         }
     }
-
-    /*fun getNCommits(maxCommits: Int): List<RevCommit>{
-        return git.log().setMaxCount(maxCommits).call().toList()
-    }*/
 
     private fun getAllCommits(): List<RevCommit>{
         return git.log().all().call().toList()
@@ -159,32 +106,7 @@ data class GitCommunication(val git: Git) {
         return branchCommits
     }
 
-    fun getCommitsByUser(): Map<String, List<CommitDTO>> {
-
-        return commits
-            .groupBy { it.authorIdent.name }
-            .mapValues { (_, commits) ->
-
-                commits.map { commit ->
-
-                    val (additions, deletions) =
-                        getCommitChanges(commit)
-
-                    CommitDTO(
-                        id = commit.id.name,
-                        name = commit.name,
-                        author = commit.authorIdent.name,
-                        parentCount = commit.parentCount,
-                        timestamp = Instant.ofEpochSecond(commit.commitTime.toLong()),
-                        message = commit.firstMessageLine,
-                        additions = additions,
-                        deletions = deletions
-                    )
-                }
-            }
-    }
-
-    private fun getCommitChanges(commit: RevCommit): Pair<Int, Int> {
+    fun getCommitChanges(commit: RevCommit): Pair<Int, Int> {
         if (commit.parentCount == 0) {
             return Pair(0, 0)
         }
@@ -217,7 +139,7 @@ data class GitCommunication(val git: Git) {
         return Pair(additions, deletions)
     }
 
-    fun getMostModifiedFiles(): List<Pair<String, Int>>? {
+    fun getMostModifiedFiles(): List<Pair<String, Int>> {
         val fileFrequency = mutableMapOf<String, Int>()
 
         for ( commit in commits) {
@@ -287,59 +209,7 @@ data class GitCommunication(val git: Git) {
     }
 }
 
-/**Temporary function for testing JGIT behavior, Lazy get repo, doesn't verify it exists on creation**/
-/*
-fun getGitRepoLazy(repoPath: String): Git{
-    val existingRepo : Repository = FileRepositoryBuilder()
-        .setGitDir(File(repoPath))
-        .build()
-    return Git(existingRepo)
-}*/
-
-/**Temporary function for testing JGIT behavior, returns gitRepo Status.**/
-/*
-fun getGitRepoStatus(repo: Git): Status {
-    return repo.status().call()
-}*/
-
 const val reposStorageLocation = "gitRepos"
 const val testRepoURISmall = "https://github.com/octocat/Hello-World"
 const val testRepoURILarge = "https://github.com/github/testrepo"
 const val testRepoURI = testRepoURILarge
-
-fun main(){
-    val gitCommunicationService = GitCommunication.create(testRepoURI)
-    val commitList = gitCommunicationService.commits
-    /*commitList.forEachIndexed { i, commit ->
-        println("${i+1}.")
-        gitCommunicationService.logCommit(commit)}
-    val branchList = gitCommunicationService.getAllBranches()
-    branchList.forEachIndexed { i, branch ->
-        println("${i+1}..")
-        gitCommunicationService.logBranch(branch)
-    }*/
-    println("\nBRANCH TEST")
-    val branchCommits = gitCommunicationService.getCommitsByBranch()
-    for(branch in branchCommits){
-        println("=== ${branch.key} ===")
-        println("Commits in Branch: ${branch.value.size}")
-        branch.value.forEachIndexed{ i, commit ->
-            println("${i+1}. ${commit.name}")
-        }
-        println()
-    }
-    println("\nUSER TEST")
-    val userCommits = gitCommunicationService.getCommitsByUser()
-    for(user in userCommits){
-        println("=== ${user.key} ===")
-        println("Commits by User: ${user.value.size}")
-        user.value.forEachIndexed{ i, commit ->
-            println("${i+1}. ${commit.name}")
-        }
-        println()
-    }
-    println("\nCOMMIT TIME TEST")
-    val (firstCommitDate, lastCommitDate) = gitCommunicationService.getFirstAndLastCommitDate()
-    println("First Commit: $firstCommitDate")
-    println("Last Commit: $lastCommitDate")
-}

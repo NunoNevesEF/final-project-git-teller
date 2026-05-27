@@ -4,31 +4,38 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.stereotype.Service
-import pt.isel.domain.schedule.Pending
+import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.ScheduledReportJob
 import pt.isel.service.ScheduledReportService
+import pt.isel.service.report.UserReportService
+import pt.isel.utils.Failure
+import pt.isel.utils.Success
 import pt.isel.utils.rightOrNull
 
 @Service
 class ScheduledJobExecutor(
     private val taskScheduler: ThreadPoolTaskScheduler,
     private val scheduledReportService: ScheduledReportService,
+    private val reportService: UserReportService
 ){
-    fun schedule(job: ScheduledReportJob){
-        val pendingState = job.state as? Pending ?: return
-        taskScheduler.schedule({ execute(job) }, pendingState.scheduledRunAt)
+    fun schedule(job: ScheduledReportJob, userId: Int){
+        val pendingJobState = job.state as? PendingJob ?: return //TODO: HANDLE not Pending properly
+        taskScheduler.schedule({ execute(job, userId) }, pendingJobState.runAt)
     }
 
-    private fun execute(job: ScheduledReportJob){
+    private fun execute(job: ScheduledReportJob, userId: Int){
         val runningJob = scheduledReportService.runJob(job).rightOrNull() ?: return //TODO: Handle error properly
-        try{
-            println("Called") //TODO: REPLACE WITH GIT REPO STORE FUNCTION
-            val successJob = scheduledReportService.endJob(runningJob, true).rightOrNull() ?: return //TODO: Handle error properly
-            scheduledReportService.calculateNextReport(successJob)
-        } catch(ex: Exception) {
-            val failedJob = scheduledReportService.endJob(runningJob, false).rightOrNull() ?: return //TODO: Handle error properly
-            if(failedJob.state is Pending) schedule(failedJob)
-            else{ scheduledReportService.calculateNextReport(failedJob) }
+
+        when(reportService.createReport(userId, job.repoUri)) {
+            is Success -> {
+                val successJob = scheduledReportService.endJob(runningJob, true).rightOrNull() ?: return //TODO: Handle error properly
+                scheduledReportService.calculateNextReport(successJob)
+            }
+            is Failure -> {
+                val failedJob = scheduledReportService.endJob(runningJob, false).rightOrNull() ?: return //TODO: Handle error properly
+                if(failedJob.state is PendingJob) schedule(failedJob)
+                else{ scheduledReportService.calculateNextReport(failedJob) }
+            }
         }
     }
 }

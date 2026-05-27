@@ -1,4 +1,4 @@
-package pt.isel.service
+package pt.isel.service.report
 
 import com.itextpdf.io.image.ImageDataFactory
 import com.itextpdf.kernel.pdf.PdfWriter
@@ -10,7 +10,7 @@ import java.io.ByteArrayOutputStream
 import org.springframework.stereotype.Service
 
 @Service
-class ReportGenerationService {
+class ReportPDFGenerationService {
 
     fun createPdf(componentsImageBytes: List<ByteArray>): ByteArray {
         val outputStream = ByteArrayOutputStream()

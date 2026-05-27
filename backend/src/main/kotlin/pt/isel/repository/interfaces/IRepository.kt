@@ -1,4 +1,4 @@
-package pt.isel.repository
+package pt.isel.repository.interfaces
 
 interface IRepository<E> {
 

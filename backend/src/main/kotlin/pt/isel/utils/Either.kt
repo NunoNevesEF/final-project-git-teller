@@ -1,5 +1,7 @@
 package pt.isel.utils
 
+import pt.isel.domain.schedule.ScheduledReport
+import pt.isel.service.InvalidScheduleDomainConstructorParameters
 import pt.isel.utils.Either.Left
 import pt.isel.utils.Either.Right
 
@@ -9,7 +11,7 @@ sealed class Either<out L, out R>{
 }
 
 fun <R> success(value: R) = Right(value)
-fun <L> failure(error: L) = Left<L>(error)
+fun <L> failure(error: L) = Left(error)
 fun <L,R> R?.toEither(left: () -> L): Either<L, R> =
     this?.let { success(it) } ?: failure(left())
 

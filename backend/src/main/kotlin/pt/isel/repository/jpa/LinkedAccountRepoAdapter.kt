@@ -7,7 +7,7 @@ import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.entity.LinkedAccountEntity
-import pt.isel.repository.ILinkedAccountRepository
+import pt.isel.repository.interfaces.account.ILinkedAccountRepository
 
 @Repository
 @ConditionalOnProperty(

@@ -1,12 +1,15 @@
 package pt.isel.domain.schedule
 
+import pt.isel.entity.User
+import pt.isel.entity.schedule.OneTimeScheduledReportEntity
+import pt.isel.entity.schedule.PeriodicScheduledReportEntity
+import pt.isel.entity.schedule.ScheduledReportEntity
 import pt.isel.utils.CronInput
 import pt.isel.utils.CronUtils
 import java.time.Instant
 
 
 sealed class ScheduledReport(
-    id: Int,
     userId: Int,
     repoUri: String,
     nextRun: Instant?,
@@ -14,41 +17,40 @@ sealed class ScheduledReport(
 ){
     abstract fun completeCurrentExecution(runExecTime: Instant): ScheduledReport
     abstract fun createJob(): ScheduledReportJob
-    abstract fun scheduledReportCopy(id: Int? = null): ScheduledReport
+    abstract fun scheduledReportCopy(): ScheduledReport
 
     init{
-        require(id >= 0){"id must be greater than or equal to zero."}
         require(userId >= 0){"userId must be greater than or equal to zero."}
         require(repoUri.isNotBlank()){"repoURI must not be blank"}
         if(nextRun != null) require(dataStart < nextRun){ "Data search for report generation must be before Job run time" }
     }
 
-    abstract val id : Int
     abstract val userId : Int
     abstract val repoUri: String
     abstract val nextRun: Instant?
     abstract val lastRun: Instant?
     abstract val dataStart: Instant
+
+    abstract fun toEntity(user: User): ScheduledReportEntity
 }
 
 data class OneTimeScheduledReport(
-    override val id: Int,
     override val userId: Int,
     override val repoUri: String,
     override val nextRun: Instant?,
     override val lastRun: Instant? = null,
     override val dataStart: Instant,
-) : ScheduledReport(id, userId, repoUri, nextRun, dataStart){
+) : ScheduledReport(userId, repoUri, nextRun, dataStart){
     init{
         require((nextRun == null) != (lastRun == null)){ "One between nextRun and lastRun must be not null" }
     }
     companion object {
         fun create(
-            id: Int = 0, userId: Int, repoURI: String,
+            userId: Int, repoURI: String,
             nextRun: Instant, dataStart: Instant = Instant.now()
         ): OneTimeScheduledReport =
             OneTimeScheduledReport(
-                id = id, userId = userId, repoUri = repoURI,
+                userId = userId, repoUri = repoURI,
                 nextRun = nextRun, dataStart = dataStart
             )
     }
@@ -58,18 +60,28 @@ data class OneTimeScheduledReport(
     override fun createJob(): ScheduledReportJob {
         require(!isCompleted()) { "Scheduled already completed" }
         return ScheduledReportJob.create(
-            scheduledReportId = id, repoUri = repoUri,
-            scheduledRunAt = nextRun!!, dataFrom = dataStart
+            repoUri = repoUri, scheduledRunAt = nextRun!!, dataFrom = dataStart
         )
     }
 
-    override fun scheduledReportCopy(id: Int?): ScheduledReport = copy(id = id ?: this.id)
+    override fun scheduledReportCopy(): ScheduledReport = copy()
+
+    override fun toEntity(user: User): ScheduledReportEntity =
+        OneTimeScheduledReportEntity(
+            repoUri = repoUri,
+            nextRun = nextRun,
+            lastRun = lastRun,
+            dataStart = dataStart
+        ).apply{
+            this.user = user
+        }
 
     private fun isCompleted() = nextRun == null
+
+
 }
 
 data class PeriodicScheduledReport(
-    override val id: Int,
     override val userId: Int,
     override val repoUri: String,
     override val nextRun: Instant,
@@ -80,15 +92,15 @@ data class PeriodicScheduledReport(
 
     val timeZone: String,
     val cronExpression: String,
-) : ScheduledReport(id, userId, repoUri, nextRun, dataStart) {
+) : ScheduledReport(userId, repoUri, nextRun, dataStart) {
     companion object {
         fun create(
-            id: Int = 0, userId: Int, repoURI: String, timeZone: String, cronInput: CronInput,
+            userId: Int, repoURI: String, timeZone: String, cronInput: CronInput,
         ): PeriodicScheduledReport {
             val cronExpression = CronUtils.build(cronInput)
             val nextRun = CronUtils.calculateNext(cronExpression, timeZone)
             return PeriodicScheduledReport(
-                id = id, userId = userId, repoUri = repoURI,
+                userId = userId, repoUri = repoURI,
                 nextRun = nextRun, timeZone = timeZone, cronExpression = cronExpression,
                 dataStart = CronUtils.calculatePrev(cronInput.mode, timeZone, nextRun)
             )
@@ -98,14 +110,26 @@ data class PeriodicScheduledReport(
     override fun completeCurrentExecution(runExecTime: Instant): ScheduledReport =
         this.copy(nextRun = calculateNextRunTime(), lastRun = runExecTime, dataStart = nextRun)
 
-    override fun scheduledReportCopy(id: Int?): ScheduledReport = copy(id = id ?: this.id)
+    override fun scheduledReportCopy(): ScheduledReport = copy()
 
     override fun createJob(): ScheduledReportJob {
         return ScheduledReportJob.create(
-            scheduledReportId = id, repoUri = repoUri,
-            scheduledRunAt = nextRun, dataFrom = dataStart
+            repoUri = repoUri, scheduledRunAt = nextRun, dataFrom = dataStart
         )
     }
+
+    override fun toEntity(user: User): ScheduledReportEntity =
+        PeriodicScheduledReportEntity(
+            repoUri = repoUri,
+            nextRun = nextRun,
+            lastRun = lastRun,
+            dataStart = dataStart,
+            active = active,
+            timeZone = timeZone,
+            cronExpression = cronExpression,
+        ).also{
+            it.user = user
+        }
 
     private fun calculateNextRunTime(): Instant =
         CronUtils.calculateNext(

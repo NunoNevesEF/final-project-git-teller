@@ -7,7 +7,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import pt.isel.domain.schedule.OneTimeScheduledReport
-import pt.isel.domain.schedule.Pending
+import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
@@ -66,7 +66,7 @@ abstract class ScheduledReportTest<T: ScheduledReport> {
         val expected = ScheduledReportJob(
             id = actual.id,
             scheduledReportId = testSchedule.id,
-            state = Pending(scheduledRunAt = testSchedule.nextRun!!, attempt = 1),
+            state = PendingJob(runAt = testSchedule.nextRun!!, retryCount = 1),
             repoUri = testSchedule.repoUri,
             dataFrom = testSchedule.dataStart,
             dataTo = testSchedule.nextRun!!

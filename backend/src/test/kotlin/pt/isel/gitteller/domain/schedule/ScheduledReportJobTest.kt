@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import pt.isel.domain.schedule.Failure
-import pt.isel.domain.schedule.Pending
-import pt.isel.domain.schedule.Running
+import pt.isel.domain.schedule.FailedJob
+import pt.isel.domain.schedule.PendingJob
+import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledJobReportPolicy
 import pt.isel.domain.schedule.ScheduledReportJob
 import pt.isel.domain.schedule.ScheduledReportJobState
-import pt.isel.domain.schedule.Success
+import pt.isel.domain.schedule.SuccessfulJob
 import java.time.Duration
 import java.time.Instant
 import java.util.stream.Stream
@@ -25,7 +25,7 @@ class ScheduledReportJobTest {
     private val validRepoURI = "gitTest.com/user/test"
     private val validDataStart : Instant = Instant.now()
     private val validDataEnd : Instant = validDataStart.plus(Duration.ofDays(1))
-    private val validState = Pending(validDataEnd)
+    private val validState = PendingJob(validDataEnd)
 
     private val now = Instant.now()
 
@@ -35,15 +35,15 @@ class ScheduledReportJobTest {
         @JvmStatic
         fun incompleteStates(): Stream<ScheduledReportJobState> {
             val now = Instant.now()
-            return Stream.of(Pending(scheduledRunAt = now), Running(startedAt = now, attempt = 1))
+            return Stream.of(PendingJob(runAt = now), RunningJob(startedAt = now, retryCount = 1))
         }
 
         @JvmStatic
         fun completeStates(): Stream<ScheduledReportJobState>{
             val now = Instant.now()
             return Stream.of(
-                Success(startedAt = now, attempt = 1),
-                Failure(startedAt = now, attempt = 1, errorMsg = "someErrorMsg")
+                SuccessfulJob(startedAt = now, retryCount = 1),
+                FailedJob(startedAt = now, retryCount = 1, errorMsg = "someErrorMsg")
             )
         }
     }
@@ -96,14 +96,14 @@ class ScheduledReportJobTest {
     fun `companion method creates job with id as 0 if none passed`(){
         val actual = ScheduledReportJob.create(
             scheduledReportId = validScheduleId, repoUri = validRepoURI,
-            scheduledRunAt = validState.scheduledRunAt, dataFrom = validDataStart, dataTo = validDataEnd,
+            scheduledRunAt = validState.runAt, dataFrom = validDataStart, dataTo = validDataEnd,
         ).id
         assertEquals(0, actual)
     }
 
     @Test
     fun `companion method creates job with dataTo as scheduledRunAt if none passed`(){
-        val expected = validState.scheduledRunAt
+        val expected = validState.runAt
         val testJob = ScheduledReportJob.create(
             id = validId, scheduledReportId = validScheduleId, repoUri = validRepoURI,
             scheduledRunAt = expected, dataFrom = validDataStart,
@@ -116,50 +116,50 @@ class ScheduledReportJobTest {
         val expectedAttempt = 1
         val before = Instant.now()
 
-        val actual = Pending(before, expectedAttempt).run()
+        val actual = PendingJob(before, expectedAttempt).run()
 
         val after = Instant.now()
 
         assertTrue(actual.startedAt in before..after)
-        assertEquals(expectedAttempt, actual.attempt)
+        assertEquals(expectedAttempt, actual.retryCount)
     }
 
     @Test
     fun `state Running method end returns Success state with correct parameters if success is true`(){
-        val testJob = Running(attempt = 1)
+        val testJob = RunningJob(retryCount = 1)
         val before = Instant.now()
         val actual = testJob.end(true)
         val after = Instant.now()
 
-        assertTrue(actual is Success)
+        assertTrue(actual is SuccessfulJob)
         assertEquals(testJob.startedAt, actual.startedAt)
         assertTrue(actual.endedAt in before..after)
-        assertEquals(testJob.attempt, actual.attempt)
+        assertEquals(testJob.retryCount, actual.retryCount)
     }
 
     @Test
     fun `state Running method end returns Failure state with correct parameters if success is false and max attempts exceeded`(){
         val expectedErrorMsg = "Retries Exceeded"
-        val testJob = Running(attempt = ScheduledJobReportPolicy.MAX_ATTEMPTS + 1)
+        val testJob = RunningJob(retryCount = ScheduledJobReportPolicy.MAX_RETRIES + 1)
         val before = Instant.now()
         val actual = testJob.end(false, expectedErrorMsg)
         val after = Instant.now()
 
-        assertTrue(actual is Failure)
+        assertTrue(actual is FailedJob)
         assertEquals(testJob.startedAt, actual.startedAt)
         assertTrue(actual.endedAt in before..after)
-        assertEquals(testJob.attempt, actual.attempt)
+        assertEquals(testJob.retryCount, actual.retryCount)
         assertEquals(expectedErrorMsg, actual.errorMsg)
     }
 
     @Test
     fun `state Running method end returns Pending state with correct parameters if success is false and max attempts not exceeded`(){
-        val testJob = Running(attempt = ScheduledJobReportPolicy.MAX_ATTEMPTS - 1)
+        val testJob = RunningJob(retryCount = ScheduledJobReportPolicy.MAX_RETRIES - 1)
         val actual = testJob.end(false)
 
-        assertTrue(actual is Pending)
-        assertTrue(testJob.startedAt < actual.scheduledRunAt)
-        assertEquals(testJob.attempt + 1, actual.attempt)
+        assertTrue(actual is PendingJob)
+        assertTrue(testJob.startedAt < actual.runAt)
+        assertEquals(testJob.retryCount + 1, actual.retryCount)
     }
 
     @ParameterizedTest

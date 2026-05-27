@@ -13,10 +13,10 @@ class ScheduledPollingService(
     @Scheduled(cron = "0 0,15,30,45 * * * *")
     //@Scheduled(fixedDelay = 6000)
     fun pollSchedules() {
-        val schedules = scheduledReportService.getDueSchedules()
+        val schedules = scheduledReportService.listDueJobs()
 
-        schedules.forEach { schedule ->
-            val job = scheduledReportService.createScheduledReportJob(schedule).rightOrNull()
+        schedules.forEach { scheduleId ->
+            val job = scheduledReportService.createScheduledReportJob(scheduleId).rightOrNull()
             if(job != null) scheduledJobExecutor.schedule(job) //TODO: Handle error
         }
     }
