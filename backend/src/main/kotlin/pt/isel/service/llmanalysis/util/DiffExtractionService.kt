@@ -3,11 +3,8 @@ package pt.isel.service.llmanalysis.util
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.revwalk.RevCommit
-import org.eclipse.jgit.treewalk.TreeWalk
 import org.springframework.stereotype.Service
 import java.io.ByteArrayOutputStream
-import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
 @Service
@@ -17,97 +14,64 @@ class DiffExtractionService {
         val out = ByteArrayOutputStream()
         DiffFormatter(out).use { formatter ->
             formatter.setRepository(repository)
+            formatter.setContext(3) // linhas de contexto explícitas
             formatter.format(entry)
         }
 
-        val fullDiff = out.toString(Charset.defaultCharset().name())
-
-
-        return extractAdditionsOnly(fullDiff, maxChars)
+        val fullDiff = out.toString(StandardCharsets.UTF_8.name())
+        return filterAndTruncate(fullDiff, maxChars)
     }
 
-
-    private fun extractAdditionsOnly(diff: String, maxChars: Int): String {
-        val lines = diff.split("\n")
+    private fun filterAndTruncate(diff: String, maxChars: Int): String {
+        val lines = diff.lines()
         val result = mutableListOf<String>()
 
         for (line in lines) {
             when {
-                line.startsWith("@@") -> result.add(line)
-                line.startsWith("+") && !line.startsWith("+++") -> {
-                    val contentLine = line.substring(1) // Remove o "+"
-                    if (!isIrrelevantLine(contentLine)) {
-                        result.add(line)
-                    }
+
+                line.startsWith("diff --git") ||
+                        line.startsWith("index ") ||
+                        line.startsWith("---") ||
+                        line.startsWith("+++") ||
+                        line.startsWith("@@") -> result.add(line)
+
+                line.startsWith("-") -> result.add(line)
+
+                line.startsWith("+") -> {
+                    if (!isPureNoise(line.substring(1))) result.add(line)
                 }
-                line.startsWith("-") && !line.startsWith("---") -> { /* ignorar */ }
-                line.startsWith(" ") -> { /* ignorar contexto */ }
-                line.startsWith("diff --git") || line.startsWith("index ") ||
-                        line.startsWith("---") || line.startsWith("+++") -> result.add(line)
+
+                line.startsWith(" ") -> result.add(line)
             }
         }
+
+        if (result.isEmpty()) return "[No relevant changes]"
 
         val filtered = result.joinToString("\n")
 
-        if (result.isEmpty() || result.all { it.startsWith("diff") || it.startsWith("index") ||
-                    it.startsWith("---") || it.startsWith("+++") ||
-                    it.startsWith("@@") }) {
-            return "[Sem linhas adicionadas]"
-        }
 
-        return sanitizeAndTruncate(filtered, maxChars)
+        return if (filtered.length <= maxChars) {
+            sanitizeAndTruncate(filtered, maxChars)
+        } else {
+            truncateMiddle(filtered, maxChars)
+        }
     }
 
 
-    private fun isIrrelevantLine(line: String): Boolean {
+    private fun isPureNoise(line: String): Boolean {
         val trimmed = line.trim()
-
-        // Vazio ou apenas espaço
-        if (trimmed.isEmpty()) return true
-
-        // Imports
-        if (trimmed.startsWith("import ") || trimmed.startsWith("from ") || trimmed.startsWith("require(")) {
-            return true
-        }
-
-        // Packages/namespaces
-        if (trimmed.startsWith("package ")) return true
-
-        // Comentários apenas com símbolos (linhas de separação)
-        if (trimmed.matches(Regex("^(//|/\\*|\\*|--|#|--|--|--|/|\\\\).*$"))) {
-            return true
-        }
-
-        // Apenas chaves ou parênteses
-        if (trimmed.matches(Regex("^[{}()\\[\\];,]*$"))) return true
-
-        // Linhas com apenas whitespace ou comentário vazio
-        if (trimmed == "{" || trimmed == "}" || trimmed == "()" || trimmed == "[]") {
-            return true
-        }
-
-        // Linhas de decoradores/anotações (apenas o símbolo)
-        if (trimmed.startsWith("@") && trimmed.length < 50) {
-            // Se for algo tipo @Override, @Deprecated, etc
-            if (trimmed.matches(Regex("^@[A-Za-z]+$"))) {
-                return true
-            }
-        }
-
-        return false
+        return trimmed.isEmpty() ||
+                trimmed.matches(Regex("^[{}()\\[\\];,]*$"))
     }
 
-    fun extractBeforeSnippet(repository: Repository, commit: RevCommit?, path: String?, maxChars: Int): String? {
-        if (commit == null || path.isNullOrBlank() || path == DiffEntry.DEV_NULL) return null
-        return try {
-            val treeWalk = TreeWalk.forPath(repository, path, commit.tree) ?: return null
-            val loader = repository.open(treeWalk.getObjectId(0))
-            val content = String(loader.bytes, StandardCharsets.UTF_8)
-            sanitizeAndTruncate(content, maxChars)
-        } catch (_: Exception) {
-            null
-        }
+
+    private fun truncateMiddle(text: String, maxChars: Int): String {
+        val half = maxChars / 2
+        val start = text.take(half)
+        val end = text.takeLast(half)
+        return "$start\n...[truncated]...\n$end"
     }
+
 
     fun sanitizeAndTruncate(text: String, maxChars: Int): String {
         val sanitized = text.replace("```", "``\\`")

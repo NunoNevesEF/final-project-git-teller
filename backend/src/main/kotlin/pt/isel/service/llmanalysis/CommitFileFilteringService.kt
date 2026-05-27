@@ -8,6 +8,7 @@ import org.eclipse.jgit.treewalk.EmptyTreeIterator
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import pt.isel.domain.GitCommunication
+import pt.isel.model.AnalysisMode
 import pt.isel.service.llmanalysis.util.AnalysisLimits
 import java.io.ByteArrayOutputStream
 
@@ -84,7 +85,7 @@ class CommitFileFilteringService {
         }
 
         val sorted = allScanned.sortedByDescending { it.score }
-        val selected = sorted.take(maxRelevantFiles.coerceAtMost(limits.maxFiles))
+        val selected = sorted.take(maxRelevantFiles)
 
         logger.debug("Ficheiros ordenados por score (top ${selected.size}):")
         sorted.forEachIndexed { idx, candidate ->
@@ -131,16 +132,50 @@ class CommitFileFilteringService {
         return true
     }
 
-    fun scoreFile(path: String, insertions: Int, deletions: Int): Int { // atualizar melhor o scoring file
+    fun scoreFile(path: String, insertions: Int, deletions: Int): Int {
         val lower = path.lowercase()
         var score = insertions + deletions
 
+        // Source code boost
         if (lower.startsWith("src/")) score += 100
         if (lower.contains("/main/")) score += 50
-        if (lower.endsWith(".kt") || lower.endsWith(".ts") || lower.endsWith(".tsx") || lower.endsWith(".java")) score += 40
-        if (lower.contains("controller") || lower.contains("service") || lower.contains("repository")) score += 30
-        if (lower.endsWith(".md") || lower.endsWith(".txt") || lower.endsWith(".json")) score -= 20
+
+        // Language boost
+        when {
+            lower.endsWith(".kt") || lower.endsWith(".java") -> score += 40
+            lower.endsWith(".ts") || lower.endsWith(".tsx") -> score += 40
+            lower.endsWith(".py") || lower.endsWith(".go") -> score += 35
+        }
+
+        // Layer boost — lógica de negócio é mais relevante
+        when {
+            lower.contains("service") -> score += 40
+            lower.contains("controller") || lower.contains("handler") -> score += 35
+            lower.contains("repository") || lower.contains("dao") -> score += 30
+            lower.contains("domain") || lower.contains("model") -> score += 25
+            lower.contains("util") || lower.contains("helper") -> score += 10
+        }
+
+        // Test files — relevantes mas menos que produção
+        if (lower.contains("test") || lower.contains("spec")) score -= 10
+
+        // Config/docs — penalizar mais
+        when {
+            lower.endsWith(".md") || lower.endsWith(".txt") -> score -= 30
+            lower.endsWith(".json") || lower.endsWith(".yml") || lower.endsWith(".yaml") -> score -= 15
+            lower.endsWith(".xml") && !lower.contains("pom") -> score -= 20
+        }
 
         return score
     }
+
+    fun adaptiveMaxFiles(commitCount: Int, mode: AnalysisMode): Int = when {
+        mode == AnalysisMode.META -> 15
+        commitCount == 1 -> 10
+        commitCount <= 5 -> 7
+        commitCount <= 15 -> 5
+        else -> 3
+    }
+
+
 }

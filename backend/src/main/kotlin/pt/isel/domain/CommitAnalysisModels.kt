@@ -45,13 +45,22 @@ data class BatchCommitAnalysisResponse(
     val llmAnalysis: String,
 )
 
+
+data class CommitAnalysisRequest(
+    val repoURI: String,
+    val commitSha: String,
+    val maxCharsPerFile: Int = 2500,
+    val promptComplexity: String = "MEDIUM",
+    val analysisMode: String? = "DIFF",
+    val requestedAnalyses: List<String> = listOf("DEFAULT")
+)
+
 data class CommitShasAnalysisRequest(
     val repoURI: String,
     val commitShas: List<String>,
-    val maxFilesPerCommit: Int = 5,
     val maxCharsPerFile: Int = 1500,
     val promptComplexity: String = "MEDIUM",
-    val analysisMode: String? = "DIFF", // "DIFF" or "META"
+    val analysisMode: String? = "DIFF",
     val requestedAnalyses: List<String> = listOf("DEFAULT")
 )
 
@@ -60,20 +69,9 @@ data class CommitDateRangeAnalysisRequest(
     val fromDate: Instant,
     val toDate: Instant,
     val maxCommits: Int = 20,
-    val maxFilesPerCommit: Int = 5,
     val maxCharsPerFile: Int = 1500,
     val promptComplexity: String = "MEDIUM",
     val analysisMode: String? = "DIFF",
     val requestedAnalyses: List<String> = listOf("DEFAULT")
-)
-
-data class CommitAnalysisRequest(
-    val repoURI: String,
-    val commitSha: String,
-    val maxFiles: Int = 8,
-    val maxCharsPerFile: Int = 2500,
-    val promptComplexity: String = "MEDIUM",
-    val analysisMode: String? = "DIFF", // NEW
-    val requestedAnalyses: List<String> = listOf("DEFAULT") // NEW
 )
 

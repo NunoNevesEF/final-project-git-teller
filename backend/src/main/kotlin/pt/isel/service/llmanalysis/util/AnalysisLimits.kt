@@ -2,6 +2,21 @@ package pt.isel.service.llmanalysis.util
 
 import pt.isel.domain.CommitAnalysisRequest
 
+
+
+data class AnalysisLimits(
+    val maxCharsPerFile: Int
+) {
+    companion object {
+        fun fromSingle(request: CommitAnalysisRequest) =
+            AnalysisLimits(maxCharsPerFile = request.maxCharsPerFile)
+
+        fun fromBatch(maxCharsPerFile: Int) =
+            AnalysisLimits(maxCharsPerFile = maxCharsPerFile)
+    }
+}
+
+/*
 data class AnalysisLimits(
     val maxFiles: Int,
     val maxCharsPerFile: Int,
@@ -13,4 +28,4 @@ data class AnalysisLimits(
         fun fromBatch(maxFilesPerCommit: Int, maxCharsPerFile: Int) =
             AnalysisLimits(maxFilesPerCommit.coerceIn(1, 20), maxCharsPerFile.coerceIn(500, 5000))
     }
-}
+}*/

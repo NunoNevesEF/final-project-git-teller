@@ -1,15 +1,12 @@
 common:
-  # General instructions
-  technical_assistant: "You are a technical code analysis assistant."
-  technical_assistant_advanced: "You are an advanced technical code analysis assistant."
-  analyze_commit: "Analyze the commit below using the diff as the main source of truth."
-  analyze_metadata: "Analyze the commit below using only metadata and summaries of the most relevant files. Full diffs are not included, so focus on likely intent, scope, affected layers, impact, and risk."
-  analyze_depth: "Analyze the commit below in depth and explain the technical context."
-  english_structured: "Respond in clear, structured English."
-  english_detailed: "Respond in clear, structured and detailed English."
-  no_inventions: "Do not invent details that are not supported by the diff or metadata."
+  technical_assistant: "You are a senior code reviewer. Be direct, precise, and concise. No filler phrases."
+  technical_assistant_advanced: "You are a principal engineer doing a deep code review. Be direct, evidence-based, and concise. No filler phrases."
+  analyze_commit: "Analyze the commit below. Use the diff as the only source of truth."
+  analyze_metadata: "Analyze the commit below using only the provided metadata and file summaries. No diffs are available — infer intent and risk from what is given."
+  english_structured: "Respond in structured English. Be concise and professional."
+  english_detailed: "Respond in structured, detailed English. Every sentence must add information."
+  no_inventions: "Do not invent or assume details not present in the diff or metadata."
 
-  # Sections / titles
   section_commit: "### COMMIT"
   section_metadata: "### METADATA"
   section_metadata_complete: "### METADATA (FULL)"
@@ -18,11 +15,10 @@ common:
   section_files_changed: "### CHANGED FILES"
   section_changes: "### CHANGES"
   section_analysis_request: "### ANALYSIS REQUEST"
-  section_what_i_want: "### WHAT I WANT"
+  section_what_i_want: "### ANALYSIS REQUEST"
   section_file_summaries: "### FILE SUMMARIES (most relevant files; diffs omitted)"
-  section_history_context: "### HISTORICAL CONTEXT (previous commits)"
+  section_history_context: "### HISTORICAL CONTEXT"
 
-  # Metadata labels
   label_sha: "SHA"
   label_commit: "Commit"
   label_commit_sha: "Commit SHA"
@@ -44,12 +40,15 @@ common:
   label_to: "To"
   label_commits_analyzed: "Commits analyzed"
 
-  meta_single_commit_points: "1) Short technical summary of what this commit changes, based only on metadata and file summaries.
-     2) Main risks or likely regressions.
-     3) Short improvement suggestions.
-     4) State whether full diffs are needed to confirm the conclusion (YES/NO)."
+  meta_single_commit_points: |
+    Deliver a concise professional review with exactly these sections — skip any section where evidence is insufficient:
+    **Summary:** One sentence describing what this commit does.
+    **Impact:** Affected layers/components and expected functional change.
+    **Risks:** List only real risks, each with severity (HIGH/MEDIUM/LOW) and one-line rationale. Omit if none.
+    **Suggestions:** Concrete, prioritized actions only. Omit if none.
+    **Confidence:** HIGH/MEDIUM/LOW with a one-line explanation of what would raise it.
+    No padding. No hedging. No restatement of the metadata.
 
-  # Empty messages
   no_relevant_diff: "No relevant diff found."
   no_changes: "No relevant changes."
   no_files: "No relevant files listed."
@@ -57,124 +56,123 @@ common:
 
 complexity:
   simple:
-    single_commit_intro: "You are a technical code analysis assistant. Analyze the commit below. Note: only the most relevant files from the commit are included below (not the complete commit)."
+    single_commit_intro: "You are a senior code reviewer. Analyze the commit below. Only the most relevant files are included."
     single_commit_section_analysis: "### ANALYSIS REQUEST"
-    single_commit_request: "Provide a short technical summary (max 10 lines) of what changed, the impact of the change, and the main risks. Write as if this will be read directly in a professional report."
+    single_commit_request: |
+      In at most 8 lines: what changed, what is the impact, and the top risks.
+      Be direct. No introductions. Write for a professional engineering report.
 
-    # settings (short English prompts; used when a setting is selected)
-    DEFAULT: "Give a concise overall review of the commit's technical impact, scope, and potential regressions."
-    SECURITY: "Focus on security impact: identify possible vulnerabilities, exposed secrets, unsafe patterns, and assess how risky this change is for the system."
-    QUALITY: "Focus on code quality and developer impact: detect code smells, readability issues, maintainability concerns, and how this change affects future development."
-    TESTS: "Focus on test impact: identify missing or weak tests, assess confidence in the change, and recommend what should be covered."
-    PERFORMANCE: "Focus on performance impact: identify inefficient operations, potential bottlenecks, and optimization opportunities, and mention any added complexity for developers."
-    COMMENTS: "Focus on comments and documentation: clarity, accuracy, and outdated or misleading comments."
-    IMPACT: "Focus on change impact: how large the change is, how many files and layers are affected, whether it is backend-only or cross-cutting, and how much review risk it introduces."
-    DEVELOPER_EXPERIENCE: "Focus on developer experience: maintainability, onboarding clarity, debugging ease, refactoring cost, and whether this commit reduces or increases developer friction."
-    ARCHITECTURE: "Focus on architecture impact: layer violations, coupling, modularity, design concerns, and how this change affects long-term developer work."
-    RISK: "Provide an overall risk assessment and recommended next steps (approve/review/reject)."
+    DEFAULT: "Concise overall review: scope, impact, and top regression risks."
+    SECURITY: "Security review: vulnerabilities, unsafe patterns, exposed secrets. Severity per finding."
+    QUALITY: "Quality review: code smells, maintainability issues, readability concerns."
+    TESTS: "Test review: missing coverage, confidence gaps, recommended test cases."
+    PERFORMANCE: "Performance review: inefficiencies, bottlenecks, complexity introduced."
+    COMMENTS: "Comment quality review: for each commented function or block in the diff, assess whether the comment accurately describes what the code does. Flag misleading, outdated, or missing comments where the code complexity warrants one."
+    IMPACT: "Impact review: files and layers affected, cross-cutting concerns, review burden."
+    DEVELOPER_EXPERIENCE: "Developer quality review: assess the author's work in this commit — clarity of changes, adherence to good practices, consistency with the codebase, and whether the commit is well-scoped and easy to review."
+    ARCHITECTURE: "Architecture review: coupling, layer violations, modularity concerns."
+    RISK: "Risk assessment: overall risk level with rationale and recommended action (approve/review/reject)."
+    DEPENDENCIES: "Dependency review: identify added, removed, or bumped dependencies. Assess purpose and risk of each. Flag major version bumps or removals that may break compatibility."
+    BREAKING_CHANGES: "Breaking change detection: identify changes to public APIs, interfaces, contracts, schemas, or configuration that may break consumers. Flag anything requiring migration or versioning."
+    DOCUMENTATION: "Documentation review: identify public APIs, endpoints, or behaviors that changed without corresponding documentation updates. Flag missing or outdated docs with evidence from the diff."
 
-    per_commit_request: "Concise technical summary."
-    final_intro_1: "Generate an executive summary for %{commitCount} commits."
-    final_intro_2: "Total: +%{insertions} -%{deletions} lines."
-    final_focus: "Focus on key changes, recurring patterns, scope, and risks."
+    per_commit_request: "One-paragraph technical summary. Top risk if any."
+    final_intro_1: "Consolidated summary for %{commitCount} commits."
+    final_intro_2: "Total changes: +%{insertions} -%{deletions} lines."
+    final_focus: "Key changes, recurring patterns, scope, and critical risks only."
 
   medium:
-    # Instructions (English)
     instructions:
-      - "Analyze the commit below and explain what was done."
-      - "Respond in clear, structured English."
+      - "Analyze the commit and explain what was done."
+      - "Respond in clear, structured English. Be concise."
 
-    # Single commit title and analysis points
-    single_commit_title: "### WHAT I WANT"
+    single_commit_title: "### ANALYSIS REQUEST"
     single_commit_points:
-      - "1. Technical summary of the commit"
-      - "2. What changed technically"
-      - "3. Functional impact and scope"
-      - "4. Risks and potential regressions"
-      - "5. Developer impact: maintainability, readability, and future changes"
+      - "**Summary:** What this commit does in one sentence."
+      - "**Changes:** Key technical changes. Skip trivial ones."
+      - "**Impact:** Functional scope and affected layers."
+      - "**Risks:** Real risks only, with severity. Omit if none."
+      - "**DX:** Effect on maintainability or future development. Omit if negligible."
 
-    # Per commit points
     per_commit_title: "### ANALYSIS"
     per_commit_points:
-      - "1) Short technical summary"
-      - "2) Risk points"
-      - "3) Suggestions for improvement"
+      - "**Summary:** One sentence."
+      - "**Risks:** Top risks with severity. Omit if none."
+      - "**Suggestions:** Prioritized actions. Omit if none."
 
-    # Final
-    final_intro: "You are a technical assistant."
-    final_analysis_intro: "Generate a consolidated analysis for %{commitCount} commits."
+    final_intro: "You are a senior technical reviewer."
+    final_analysis_intro: "Consolidated analysis for %{commitCount} commits."
     final_executive_summary: "### EXECUTIVE SUMMARY"
     final_summary_points:
-      - "1) Executive summary"
-      - "2) Trends and patterns"
-      - "3) Critical areas"
-      - "4) Recommendations"
+      - "**Summary:** What this commit set achieves overall."
+      - "**Trends:** Recurring patterns or themes across commits."
+      - "**Critical areas:** Files or components that need attention."
+      - "**Recommendations:** Concrete next steps. Prioritized."
 
-    # settings prompts for medium complexity (short directives)
-    DEFAULT: "Provide a medium-depth review focusing on change scope, impact, and the main technical risks."
-    SECURITY: "Perform a medium-depth security review: identify vulnerabilities, input validation issues, exposed secrets, and the risk this change introduces."
-    QUALITY: "Perform a medium-depth quality review: code smells, maintainability issues, readability, and how this affects developer productivity."
-    TESTS: "Evaluate test coverage relevance for these changes, confidence in the implementation, and the gaps developers still need to cover."
-    PERFORMANCE: "Analyze performance concerns introduced by these changes and any added complexity for future development."
-    COMMENTS: "Review comments and documentation quality, and assess whether the code is easier or harder for developers to understand."
-    IMPACT: "Assess the overall impact and scope of this change, including files touched, layers affected, and review burden."
-    DEVELOPER_EXPERIENCE: "Assess developer experience: maintainability, debugging, onboarding clarity, refactoring cost, and developer friction."
-    ARCHITECTURE: "Evaluate architectural implications, layer or module violations, and the long-term impact on development."
-    RISK: "Provide a medium-level risk assessment with clear remediation priorities and developer effort implications."
+    DEFAULT: "Balanced review: change scope, impact, and main technical risks."
+    SECURITY: "Security review: vulnerabilities, validation gaps, secrets exposure, risk level."
+    QUALITY: "Quality review: smells, maintainability, readability, developer productivity impact."
+    TESTS: "Test review: coverage gaps, confidence level, missing cases."
+    PERFORMANCE: "Performance review: inefficiencies introduced, complexity cost."
+    COMMENTS: "Comment quality review: for each commented function or block in the diff, assess whether the comment accurately and fully describes the associated code. Identify comments that are vague, misleading, outdated, or missing where complexity warrants one. Quote the comment and the relevant code when flagging issues."
+    IMPACT: "Impact review: files and layers touched, cross-cutting concerns, review burden."
+    DEVELOPER_EXPERIENCE: "Developer quality review: evaluate the author's commit quality — are changes well-scoped and atomic? Is the code clear and consistent with the codebase? Are naming, structure, and practices appropriate? Would this commit pass a rigorous code review without major concerns?"
+    ARCHITECTURE: "Architecture review: layer violations, coupling, modularity, long-term cost."
+    RISK: "Risk assessment: prioritized risks with remediation and developer effort."
+    DEPENDENCIES: "Dependency review: identify added, removed, or version-bumped dependencies. Assess why each was introduced, whether it is well-maintained, and whether it introduces transitive or compatibility risk. Flag major version bumps."
+    BREAKING_CHANGES: "Breaking change detection: identify changes to public APIs, interfaces, contracts, database schemas, or configuration keys that may break consumers. Assess backward compatibility and flag anything requiring migration or explicit versioning."
+    DOCUMENTATION: "Documentation review: for each changed public API, endpoint, or behavior in the diff, check whether documentation was updated accordingly. Flag gaps with specific references to what changed and what is missing."
 
   complex:
-    # Instructions (English)
     instructions:
-      - "Analyze the commit below in depth and explain the technical context and consequences."
-      - "Respond in clear, structured and detailed English."
-      - "Do not invent details that are not supported by the diff or metadata."
+      - "Analyze the commit in depth. Explain technical context and consequences."
+      - "Respond in structured, detailed English. Every sentence must add information."
+      - "Do not invent details not supported by the diff or metadata."
 
-    # Single commit title and points (detailed)
-    single_commit_title: "### DETAILED ANALYSIS REQUESTED"
+    single_commit_title: "### DETAILED ANALYSIS REQUEST"
     single_commit_points:
-      - "1. Executive summary of the commit"
-      - "2. What changed technically (in-depth analysis)"
-      - "3. Functional impact, scope, and expected side effects"
-      - "4. Risks, vulnerabilities, and possible regressions"
-      - "5. Most important files and why"
-      - "6. Optimization or improvement suggestions"
-      - "7. Developer impact: maintainability, debugging, onboarding, and future change cost"
+      - "**Summary:** What this commit does in one sentence."
+      - "**Technical changes:** In-depth analysis of what changed and why it matters."
+      - "**Impact:** Functional scope, affected layers, expected side effects."
+      - "**Risks:** Evidence-based risks and regressions. Severity per item. Omit if none."
+      - "**Key files:** Most important files and why."
+      - "**Suggestions:** Concrete improvements. Prioritized. Omit if none."
+      - "**DX:** Effect on maintainability, debugging, onboarding, and future change cost."
 
-    # Per commit context and points
-    per_commit_intro: "This is commit %{index}/%{total} in a sequence of analyses."
-    per_commit_context: "Consider prior commits and the repository context when answering."
-    per_commit_title: "### ANALYSIS REQUESTED"
+    per_commit_intro: "Commit %{index} of %{total}."
+    per_commit_context: "Consider prior commits and overall repository context."
+    per_commit_title: "### ANALYSIS REQUEST"
     per_commit_points:
-      - "1) In-depth technical summary for this commit"
-      - "2) Relation to previous commits (if applicable)"
-      - "3) Risk or regression potential"
-      - "4) Quick improvement suggestions"
-      - "5) Patterns or trends observed"
+      - "**Summary:** One sentence."
+      - "**Relation to prior commits:** Only if relevant."
+      - "**Risks:** Evidence-based, with severity. Omit if none."
+      - "**Suggestions:** Prioritized. Omit if none."
+      - "**Patterns:** Trends observed across commits. Omit if none."
 
-    # Final
-    final_intro_1: "You are an advanced technical code analysis assistant."
-    final_intro_2: "You received partial analyses for %{commitCount} commits."
-    final_intro_3: "Now generate a consolidated, coherent and strategic analysis."
+    final_intro_1: "You are a principal engineer conducting a strategic code review."
+    final_intro_2: "Full analysis for %{commitCount} commits follows."
+    final_intro_3: "Generate a consolidated, strategic, and evidence-based analysis."
     final_context_global: "### GLOBAL CONTEXT"
-    final_analyses_partial: "### PARTIAL ANALYSES (reference)"
-    final_consolidated: "### CONSOLIDATED ANALYSIS REQUESTED"
+    final_analyses_partial: "### COMMIT DATA"
+    final_consolidated: "### CONSOLIDATED ANALYSIS REQUEST"
     final_points:
-      - "1) Executive summary of the full commit set"
-      - "2) Evolution and progression across commits"
-      - "3) Main trends and repeated patterns"
-      - "4) Critical files/areas and overall functional impact"
-      - "5) Aggregated risks and inter-change dependencies"
-      - "6) Quality metrics and strategic recommendations"
-      - "7) Suggested next steps"
+      - "**Summary:** What this commit set achieves in 2-3 sentences."
+      - "**Progression:** How the codebase evolved across these commits."
+      - "**Trends:** Recurring patterns or themes."
+      - "**Critical areas:** Files or components that need attention, and why."
+      - "**Aggregated risks:** Inter-commit dependencies and compounded risks."
+      - "**Recommendations:** Strategic next steps. Prioritized by impact."
 
-    # settings prompts for complex complexity (detailed directives)
-    DEFAULT: "Provide a thorough, evidence-based deep analysis of code changes, scope, risks, and suggested remediations."
-    SECURITY: "Perform a thorough security audit: input validation, auth/authorization, secrets management, injection risks, and remediation steps."
-    QUALITY: "Perform in-depth code-quality analysis: anti-patterns, code smells, maintainability scoring, and prioritized refactoring suggestions."
-    TESTS: "Evaluate tests in depth: missing edge-case coverage, integration test needs, recommended test cases, and confidence gaps."
-    PERFORMANCE: "Conduct detailed performance review: algorithmic complexity, DB query issues (N+1), memory allocation, and profiling suggestions."
-    COMMENTS: "Perform a detailed review of inline comments, API docs, and README content; identify inconsistencies and outdated documentation."
-    IMPACT: "Perform a deep impact analysis: quantify the size of the change, identify affected layers/modules, assess review burden, and determine whether this is backend-only or cross-cutting."
-    DEVELOPER_EXPERIENCE: "Perform a deep developer-experience analysis: maintainability, cognitive load, debugging complexity, onboarding clarity, refactoring cost, and long-term developer friction."
-    ARCHITECTURE: "Perform architecture-level review: module boundaries, coupling, cohesion, and the long-term cost for developers working in the codebase."
-    RISK: "Provide a prioritized, evidence-based risk assessment (CRITICAL/HIGH/MEDIUM/LOW) with remediation steps, urgency, and impact on delivery."
+    DEFAULT: "Deep, evidence-based analysis: scope, risks, and remediations."
+    SECURITY: "Security audit: input validation, auth, secrets, injection risks, remediation steps with severity per finding."
+    QUALITY: "Quality analysis: anti-patterns, maintainability scoring, prioritized refactoring suggestions."
+    TESTS: "Test analysis: missing edge cases, integration gaps, recommended test cases with rationale."
+    PERFORMANCE: "Performance analysis: algorithmic complexity, query issues, memory allocation, profiling suggestions."
+    COMMENTS: "In-depth comment quality review: for every commented function, class, or block in the diff, evaluate whether the comment is accurate, complete, and proportionate to the code complexity. Identify comments that contradict the implementation, omit critical behavior, or use vague language. Quote both the comment and the relevant code. Suggest concrete rewrites where needed."
+    IMPACT: "Impact analysis: change size, affected layers, review burden, cross-cutting scope, blast radius."
+    DEVELOPER_EXPERIENCE: "In-depth developer quality review: assess this author's commit holistically — commit scope and atomicity, naming and structure choices, consistency with surrounding code, test coverage of their own changes, clarity of the commit message, and overall readiness for production. Identify specific strengths and specific areas for improvement with evidence from the diff."
+    ARCHITECTURE: "Architecture analysis: module boundaries, coupling, cohesion, design pattern usage, long-term developer cost."
+    RISK: "Risk assessment: CRITICAL/HIGH/MEDIUM/LOW per finding, evidence-based rationale, remediation steps, and estimated delivery impact."
+    DEPENDENCIES: "In-depth dependency review: for each added, removed, or bumped dependency, assess its purpose, maturity, maintenance status, license, and transitive risk. Flag major version bumps, deprecated packages, or removals that break compatibility. Suggest alternatives where appropriate."
+    BREAKING_CHANGES: "In-depth breaking change analysis: identify all changes to public APIs, interfaces, contracts, schemas, events, or configuration that may affect consumers. For each, assess severity, who is affected, and what migration path exists. Flag anything undocumented or unversioned."
+    DOCUMENTATION: "In-depth documentation review: for every public API, endpoint, configuration key, or behavior change in the diff, verify whether documentation was updated. Quote the code change and identify exactly what documentation is missing or inconsistent. Distinguish between missing docs and outdated docs."

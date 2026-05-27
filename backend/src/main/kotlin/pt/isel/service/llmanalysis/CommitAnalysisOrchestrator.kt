@@ -6,26 +6,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
-import pt.isel.domain.BatchCommitAnalysisContext
-import pt.isel.domain.BatchCommitAnalysisResponse
-import pt.isel.domain.CommitAnalysisContext
-import pt.isel.domain.CommitAnalysisRequest
-import pt.isel.domain.CommitAnalysisResponse
-import pt.isel.domain.CommitDateRangeAnalysisRequest
-import pt.isel.domain.CommitFileChangeDto
-import pt.isel.domain.CommitShasAnalysisRequest
-import pt.isel.domain.GitCommunication
+import pt.isel.domain.*
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
 import pt.isel.model.PromptComplexityLevel
 import pt.isel.service.OpenAiLlmService
 import pt.isel.service.llmanalysis.prompt.PromptBuilderService
-import pt.isel.service.llmanalysis.util.AnalysisLimits
-import pt.isel.service.llmanalysis.util.DiffExtractionService
-import pt.isel.service.llmanalysis.util.EnumParser
-import pt.isel.service.llmanalysis.util.FilePathAnalyzer
+import pt.isel.service.llmanalysis.util.*
 import java.time.Instant
-import kotlin.math.max
 
 @Service
 class CommitAnalysisOrchestrator(
@@ -36,9 +24,9 @@ class CommitAnalysisOrchestrator(
     private val commitContextBuilderService: CommitContextBuilderService,
     private val promptBuilderService: PromptBuilderService,
 ) {
-
     private val logger = LoggerFactory.getLogger(CommitAnalysisOrchestrator::class.java)
 
+    // --- Public API ---
 
     fun analyzeCommit(request: CommitAnalysisRequest): CommitAnalysisResponse {
         val limits = AnalysisLimits.fromSingle(request)
@@ -46,354 +34,159 @@ class CommitAnalysisOrchestrator(
         val mode = EnumParser.parseAnalysisMode(request.analysisMode)
         val gitComm = GitCommunication.openExisting(request.repoURI)
         val repo = gitComm.git.repository
+        val maxFiles = commitFileFilteringService.adaptiveMaxFiles(commitCount = 1, mode = mode)  // <--
 
-        logger.info("=== STARTING SINGLE COMMIT ANALYSIS ===")
-        logger.info("Commit: ${request.commitSha}")
-        logger.info("Mode: $mode, Complexity: $complexity")
+        logger.info("=== STARTING SINGLE COMMIT ANALYSIS === Commit: ${request.commitSha} | Mode: $mode | Complexity: $complexity | MaxFiles: $maxFiles")
 
         val (commit, parent) = commitFetcherService.readCommitAndParent(repo, request.commitSha)
+        val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(gitComm, repo, commit, parent, limits, maxFiles)  // <--
 
-        val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(
-            gitCommunication = gitComm,
-            repository = repo,
-            commit = commit,
-            parent = parent,
-            limits = limits,
-            maxRelevantFiles = limits.maxFiles
-        )
-
-        return when (mode) {
+        val (context, prompt) = when (mode) {
             AnalysisMode.DIFF -> {
-                val files = selectedFiles.map { candidate ->
-                    CommitFileChangeDto(
-                        oldPath = candidate.oldPath,
-                        newPath = candidate.newPath,
-                        changeType = candidate.changeType,
-                        insertions = candidate.insertions,
-                        deletions = candidate.deletions,
-                        patch = diffExtractionService.extractPatch(repo, candidate.entry, limits.maxCharsPerFile),
-
-                    )
-                }
-
-                val context = commitContextBuilderService.buildCommitContext(request.repoURI, commit, parent, files)
-                val prompt = promptBuilderService.buildSingleCommitPrompt(
-                    context = context,
-                    complexity = complexity,
-                    settings = request.requestedAnalyses
-                )
-                logger.info("Prompt length for LLM (DIFF): ${prompt.length} chars")
-                logger.debug("Generated prompt:\n$prompt")
-                val analysis = llmService.ask(prompt)
-                logger.debug("Generated Response:\n$analysis")
-
-                CommitAnalysisResponse(context = context, llmAnalysis = extractLlmText(analysis))
+                val files = selectedFiles.toDiffDtos(repo, limits)
+                val ctx = commitContextBuilderService.buildCommitContext(request.repoURI, commit, parent, files)
+                ctx to promptBuilderService.buildSingleCommitPrompt(ctx, complexity, request.requestedAnalyses)
             }
-
             AnalysisMode.META -> {
-                val fileSummaries = selectedFiles.map { candidate ->
-                    CommitFileSummary(
-                        path = candidate.newPath ?: candidate.oldPath ?: "N/A",
-                        changeType = candidate.changeType,
-                        insertions = candidate.insertions,
-                        deletions = candidate.deletions,
-                        isRename = candidate.changeType.equals("RENAME", ignoreCase = true),
-                        category = FilePathAnalyzer.inferCategoryFromPath(candidate.newPath ?: candidate.oldPath),
-                        hotspotRank = null
-                    )
-                }
-
-                val timestamp = Instant.ofEpochSecond(commit.commitTime.toLong()).toString()
-                val commitPrompt = promptBuilderService.buildSingleCommitPromptMetadata(
-                    repoURI = request.repoURI,
-                    commitSha = commit.id.name,
-                    author = commit.authorIdent?.name,
-                    timestamp = timestamp,
-                    shortMessage = commit.shortMessage,
-                    fullMessage = commit.fullMessage,
-                    fileSummaries = fileSummaries,
-                    trailers = FilePathAnalyzer.extractTrailers(commit.fullMessage),
-                    complexity = complexity,
-                    settings = request.requestedAnalyses
+                val summaries = selectedFiles.toSummaries()
+                val ctx = commitContextBuilderService.buildCommitContext(request.repoURI, commit, parent, summaries.toMetaDtos())
+                ctx to promptBuilderService.buildSingleCommitPromptMetadata(
+                    repoURI = request.repoURI, commitSha = commit.id.name,
+                    author = commit.authorIdent?.name, timestamp = commit.toTimestamp(),
+                    shortMessage = commit.shortMessage, fullMessage = commit.fullMessage,
+                    fileSummaries = summaries, trailers = FilePathAnalyzer.extractTrailers(commit.fullMessage),
+                    complexity = complexity
                 )
-                logger.info("Prompt length for LLM (META): ${commitPrompt.length} chars")
-                logger.debug("Generated prompt:\n$commitPrompt")
-                val analysis = llmService.ask(commitPrompt)
-                logger.debug("Generated Response:\n$analysis")
-
-                val filesForContext = fileSummaries.map { fs ->
-                    CommitFileChangeDto(
-                        oldPath = null,
-                        newPath = fs.path,
-                        changeType = fs.changeType,
-                        insertions = fs.insertions,
-                        deletions = fs.deletions,
-                        patch = "[omitted]",
-
-                    )
-                }
-
-                val context =
-                    commitContextBuilderService.buildCommitContext(request.repoURI, commit, parent, filesForContext)
-                CommitAnalysisResponse(context = context, llmAnalysis = extractLlmText(analysis))
             }
         }
-    }
 
+        logger.info("Prompt length ($mode): ${prompt.length} chars")
+        return CommitAnalysisResponse(context, /*extractLlmText(*/llmService.ask(prompt))//)
+    }
 
     fun analyzeCommitsByShas(request: CommitShasAnalysisRequest): BatchCommitAnalysisResponse {
         require(request.commitShas.isNotEmpty()) { "Commit SHAs list cannot be empty." }
-
-        val limits = AnalysisLimits.fromBatch(request.maxFilesPerCommit, request.maxCharsPerFile)
-        val complexity = EnumParser.parseComplexityLevel(request.promptComplexity)
-        val mode = EnumParser.parseAnalysisMode(request.analysisMode)
         val gitComm = GitCommunication.openExisting(request.repoURI)
-        val repo = gitComm.git.repository
-
-        logger.info("Mode: $mode, Complexity: $complexity")
 
         val missing = gitComm.getMissingCommitShas(request.commitShas)
-        if (missing.isNotEmpty()) {
+        if (missing.isNotEmpty())
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Commits not found: ${missing.joinToString(", ")}")
-        }
 
-        val commits = commitFetcherService.getCommitsByShas(gitComm, request.commitShas)
-
-        val res = analyzeCommitsInConversation(
+        return runBatchAnalysis(
             repoURI = request.repoURI,
             gitComm = gitComm,
-            repo = repo,
-            commits = commits,
-            limits = limits,
-            fromDate = null,
-            toDate = null,
-            complexity = complexity,
-            mode = mode,
+            commits = commitFetcherService.getCommitsByShas(gitComm, request.commitShas),
+            limits = AnalysisLimits.fromBatch( request.maxCharsPerFile),
+            complexity = EnumParser.parseComplexityLevel(request.promptComplexity),
+            mode = EnumParser.parseAnalysisMode(request.analysisMode),
             requestedAnalyses = request.requestedAnalyses
         )
-
-        return BatchCommitAnalysisResponse(res.context, extractLlmText(res.llmAnalysis))
     }
 
     fun analyzeCommitsBetweenDates(request: CommitDateRangeAnalysisRequest): BatchCommitAnalysisResponse {
-        if (request.fromDate.isAfter(request.toDate)) {
+        if (request.fromDate.isAfter(request.toDate))
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate cannot be after toDate.")
-        }
 
-        val limits = AnalysisLimits.fromBatch(request.maxFilesPerCommit, request.maxCharsPerFile)
-        val complexity = EnumParser.parseComplexityLevel(request.promptComplexity)
-        val mode = EnumParser.parseAnalysisMode(request.analysisMode)
         val gitComm = GitCommunication.openExisting(request.repoURI)
-        val repo = gitComm.git.repository
+        val commits = commitFetcherService.getCommitsBetweenDates(gitComm, request.fromDate, request.toDate, request.maxCommits)
 
-        logger.info("Mode: $mode, Complexity: $complexity")
+        if (commits.isEmpty())
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "No commits found between ${request.fromDate} and ${request.toDate}.")
 
-        val commits =
-            commitFetcherService.getCommitsBetweenDates(gitComm, request.fromDate, request.toDate, request.maxCommits)
-
-        if (commits.isEmpty()) {
-            throw ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "No commits found between ${request.fromDate} and ${request.toDate}."
-            )
-        }
-
-        val res = analyzeCommitsInConversation(
+        return runBatchAnalysis(
             repoURI = request.repoURI,
             gitComm = gitComm,
-            repo = repo,
             commits = commits,
-            limits = limits,
+            limits = AnalysisLimits.fromBatch(request.maxCharsPerFile),
+            complexity = EnumParser.parseComplexityLevel(request.promptComplexity),
+            mode = EnumParser.parseAnalysisMode(request.analysisMode),
+            requestedAnalyses = request.requestedAnalyses,
             fromDate = request.fromDate,
-            toDate = request.toDate,
-            complexity = complexity,
-            mode = mode,
-            requestedAnalyses = request.requestedAnalyses
+            toDate = request.toDate
         )
-
-        return BatchCommitAnalysisResponse(res.context, extractLlmText(res.llmAnalysis))
     }
 
-    private fun analyzeCommitsInConversation(
+
+
+    private fun runBatchAnalysis(
         repoURI: String,
         gitComm: GitCommunication,
-        repo: Repository,
         commits: List<RevCommit>,
         limits: AnalysisLimits,
-        fromDate: Instant?,
-        toDate: Instant?,
         complexity: PromptComplexityLevel,
-        mode: AnalysisMode = AnalysisMode.DIFF,
-        requestedAnalyses: List<String> = listOf("DEFAULT")
+        mode: AnalysisMode,
+        requestedAnalyses: List<String> = listOf("DEFAULT"),
+        fromDate: Instant? = null,
+        toDate: Instant? = null,
     ): BatchCommitAnalysisResponse {
-        val maxRelevantFilesPerCommit = max(3, limits.maxFiles)
+        val repo = gitComm.git.repository
+        val maxFilesPerCommit = commitFileFilteringService.adaptiveMaxFiles(commitCount = commits.size, mode = mode)
 
-        logger.info("=== STARTING BATCH ANALYSIS ===")
-        logger.info("Total commits to analyze: ${commits.size}")
-        logger.info("Mode: $mode")
-        logger.info("Max relevant files per commit: $maxRelevantFilesPerCommit")
-        logger.info("Max chars per file: ${limits.maxCharsPerFile}")
-        logger.info("Prompt complexity: $complexity")
-        logger.info("Chronological order (oldest first):")
-        commits.forEachIndexed { idx, commit ->
-            val timestamp = Instant.ofEpochSecond(commit.commitTime.toLong())
-            logger.info("  ${idx + 1}. ${commit.id.name.take(8)} | $timestamp | ${commit.shortMessage}")
-        }
+        logger.info("=== STARTING BATCH ANALYSIS === Commits: ${commits.size} | Mode: $mode | MaxFiles: $maxFilesPerCommit | Complexity: $complexity")
 
-        val partialAnalyses = mutableListOf<String>()
         val contexts = mutableListOf<CommitAnalysisContext>()
 
         commits.forEachIndexed { idx, commit ->
             val parent = commitFetcherService.resolveParent(repo, commit)
+            logger.info("--- Building context ${idx + 1}/${commits.size}: ${commit.id.name.take(8)} | ${commit.shortMessage} ---")
 
-            logger.info("\n--- Processing commit ${idx + 1}/${commits.size}: ${commit.id.name.take(8)} ---")
-            logger.info("Message: ${commit.shortMessage}")
-            logger.info("Date: ${Instant.ofEpochSecond(commit.commitTime.toLong())}")
+            val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(gitComm, repo, commit, parent, limits, maxFilesPerCommit)
 
-            val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(
-                gitCommunication = gitComm,
-                repository = repo,
-                commit = commit,
-                parent = parent,
-                limits = limits,
-                maxRelevantFiles = maxRelevantFilesPerCommit
-            )
-
-            when (mode) {
+            val context = when (mode) {
                 AnalysisMode.DIFF -> {
-                    val files = selectedFiles.map { candidate ->
-                        CommitFileChangeDto(
-                            oldPath = candidate.oldPath,
-                            newPath = candidate.newPath,
-                            changeType = candidate.changeType,
-                            insertions = candidate.insertions,
-                            deletions = candidate.deletions,
-                            patch = diffExtractionService.extractPatch(repo, candidate.entry, limits.maxCharsPerFile),
-
-                        )
-                    }
-
+                    val files = selectedFiles.toDiffDtos(repo, limits)
                     logger.info("Selected files (DIFF): ${files.size}")
-                    files.forEach { f ->
-                        logger.info("  ✓ ${f.newPath ?: f.oldPath ?: "N/A"} | +${f.insertions} -${f.deletions} | ${f.patch.length} chars")
-                    }
-
-                    val context = commitContextBuilderService.buildCommitContext(repoURI, commit, parent, files)
-
-                    val perCommitPrompt = promptBuilderService.buildPerCommitPrompt(
-                        context = context,
-                        index = idx,
-                        total = commits.size,
-                        previousAnalyses = partialAnalyses,
-                        complexity = complexity,
-                        settings = requestedAnalyses,
-                        mode = mode
-                    )
-
-                    logger.info("Prompt length for LLM: ${perCommitPrompt.length} chars")
-                    logger.debug("Per-commit prompt:\n$perCommitPrompt")
-
-                    val perCommitAnalysis = llmService.ask(perCommitPrompt)
-                    partialAnalyses.add(perCommitAnalysis)
-                    contexts.add(context)
-
-                    logger.info("LLM analysis received: ${perCommitAnalysis.length} chars")
+                    commitContextBuilderService.buildCommitContext(repoURI, commit, parent, files)
                 }
-
                 AnalysisMode.META -> {
-                    val fileSummaries = selectedFiles.map { candidate ->
-                        CommitFileSummary(
-                            path = candidate.newPath ?: candidate.oldPath ?: "N/A",
-                            changeType = candidate.changeType,
-                            insertions = candidate.insertions,
-                            deletions = candidate.deletions,
-                            isRename = candidate.changeType.equals("RENAME", ignoreCase = true),
-                            category = FilePathAnalyzer.inferCategoryFromPath(candidate.newPath ?: candidate.oldPath),
-                            hotspotRank = null
-                        )
-                    }
-
-                    logger.info("Selected files (META): ${fileSummaries.size}")
-
-                    val timestamp = Instant.ofEpochSecond(commit.commitTime.toLong()).toString()
-                    val perCommitPrompt = promptBuilderService.buildSingleCommitPromptMetadata(
-                        repoURI = repoURI,
-                        commitSha = commit.id.name,
-                        author = commit.authorIdent?.name,
-                        timestamp = timestamp,
-                        shortMessage = commit.shortMessage,
-                        fullMessage = commit.fullMessage,
-                        fileSummaries = fileSummaries,
-                        trailers = FilePathAnalyzer.extractTrailers(commit.fullMessage),
-                        complexity = complexity,
-                        settings = requestedAnalyses
-                    )
-
-                    logger.info("Prompt length for LLM: ${perCommitPrompt.length} chars")
-                    logger.debug("Generated prompt:\n$perCommitPrompt")
-                    val perCommitAnalysis = llmService.ask(perCommitPrompt)
-                    logger.debug("Generated Response:\n$perCommitAnalysis")
-                    partialAnalyses.add(perCommitAnalysis)
-
-                    val filesForContext = fileSummaries.map { fs ->
-                        CommitFileChangeDto(
-                            oldPath = null,
-                            newPath = fs.path,
-                            changeType = fs.changeType,
-                            insertions = fs.insertions,
-                            deletions = fs.deletions,
-                            patch = "[omitted]",
-
-                        )
-                    }
-
-                    val context =
-                        commitContextBuilderService.buildCommitContext(repoURI, commit, parent, filesForContext)
-                    contexts.add(context)
-
-                    logger.info("LLM analysis received: ${perCommitAnalysis.length} chars")
+                    val summaries = selectedFiles.toSummaries()
+                    logger.info("Selected files (META): ${summaries.size}")
+                    commitContextBuilderService.buildCommitContext(repoURI, commit, parent, summaries.toMetaDtos())
                 }
             }
+            contexts.add(context)
         }
 
         val batchContext = BatchCommitAnalysisContext(
-            repoURI = repoURI,
-            fromDate = fromDate,
-            toDate = toDate,
+            repoURI = repoURI, fromDate = fromDate, toDate = toDate,
             commitCount = contexts.size,
             totalInsertions = contexts.sumOf { it.totalInsertions },
             totalDeletions = contexts.sumOf { it.totalDeletions },
             commits = contexts
         )
 
-        val finalPrompt = promptBuilderService.buildFinalConsolidatedPrompt(
-            batchContext = batchContext,
-            partialAnalyses = partialAnalyses,
-            complexity = complexity,
-            settings = requestedAnalyses,
-            mode = mode
-        )
-        logger.info("\n=== FINAL PROMPT ===")
-        logger.info("Total final prompt length: ${finalPrompt.length} chars")
-        logger.info("Number of partial analyses included: ${partialAnalyses.size}")
-        logger.debug("Generated prompt:\n$finalPrompt")
-        val finalAnalysis = llmService.ask(finalPrompt)
-        logger.debug("Generated Response:\n$finalAnalysis")
+        val prompt = promptBuilderService.buildBatchPrompt(batchContext, complexity, requestedAnalyses, mode)
+        logger.info("=== BATCH PROMPT === Length: ${prompt.length} chars | Commits included: ${contexts.size}")
 
-        logger.info("Final analysis received: ${finalAnalysis.length} chars")
-        logger.info("=== BATCH ANALYSIS FINISHED ===\n")
-
-        return BatchCommitAnalysisResponse(context = batchContext, llmAnalysis = extractLlmText(finalAnalysis))
+        val result = /*extractLlmText(*/llmService.ask(prompt)//)
+        logger.info("=== BATCH ANALYSIS FINISHED ===")
+        return BatchCommitAnalysisResponse(batchContext, result)
     }
 
-    fun extractLlmText(llmAnalysis: String): String {
-        val regex = Regex("""text=(.*?), type=output_text""", RegexOption.DOT_MATCHES_ALL)
+    // --- Helpers ---
 
-        return regex.findAll(llmAnalysis)
-            .lastOrNull()
-            ?.groupValues
-            ?.getOrNull(1)
-            ?.trim()
-            ?: "could not filter"
-    }
+    /*fun extractLlmText(llmAnalysis: String): String =
+        Regex("""text=(.*?), type=output_text""", RegexOption.DOT_MATCHES_ALL)
+            .findAll(llmAnalysis).lastOrNull()?.groupValues?.getOrNull(1)?.trim() ?: "could not filter"*/
+
+    private fun RevCommit.toTimestamp(): String =
+        Instant.ofEpochSecond(commitTime.toLong()).toString()
+
+    private fun List<FileCandidate>.toDiffDtos(repo: Repository, limits: AnalysisLimits): List<CommitFileChangeDto> =
+        map { CommitFileChangeDto(it.oldPath, it.newPath, it.changeType, it.insertions, it.deletions,
+            diffExtractionService.extractPatch(repo, it.entry, limits.maxCharsPerFile)) }
+
+    private fun List<FileCandidate>.toSummaries(): List<CommitFileSummary> =
+        map { CommitFileSummary(
+            path = it.newPath ?: it.oldPath ?: "N/A",
+            changeType = it.changeType,
+            insertions = it.insertions,
+            deletions = it.deletions,
+            isRename = it.changeType.equals("RENAME", ignoreCase = true),
+            category = FilePathAnalyzer.inferCategoryFromPath(it.newPath ?: it.oldPath),
+            hotspotRank = null
+        ) }
+
+    private fun List<CommitFileSummary>.toMetaDtos(): List<CommitFileChangeDto> =
+        map { CommitFileChangeDto(null, it.path, it.changeType, it.insertions, it.deletions, "[omitted]") }
 }

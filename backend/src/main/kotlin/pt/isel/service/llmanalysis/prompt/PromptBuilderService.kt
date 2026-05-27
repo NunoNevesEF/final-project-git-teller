@@ -3,6 +3,7 @@ package pt.isel.service.llmanalysis.prompt
 import org.springframework.stereotype.Service
 import pt.isel.domain.BatchCommitAnalysisContext
 import pt.isel.domain.CommitAnalysisContext
+import pt.isel.domain.CommitFileChangeDto
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
 import pt.isel.model.PromptComplexityLevel
@@ -12,31 +13,18 @@ class PromptBuilderService(
     private val messageService: PromptMessageService
 ) {
 
-
-
     fun buildSingleCommitPrompt(
         context: CommitAnalysisContext,
         complexity: PromptComplexityLevel = PromptComplexityLevel.MEDIUM,
         settings: List<String> = listOf("DEFAULT")
     ): String = getTemplate(complexity).singleCommitTemplate(context, settings)
 
-    fun buildPerCommitPrompt(
-        context: CommitAnalysisContext,
-        index: Int,
-        total: Int,
-        previousAnalyses: List<String>,
-        complexity: PromptComplexityLevel = PromptComplexityLevel.MEDIUM,
-        settings: List<String> = listOf("DEFAULT"),
-        mode: AnalysisMode = AnalysisMode.DIFF
-    ): String = getTemplate(complexity).perCommitTemplate(context, index, total, previousAnalyses, settings, mode)
-
-    fun buildFinalConsolidatedPrompt(
+    fun buildBatchPrompt(
         batchContext: BatchCommitAnalysisContext,
-        partialAnalyses: List<String>,
         complexity: PromptComplexityLevel = PromptComplexityLevel.MEDIUM,
         settings: List<String> = listOf("DEFAULT"),
         mode: AnalysisMode = AnalysisMode.DIFF
-    ): String = getTemplate(complexity).finalTemplate(batchContext, partialAnalyses, settings, mode)
+    ): String = getTemplate(complexity).batchTemplate(batchContext, settings, mode)
 
     fun buildSingleCommitPromptMetadata(
         repoURI: String,
@@ -48,7 +36,7 @@ class PromptBuilderService(
         fileSummaries: List<CommitFileSummary>,
         trailers: List<String> = emptyList(),
         complexity: PromptComplexityLevel = PromptComplexityLevel.MEDIUM,
-        settings: List<String> = listOf("DEFAULT")
+
     ): String = buildString {
         appendMetaPrelude(complexity)
         appendLine()
@@ -59,17 +47,7 @@ class PromptBuilderService(
         appendLine()
         appendLine(messageService.getMessage("common.section_what_i_want"))
         appendLine(messageService.getMessage("common.meta_single_commit_points"))
-
-
-
     }
-
-    fun summarizeAnalysis(text: String, maxChars: Int): String =
-        text.replace("\n", " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-            .let { if (it.length <= maxChars) it else it.take(maxChars) + "..." }
-
 
 
     private fun getTemplate(complexity: PromptComplexityLevel): PromptTemplate = when (complexity) {
@@ -80,8 +58,7 @@ class PromptBuilderService(
 
     private sealed class PromptTemplate {
         abstract val singleCommitTemplate: (CommitAnalysisContext, List<String>) -> String
-        abstract val perCommitTemplate: (CommitAnalysisContext, Int, Int, List<String>, List<String>, AnalysisMode) -> String
-        abstract val finalTemplate: (BatchCommitAnalysisContext, List<String>, List<String>, AnalysisMode) -> String
+        abstract val batchTemplate: (BatchCommitAnalysisContext, List<String>, AnalysisMode) -> String
     }
 
     private inner class SimpleTemplate : PromptTemplate() {
@@ -89,39 +66,19 @@ class PromptBuilderService(
             buildString {
                 appendDiffPrelude(PromptComplexityLevel.SIMPLE)
                 appendLine()
-
                 appendCommitBasicInfo(context)
                 appendLine()
                 appendLine(messageService.getMessage("common.section_changes"))
                 appendFilesWithDiffs(context.files, showDetails = false)
                 appendLine()
-
                 appendLine(messageService.getMessage("complexity.simple.single_commit_section_analysis"))
                 appendLine(messageService.getMessage("complexity.simple.single_commit_request"))
-
                 appendSelectedSettings(settings, PromptComplexityLevel.SIMPLE)
             }
         }
 
-        override val perCommitTemplate: (CommitAnalysisContext, Int, Int, List<String>, List<String>, AnalysisMode) -> String =
-            { context, index, total, _previousAnalyses, settings, mode ->
-                buildString {
-                    appendModePrelude(mode, PromptComplexityLevel.SIMPLE)
-                    appendLine()
-                    appendLine("Commit ${index + 1}/$total")
-                    appendLine("${safe(context.commitSha.take(8))}: ${safe(context.message)}")
-                    appendLine()
-                    appendLine("${messageService.getMessage("common.section_changes")} (${context.filesChanged} files)")
-                    appendFilesWithDiffs(context.files, showDetails = false)
-                    appendLine()
-                    appendLine(messageService.getMessage("complexity.simple.per_commit_request"))
-
-                    appendSelectedSettings(settings, PromptComplexityLevel.SIMPLE)
-                }
-            }
-
-        override val finalTemplate: (BatchCommitAnalysisContext, List<String>, List<String>, AnalysisMode) -> String =
-            { batch, _analyses, settings, mode ->
+        override val batchTemplate: (BatchCommitAnalysisContext, List<String>, AnalysisMode) -> String =
+            { batch, settings, mode ->
                 buildString {
                     appendModePrelude(mode, PromptComplexityLevel.SIMPLE)
                     appendLine()
@@ -139,8 +96,14 @@ class PromptBuilderService(
                         )
                     )
                     appendLine()
+                    batch.commits.forEachIndexed { idx, context ->
+                        appendLine("### Commit ${idx + 1}/${batch.commitCount}")
+                        appendCommitBasicInfo(context)
+                        appendLine(messageService.getMessage("common.section_changes"))
+                        appendFilesWithDiffs(context.files, showDetails = false)
+                        appendLine()
+                    }
                     appendLine(messageService.getMessage("complexity.simple.final_focus"))
-
                     appendSelectedSettings(settings, PromptComplexityLevel.SIMPLE)
                 }
             }
@@ -157,36 +120,13 @@ class PromptBuilderService(
                 appendFilesWithDiffs(context.files)
                 appendLine()
                 appendLine(messageService.getAnalysisTitle(PromptComplexityLevel.MEDIUM, "single_commit"))
-                messageService.getAnalysisPoints(PromptComplexityLevel.MEDIUM, "single_commit").forEach { point ->
-                    appendLine(point)
-                }
-
+                messageService.getAnalysisPoints(PromptComplexityLevel.MEDIUM, "single_commit").forEach { appendLine(it) }
                 appendSelectedSettings(settings, PromptComplexityLevel.MEDIUM)
             }
         }
 
-        override val perCommitTemplate: (CommitAnalysisContext, Int, Int, List<String>, List<String>, AnalysisMode) -> String =
-            { context, index, total, _previousAnalyses, settings, mode ->
-                buildString {
-                    appendModePrelude(mode, PromptComplexityLevel.MEDIUM)
-                    appendLine()
-                    appendLine("Commit ${index + 1}/$total")
-                    appendCommitBasicMetadata(context)
-                    appendLine()
-                    appendLine(messageService.getMessage("common.section_files"))
-                    appendFilesWithDiffs(context.files)
-                    appendLine()
-                    appendLine(messageService.getAnalysisTitle(PromptComplexityLevel.MEDIUM, "per_commit"))
-                    messageService.getAnalysisPoints(PromptComplexityLevel.MEDIUM, "per_commit").forEach { point ->
-                        appendLine(point)
-                    }
-
-                    appendSelectedSettings(settings, PromptComplexityLevel.MEDIUM)
-                }
-            }
-
-        override val finalTemplate: (BatchCommitAnalysisContext, List<String>, List<String>, AnalysisMode) -> String =
-            { batch, analyses, settings, mode ->
+        override val batchTemplate: (BatchCommitAnalysisContext, List<String>, AnalysisMode) -> String =
+            { batch, settings, mode ->
                 buildString {
                     appendModePrelude(mode, PromptComplexityLevel.MEDIUM)
                     appendLine()
@@ -203,16 +143,15 @@ class PromptBuilderService(
                     appendLine("- ${messageService.getMessage("common.label_deletions")}: ${batch.totalDeletions}")
                     appendLine("- ${messageService.getMessage("common.label_period")}: ${batch.fromDate ?: "N/A"} to ${batch.toDate ?: "N/A"}")
                     appendLine()
-                    appendLine("### SUMMARIZED ANALYSES")
-                    analyses.take(5).forEachIndexed { idx, analysis ->
-                        appendLine("Commit ${idx + 1}: ${summarizeAnalysis(analysis, 300)}")
+                    batch.commits.forEachIndexed { idx, context ->
+                        appendLine("### Commit ${idx + 1}/${batch.commitCount}")
+                        appendCommitFullMetadata(context)
+                        appendLine(messageService.getMessage("common.section_files"))
+                        appendFilesWithDiffs(context.files)
+                        appendLine()
                     }
-                    appendLine()
                     appendLine("### CONSOLIDATED ANALYSIS")
-                    messageService.getAnalysisPoints(PromptComplexityLevel.MEDIUM, "final").forEach { point ->
-                        appendLine(point)
-                    }
-
+                    messageService.getAnalysisPoints(PromptComplexityLevel.MEDIUM, "final").forEach { appendLine(it) }
                     appendSelectedSettings(settings, PromptComplexityLevel.MEDIUM)
                 }
             }
@@ -229,51 +168,13 @@ class PromptBuilderService(
                 appendFilesWithDiffs(context.files, showDetails = true)
                 appendLine()
                 appendLine(messageService.getAnalysisTitle(PromptComplexityLevel.COMPLEX, "single_commit"))
-                messageService.getAnalysisPoints(PromptComplexityLevel.COMPLEX, "single_commit").forEach { point ->
-                    appendLine(point)
-                }
-
+                messageService.getAnalysisPoints(PromptComplexityLevel.COMPLEX, "single_commit").forEach { appendLine(it) }
                 appendSelectedSettings(settings, PromptComplexityLevel.COMPLEX)
             }
         }
 
-        override val perCommitTemplate: (CommitAnalysisContext, Int, Int, List<String>, List<String>, AnalysisMode) -> String =
-            { context, index, total, prevAnalyses, settings, mode ->
-                buildString {
-                    appendModePrelude(mode, PromptComplexityLevel.COMPLEX)
-                    appendLine(
-                        messageService.interpolate(
-                            messageService.getMessage("complexity.complex.per_commit_intro"),
-                            "index" to (index + 1),
-                            "total" to total
-                        )
-                    )
-                    appendLine(messageService.getMessage("complexity.complex.per_commit_context"))
-                    appendLine()
-                    appendCommitCompleteMetadata(context)
-                    appendLine()
-                    if (prevAnalyses.isNotEmpty()) {
-                        appendLine(messageService.getMessage("common.section_contexto_historico"))
-                        prevAnalyses.takeLast(2).forEachIndexed { i, a ->
-                            appendLine("#### ${messageService.getMessage("common.analysis_anterior")} ${i + 1}:")
-                            appendLine(summarizeAnalysis(a, 800))
-                            appendLine()
-                        }
-                    }
-                    appendLine(messageService.getMessage("common.section_files"))
-                    appendFilesWithDiffs(context.files, showDetails = true)
-                    appendLine()
-                    appendLine(messageService.getAnalysisTitle(PromptComplexityLevel.COMPLEX, "per_commit"))
-                    messageService.getAnalysisPoints(PromptComplexityLevel.COMPLEX, "per_commit").forEach { point ->
-                        appendLine(point)
-                    }
-
-                    appendSelectedSettings(settings, PromptComplexityLevel.COMPLEX)
-                }
-            }
-
-        override val finalTemplate: (BatchCommitAnalysisContext, List<String>, List<String>, AnalysisMode) -> String =
-            { batch, analyses, settings, mode ->
+        override val batchTemplate: (BatchCommitAnalysisContext, List<String>, AnalysisMode) -> String =
+            { batch, settings, mode ->
                 buildString {
                     appendModePrelude(mode, PromptComplexityLevel.COMPLEX)
                     appendLine()
@@ -295,16 +196,15 @@ class PromptBuilderService(
                     appendLine("- ${messageService.getMessage("common.label_deletions")}: ${batch.totalDeletions}")
                     appendLine()
                     appendLine(messageService.getMessage("complexity.complex.final_analyses_partial"))
-                    analyses.forEachIndexed { idx, analysis ->
-                        appendLine("#### Commit ${idx + 1} partial analysis")
-                        appendLine(analysis)
+                    batch.commits.forEachIndexed { idx, context ->
+                        appendLine("### Commit ${idx + 1}/${batch.commitCount}")
+                        appendCommitCompleteMetadata(context)
+                        appendLine(messageService.getMessage("common.section_files_changed"))
+                        appendFilesWithDiffs(context.files, showDetails = true)
                         appendLine()
                     }
                     appendLine(messageService.getMessage("complexity.complex.final_consolidated"))
-                    messageService.getAnalysisPoints(PromptComplexityLevel.COMPLEX, "final").forEach { point ->
-                        appendLine(point)
-                    }
-
+                    messageService.getAnalysisPoints(PromptComplexityLevel.COMPLEX, "final").forEach { appendLine(it) }
                     appendSelectedSettings(settings, PromptComplexityLevel.COMPLEX)
                 }
             }
@@ -313,71 +213,28 @@ class PromptBuilderService(
 
 
     private fun StringBuilder.appendDiffPrelude(complexity: PromptComplexityLevel) {
-        appendLine(
-            if (complexity == PromptComplexityLevel.COMPLEX) {
-                messageService.getMessage("common.technical_assistant_advanced")
-            } else {
-                messageService.getMessage("common.technical_assistant")
-            }
-        )
+        appendLine(if (complexity == PromptComplexityLevel.COMPLEX) messageService.getMessage("common.technical_assistant_advanced") else messageService.getMessage("common.technical_assistant"))
         appendLine(messageService.getMessage("common.analyze_commit"))
-        appendLine(
-            if (complexity == PromptComplexityLevel.COMPLEX) {
-                messageService.getMessage("common.english_detailed")
-            } else {
-                messageService.getMessage("common.english_structured")
-            }
-        )
+        appendLine(if (complexity == PromptComplexityLevel.COMPLEX) messageService.getMessage("common.english_detailed") else messageService.getMessage("common.english_structured"))
         appendLine(messageService.getMessage("common.no_inventions"))
         appendLine("Use the diff as the main source of truth. Focus on exact changes, side effects, regressions, and implementation details.")
     }
 
     private fun StringBuilder.appendMetaPrelude(complexity: PromptComplexityLevel) {
-        appendLine(
-            if (complexity == PromptComplexityLevel.COMPLEX) {
-                messageService.getMessage("common.technical_assistant_advanced")
-            } else {
-                messageService.getMessage("common.technical_assistant")
-            }
-        )
+        appendLine(if (complexity == PromptComplexityLevel.COMPLEX) messageService.getMessage("common.technical_assistant_advanced") else messageService.getMessage("common.technical_assistant"))
         appendLine(messageService.getMessage("common.analyze_metadata"))
-        appendLine(
-            if (complexity == PromptComplexityLevel.COMPLEX) {
-                messageService.getMessage("common.english_detailed")
-            } else {
-                messageService.getMessage("common.english_structured")
-            }
-        )
+        appendLine(if (complexity == PromptComplexityLevel.COMPLEX) messageService.getMessage("common.english_detailed") else messageService.getMessage("common.english_structured"))
         appendLine(messageService.getMessage("common.no_inventions"))
         appendLine("This is a metadata-only analysis. Focus on likely intent, scope, affected layers, impact, and risk. State clearly when diffs are needed to confirm conclusions.")
     }
 
-    private fun StringBuilder.appendModePrelude(mode: AnalysisMode, complexity: PromptComplexityLevel) {
+    private fun StringBuilder.appendModePrelude(mode: AnalysisMode, complexity: PromptComplexityLevel) =
         when (mode) {
             AnalysisMode.DIFF -> appendDiffPrelude(complexity)
             AnalysisMode.META -> appendMetaPrelude(complexity)
         }
-    }
 
-    private fun StringBuilder.appendSelectedSettings(
-        settings: List<String>,
-        complexity: PromptComplexityLevel
-    ) {
-        val selectedSettings = settings
-            .map { it.trim().uppercase() }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .ifEmpty { listOf("DEFAULT") }
 
-        appendLine()
-        appendLine("### SELECTED ANALYSIS FOCUS")
-        selectedSettings.forEach { setting ->
-            val settingPrompt = messageService.getMessage("complexity.${complexity.name.lowercase()}.$setting")
-            if (!settingPrompt.startsWith("ERROR:")) {
-                appendLine("- $settingPrompt")
-            }
-        }
-    }
 
     private fun StringBuilder.appendCommitBasicInfo(context: CommitAnalysisContext) {
         appendLine(messageService.getMessage("common.section_commit"))
@@ -385,14 +242,6 @@ class PromptBuilderService(
         appendLine("${messageService.getMessage("common.label_message")}: ${safe(context.message)}")
         appendLine("${messageService.getMessage("common.label_author")}: ${safe(context.author)}")
         appendLine("${messageService.getMessage("common.label_files")}: ${context.filesChanged} | +${context.totalInsertions} -${context.totalDeletions}")
-    }
-
-    private fun StringBuilder.appendCommitBasicMetadata(context: CommitAnalysisContext) {
-        appendLine(messageService.getMessage("common.section_metadata"))
-        appendLine("- ${messageService.getMessage("common.label_commit")}: ${safe(context.commitSha.take(8))}")
-        appendLine("- ${messageService.getMessage("common.label_author")}: ${safe(context.author)}")
-        appendLine("- ${messageService.getMessage("common.label_message")}: ${safe(context.message)}")
-        appendLine("- ${messageService.getMessage("common.label_files_changed")}: ${context.filesChanged}")
     }
 
     private fun StringBuilder.appendCommitFullMetadata(context: CommitAnalysisContext) {
@@ -421,13 +270,8 @@ class PromptBuilderService(
     }
 
     private fun StringBuilder.appendCommitMetadata(
-        repoURI: String,
-        commitSha: String,
-        author: String?,
-        timestamp: String,
-        shortMessage: String,
-        fullMessage: String?,
-        trailers: List<String>
+        repoURI: String, commitSha: String, author: String?, timestamp: String,
+        shortMessage: String, fullMessage: String?, trailers: List<String>
     ) {
         appendLine(messageService.getMessage("common.section_metadata_commit"))
         appendLine("- ${messageService.getMessage("common.label_repo")}: ${safe(repoURI)}")
@@ -435,86 +279,47 @@ class PromptBuilderService(
         appendLine("- ${messageService.getMessage("common.label_author")}: ${safe(author ?: "Unknown")}")
         appendLine("- ${messageService.getMessage("common.label_date")}: $timestamp")
         appendLine("- ${messageService.getMessage("common.label_message")}: ${safe(shortMessage)}")
-        if (!fullMessage.isNullOrBlank()) {
-            appendLine("- ${messageService.getMessage("common.label_full_message")}: ${safe(fullMessage)}")
-        }
-        if (trailers.isNotEmpty()) {
-            appendLine("- ${messageService.getMessage("common.label_trailers")}: ${trailers.joinToString(", ")}")
-        }
+        if (!fullMessage.isNullOrBlank()) appendLine("- ${messageService.getMessage("common.label_full_message")}: ${safe(fullMessage)}")
+        if (trailers.isNotEmpty()) appendLine("- ${messageService.getMessage("common.label_trailers")}: ${trailers.joinToString(", ")}")
     }
 
-    private fun StringBuilder.appendFilesWithDiffs(
-        files: List<Any>,
-        showDetails: Boolean = true
-    ) {
+    private fun StringBuilder.appendFilesWithDiffs(files: List<CommitFileChangeDto>, showDetails: Boolean = true) {
         if (files.isEmpty()) {
-            appendLine(
-                if (showDetails) {
-                    messageService.getMessage("common.no_relevant_diff")
-                } else {
-                    messageService.getMessage("common.no_changes")
-                }
-            )
-        } else {
-            files.forEachIndexed { i, f ->
-                val fileObj = f as? Any
-                if (fileObj != null) {
-                    try {
-                        val newPath = runCatching {
-                            fileObj.javaClass.getMethod("getNewPath").invoke(fileObj) as? String
-                        }.getOrNull() ?: runCatching {
-                            fileObj.javaClass.getMethod("getOldPath").invoke(fileObj) as? String
-                        }.getOrNull() ?: "N/A"
-
-                        val oldPath = runCatching {
-                            fileObj.javaClass.getMethod("getOldPath").invoke(fileObj) as? String
-                        }.getOrNull() ?: "N/A"
-
-                        val changeType = runCatching {
-                            fileObj.javaClass.getMethod("getChangeType").invoke(fileObj)?.toString()
-                        }.getOrNull() ?: ""
-
-                        val patch = runCatching {
-                            fileObj.javaClass.getMethod("getPatch").invoke(fileObj)?.toString()
-                        }.getOrNull() ?: ""
-
-                        val insertions = runCatching {
-                            fileObj.javaClass.getMethod("getInsertions").invoke(fileObj)
-                        }.getOrNull() ?: 0
-
-                        val deletions = runCatching {
-                            fileObj.javaClass.getMethod("getDeletions").invoke(fileObj)
-                        }.getOrNull() ?: 0
-
-                        appendLine("#### File ${i + 1}: ${safe(newPath)} ($changeType)")
-                        if (showDetails) {
-                            appendLine("- ${messageService.getMessage("common.label_old_path")}: ${safe(oldPath)}")
-                            appendLine("- ${messageService.getMessage("common.label_new_path")}: ${safe(newPath)}")
-                            appendLine("- ${messageService.getMessage("common.label_insertions")}: $insertions, ${messageService.getMessage("common.label_deletions")}: $deletions")
-                            appendLine("- Patch:")
-                        }
-                        appendLine("```diff")
-                        appendLine(safe(patch))
-                        appendLine("```")
-                        if (showDetails) appendLine()
-                    } catch (e: Exception) {
-
-                    }
-                }
+            appendLine(if (showDetails) messageService.getMessage("common.no_relevant_diff") else messageService.getMessage("common.no_changes"))
+            return
+        }
+        files.forEachIndexed { i, f ->
+            appendLine("#### File ${i + 1}: ${safe(f.newPath ?: f.oldPath ?: "N/A")} (${f.changeType})")
+            if (showDetails) {
+                appendLine("- ${messageService.getMessage("common.label_old_path")}: ${safe(f.oldPath ?: "N/A")}")
+                appendLine("- ${messageService.getMessage("common.label_new_path")}: ${safe(f.newPath ?: "N/A")}")
+                appendLine("- ${messageService.getMessage("common.label_insertions")}: ${f.insertions}, ${messageService.getMessage("common.label_deletions")}: ${f.deletions}")
+                appendLine("- Patch:")
             }
+            appendLine("```diff")
+            appendLine(safe(f.patch))
+            appendLine("```")
+            if (showDetails) appendLine()
         }
     }
 
     private fun StringBuilder.appendFileSummaries(summaries: List<CommitFileSummary>) {
-        if (summaries.isEmpty()) {
-            appendLine(messageService.getMessage("common.no_files"))
-        } else {
-            summaries.forEachIndexed { i, fs ->
-                appendLine("#### File ${i + 1}: ${safe(fs.path)} (${fs.changeType})")
-                appendLine("- ${messageService.getMessage("common.label_insertions")}: ${fs.insertions}, ${messageService.getMessage("common.label_deletions")}: ${fs.deletions}, Category: ${fs.category ?: "unknown"}, HotspotRank: ${fs.hotspotRank ?: "N/A"}")
-                appendLine("- Rename: ${fs.isRename}")
-                appendLine()
-            }
+        if (summaries.isEmpty()) { appendLine(messageService.getMessage("common.no_files")); return }
+        summaries.forEachIndexed { i, fs ->
+            appendLine("#### File ${i + 1}: ${safe(fs.path)} (${fs.changeType})")
+            appendLine("- ${messageService.getMessage("common.label_insertions")}: ${fs.insertions}, ${messageService.getMessage("common.label_deletions")}: ${fs.deletions}, Category: ${fs.category ?: "unknown"}, HotspotRank: ${fs.hotspotRank ?: "N/A"}")
+            appendLine("- Rename: ${fs.isRename}")
+            appendLine()
+        }
+    }
+
+    private fun StringBuilder.appendSelectedSettings(settings: List<String>, complexity: PromptComplexityLevel) {
+        val selected = settings.map { it.trim().uppercase() }.filter { it.isNotBlank() }.distinct().ifEmpty { listOf("DEFAULT") }
+        appendLine()
+        appendLine("### SELECTED ANALYSIS FOCUS")
+        selected.forEach { setting ->
+            val msg = messageService.getMessage("complexity.${complexity.name.lowercase()}.$setting")
+            if (!msg.startsWith("ERROR:")) appendLine("- $msg")
         }
     }
 
