@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
-import OAuthRedirectButton from "../components/OAuthButton";
 import { useCommonStyles } from "@/constants/useCommonStyles";
+import OAuthRedirectButton from "@/components/OAuthButton";
 
 const DEFAULT_API_BASE = "http://localhost:8080";
 const LOGIN_PATH = "/api/public/auth/login";
@@ -54,7 +54,7 @@ export default function Login() {
                 setLoading(true);
                 setErrorMessage(null);
                 await signIn({ accessToken, refreshToken, username: "User" });
-                router.replace("/home");
+                router.replace("../home");
             } catch (err: any) {
                 oauthHandledRef.current = false;
                 setErrorMessage(err?.message || "Unable to complete Google login.");
@@ -110,7 +110,7 @@ export default function Login() {
             }
 
             await signIn({ accessToken, refreshToken, username });
-            router.replace("/home");
+            router.replace("../home");
         } catch (err: any) {
             const message = err?.message || "Unable to login. Please try again.";
             setErrorMessage(message);
@@ -122,7 +122,7 @@ export default function Login() {
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
-            <Link href="/signup" asChild>
+            <Link href="../signup" asChild>
                 <Pressable style={commonStyles.topLeftActionButton}>
                     <Text style={commonStyles.topLeftActionButtonText}>Sign Up</Text>
                 </Pressable>

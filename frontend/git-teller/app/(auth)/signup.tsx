@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import OAuthRedirectButton from "../components/OAuthButton";
 import { useCommonStyles } from "@/constants/useCommonStyles";
+import OAuthRedirectButton from "@/components/OAuthButton";
 
 const DEFAULT_API_BASE = "http://localhost:8080";
 const SIGNUP_PATH = "/api/public/accounts/signup";
@@ -37,7 +37,7 @@ export default function Signup() {
             }
 
             Alert.alert("Success", "Account created!");
-            router.replace("/login");
+            router.replace("../login");
         } catch (err: any) {
             setErrorMessage(err?.message || "Signup failed");
         } finally {

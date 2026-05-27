@@ -54,7 +54,7 @@ export default function GithubReposPage() {
     };
 
     if (loading) return null;
-    if (!isAuthenticated) return <Redirect href="/login" />;
+    if (!isAuthenticated) return <Redirect href="../login" />;
 
     return (
         <View style={commonStyles.screen}>
