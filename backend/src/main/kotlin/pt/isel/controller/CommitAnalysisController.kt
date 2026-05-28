@@ -37,11 +37,4 @@ class CommitAnalysisController(
         return ResponseEntity.ok(response)
     }
 
-
-
-
-
-
-
-
 }

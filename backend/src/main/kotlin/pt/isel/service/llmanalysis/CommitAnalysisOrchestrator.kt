@@ -10,14 +10,14 @@ import pt.isel.domain.*
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
 import pt.isel.model.PromptComplexityLevel
-import pt.isel.service.OpenAiLlmService
+import pt.isel.service.OpenRouterLlmService
 import pt.isel.service.llmanalysis.prompt.PromptBuilderService
 import pt.isel.service.llmanalysis.util.*
 import java.time.Instant
 
 @Service
 class CommitAnalysisOrchestrator(
-    private val llmService: OpenAiLlmService,
+    private val llmService: OpenRouterLlmService,
     private val commitFetcherService: CommitFetcherService,
     private val commitFileFilteringService: CommitFileFilteringService,
     private val diffExtractionService: DiffExtractionService,
@@ -26,7 +26,7 @@ class CommitAnalysisOrchestrator(
 ) {
     private val logger = LoggerFactory.getLogger(CommitAnalysisOrchestrator::class.java)
 
-    // --- Public API ---
+
 
     fun analyzeCommit(request: CommitAnalysisRequest): CommitAnalysisResponse {
         val limits = AnalysisLimits.fromSingle(request)
@@ -61,7 +61,7 @@ class CommitAnalysisOrchestrator(
         }
 
         logger.info("Prompt length ($mode): ${prompt.length} chars")
-        return CommitAnalysisResponse(context, /*extractLlmText(*/llmService.ask(prompt))//)
+        return CommitAnalysisResponse(context, llmService.askText(prompt))
     }
 
     fun analyzeCommitsByShas(request: CommitShasAnalysisRequest): BatchCommitAnalysisResponse {
@@ -158,16 +158,12 @@ class CommitAnalysisOrchestrator(
         val prompt = promptBuilderService.buildBatchPrompt(batchContext, complexity, requestedAnalyses, mode)
         logger.info("=== BATCH PROMPT === Length: ${prompt.length} chars | Commits included: ${contexts.size}")
 
-        val result = /*extractLlmText(*/llmService.ask(prompt)//)
+        val result = llmService.askText(prompt)
         logger.info("=== BATCH ANALYSIS FINISHED ===")
         return BatchCommitAnalysisResponse(batchContext, result)
     }
 
     // --- Helpers ---
-
-    /*fun extractLlmText(llmAnalysis: String): String =
-        Regex("""text=(.*?), type=output_text""", RegexOption.DOT_MATCHES_ALL)
-            .findAll(llmAnalysis).lastOrNull()?.groupValues?.getOrNull(1)?.trim() ?: "could not filter"*/
 
     private fun RevCommit.toTimestamp(): String =
         Instant.ofEpochSecond(commitTime.toLong()).toString()
