@@ -10,14 +10,14 @@ import pt.isel.domain.BatchCommitAnalysisResponse
 import pt.isel.domain.CommitAnalysisRequest
 import pt.isel.domain.CommitDateRangeAnalysisRequest
 import pt.isel.domain.CommitShasAnalysisRequest
-import pt.isel.service.llmanalysis.CommitAnalysisOrchestrator
+import pt.isel.service.llmanalysis.CommitAnalysisService
 
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
 @RequestMapping("/api/public/gitAnalysis")
 class CommitAnalysisController(
-    private val orchestrator: CommitAnalysisOrchestrator,
+    private val orchestrator: CommitAnalysisService,
 ) {
     @PostMapping("/commitAnalysis")
     fun postCommitAnalysis(@RequestBody request: CommitAnalysisRequest) =

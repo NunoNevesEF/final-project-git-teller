@@ -16,7 +16,7 @@ import pt.isel.service.llmanalysis.util.*
 import java.time.Instant
 
 @Service
-class CommitAnalysisOrchestrator(
+class CommitAnalysisService(
     private val llmService: OpenRouterLlmService,
     private val commitFetcherService: CommitFetcherService,
     private val commitFileFilteringService: CommitFileFilteringService,
@@ -24,7 +24,7 @@ class CommitAnalysisOrchestrator(
     private val commitContextBuilderService: CommitContextBuilderService,
     private val promptBuilderService: PromptBuilderService,
 ) {
-    private val logger = LoggerFactory.getLogger(CommitAnalysisOrchestrator::class.java)
+    private val logger = LoggerFactory.getLogger(CommitAnalysisService::class.java)
 
 
 

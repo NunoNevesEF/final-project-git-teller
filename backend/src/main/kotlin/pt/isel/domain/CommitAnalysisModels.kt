@@ -22,7 +22,6 @@ data class CommitAnalysisContext(
     val totalInsertions: Int,
     val totalDeletions: Int,
     val files: List<CommitFileChangeDto>,
-
     )
 
 data class CommitAnalysisResponse(

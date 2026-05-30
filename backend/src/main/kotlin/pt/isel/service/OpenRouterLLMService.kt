@@ -20,9 +20,7 @@ class OpenRouterLlmService(
 
     fun ask(prompt: String): JsonNode {
         check(apiKey.isNotBlank()) { "app.openrouter.api-key não está configurado" }
-
         val body = """{"model":"$model","messages":[{"role":"user","content":${mapper.writeValueAsString(prompt)}}]}"""
-
         val raw = http.send(
             HttpRequest.newBuilder()
                 .uri(URI.create("$baseUrl/chat/completions"))
@@ -32,11 +30,7 @@ class OpenRouterLlmService(
                 .build(),
             HttpResponse.BodyHandlers.ofString()
         )
-
         check(raw.statusCode() in 200..299) { "OpenRouter HTTP ${raw.statusCode()}: ${raw.body()}" }
-
-
-
         return mapper.readTree(raw.body())
     }
 
