@@ -1,14 +1,13 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 
-const screenWidth = Dimensions.get("window").width;
-
 export default function CommitsPieChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const [width, setWidth] = React.useState(0);
   const totalCommits = Object.values(data)
     .flat()
     .length;
@@ -33,10 +32,17 @@ export default function CommitsPieChart({ data }: { data: Record<string, CommitD
   });
 
   return (
-    <View>
+  <View
+    style={{
+      width: "100%",
+      alignItems: "center"
+    }}
+    onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+  >
+    {width > 0 && (
       <PieChart
         data={pieData}
-        width={screenWidth * 0.4}
+        width={width * 0.7}
         height={220}
         chartConfig={{
           color: () => colors.icon,
@@ -47,11 +53,10 @@ export default function CommitsPieChart({ data }: { data: Record<string, CommitD
         paddingLeft="0"
         absolute
         style={{
-          marginLeft : screenWidth/3,
-          alignItems : "center",
           marginVertical: 20
         }}
       />
-    </View>
-  );
+    )}
+  </View>
+);
 }

@@ -1,14 +1,13 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 
-const screenWidth = Dimensions.get("window").width;
-
 export default function CommitsChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const [width, setWidth] = React.useState(0);
   const groupByDayCumulative = (commits: CommitDTO[], labels: string[]) => {
     const map: Record<string, number> = {};
     let cumulative = 0;
@@ -36,9 +35,10 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
 
   const labels = Array.from(allDaysSet).sort();
 
-  const visibleLabels = labels.map((label, index) => {
-    return index % 2 === 0 ? label : "";
-  });
+  const step = Math.ceil(labels.length / 6);
+  const visibleLabels = labels.map((label, index) =>
+    index % step === 0 ? label : ""
+  );
 
   const datasets = Object.entries(data).map(
     ([user, commits]) => {
@@ -62,15 +62,20 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
   const segments = maxCommits <= 10 ? maxCommits : 6;
 
   return (
-    <View>
+  <View
+    style={{ width: "100%" }}
+    onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+  >
+    {width > 0 && (
       <LineChart
         data={{
-          labels : visibleLabels,
+          labels: visibleLabels,
           datasets,
           legend: users
         }}
-        width={screenWidth*0.7} 
+        width={width * 0.6}
         height={220}
+        withShadow={false}
         formatYLabel={(yValue) => Math.round(Number(yValue)).toString()}
         segments={segments}
         chartConfig={{
@@ -86,14 +91,15 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
             r: "6",
             strokeWidth: "1",
             stroke: colors.text
-          }
+          },
         }}
         style={{
-          alignItems : "center",
+          alignItems: "center",
           marginVertical: 8,
           borderRadius: 16
         }}
       />
-    </View>
-  );
+    )}
+  </View>
+);
 }

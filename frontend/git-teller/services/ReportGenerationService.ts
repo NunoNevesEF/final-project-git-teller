@@ -1,10 +1,13 @@
+import { GitAnalysis } from "@/models/GitAnalysis";
 import { apiPostBlob, apiGet, apiGetBlob } from "./apiClient";
+import { getTokens } from "./secureStore";
 
 const SERVICE_PATH = "report";
 
-export async function createReport(bytes: string[]): Promise<Blob> {
-  const token = localStorage.getItem("accessToken");
-  return apiPostBlob(`${SERVICE_PATH}/create`, bytes, token);
+export async function createReport(gitAnaylsis: GitAnalysis): Promise<Blob> {
+  const { accessToken } = await getTokens();
+
+  return apiPostBlob(`${SERVICE_PATH}/create`, gitAnaylsis, accessToken);
 }
 
 export async function getUserReports() {

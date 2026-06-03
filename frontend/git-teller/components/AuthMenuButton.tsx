@@ -16,12 +16,12 @@ export default function AuthMenuButton() {
 
     const handleLogin = () => {
         closeMenu();
-        router.push('/login');
+        router.push('../login');
     };
 
     const handleSignup = () => {
         closeMenu();
-        router.push('/signup');
+        router.push('../signup');
     };
 
     const handleLogout = async () => {

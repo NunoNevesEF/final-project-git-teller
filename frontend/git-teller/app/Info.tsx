@@ -2,8 +2,6 @@ import { createReport } from '@/services/ReportGenerationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
 import CommitsChart from "@/components/commitsChart";
-import { useRef } from 'react';
-import { captureRef } from 'react-native-view-shot';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import CommitsBarChart from '@/components/commitsBarChart';
@@ -20,36 +18,36 @@ import HeatMpaCommits from '@/components/HeatMapCommits';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
 import { useTheme } from '@/constants/themeProvider';
+import { useEffect, useState } from 'react';
+import '@/constants/stylesPrint.css';
 
 export default function Info() {
   const router = useRouter();
   const { colors } = useTheme()
   const { isAuthenticated } = useAuth();
   const result = useAnalysisStore((state) => state.result);
+  const setResult = useAnalysisStore((s) => s.setResult);
   const input = useAnalysisStore((state) => state.input);
-  const gitInputInfoRef = useRef(null);
-  const heatMapCharRef = useRef(null);
-  const commitsChartRef = useRef(null);
-  const commitsBarRef = useRef(null);
-  const commitsPieRef = useRef(null);
-  const CommitsChangesChartRef = useRef(null);
-  const AdditionsDeletionsChangesChartRef = useRef(null);
-  const AverageChangesChartRef = useRef(null);
-  const MostModifiedFilesRef = useRef(null);
+  const [isHeadless, setIsHeadless] = useState(false);
+  const [Container, setContainer] = useState(ScrollView as any)
 
-  const refs = [
-    gitInputInfoRef,
-    heatMapCharRef,
-    commitsChartRef,
-    commitsBarRef,
-    commitsPieRef,
-    CommitsChangesChartRef,
-    AdditionsDeletionsChangesChartRef,
-    AverageChangesChartRef,
-    MostModifiedFilesRef
-  ];
+  // Headless browser
+  useEffect(() => {
+    const data = (window as any).__GIT_ANALYSIS__;
+    if (data) {
+      setResult(data);
+      setContainer(View)
+      setIsHeadless(true);
+    }
+  }, []);
 
-  if (!result) return null;
+  if (!result) {
+    return (
+      <View>
+        <Text>Loading report...</Text>
+      </View>
+    );
+  }
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("pt-PT", {
@@ -66,40 +64,16 @@ export default function Info() {
   const handleGenerate = async () => {
     try {
       if (Platform.OS === 'web') {
-        const htmlToImage = await import('html-to-image');
-
-        const images = await Promise.all(
-          refs.map(async (ref) => {
-            const node = ref.current as unknown as HTMLElement;
-
-            const dataUrl = await htmlToImage.toPng(node);
-
-            return dataUrl.split(",")[1];
-          })
-        );
-
-        const blob = await createReport(images);
+        const blob = await createReport(result);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'report.pdf';
         a.click();
         window.URL.revokeObjectURL(url);
+
       } else {
-        const images = await Promise.all(
-          refs.map(async (ref) => {
-            const uri = await captureRef(ref.current!, {
-              format: "png",
-              quality: 1,
-            });
-
-            return await FileSystem.readAsStringAsync(uri, {
-              encoding: "base64",
-            });
-          })
-        );
-
-        const pdfBlob = await createReport(images);
+        const pdfBlob = await createReport(result);
 
         const fileUri = FileSystem.documentDirectory + 'report.pdf';
 
@@ -133,13 +107,15 @@ export default function Info() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, padding: 20}} contentContainerStyle={{ paddingBottom: 120 }}>
-      <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom : 20 }}>
-        <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
-          ← Back to search
-        </Text>
-      </Pressable>
-      <View style={{flexDirection: "row",gap:12}} ref={gitInputInfoRef}>
+    <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
+      {!isHeadless && (
+  <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
+    <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
+      ← Back to search
+    </Text>
+  </Pressable>
+)}
+      <View style={{flexDirection: "row",gap:12}}>
         <View style={{ flex: 1 }}>
           <ChartCard title="Repository Information" description="" showToolTip={false} icon="folder-outline">
             <View collapsable={false}>
@@ -180,59 +156,76 @@ export default function Info() {
           </ChartCard> 
         </View>
       </View>
-      <View ref={heatMapCharRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="HeatMap commits of collaborators" description={chartDescriptions.heatMapCommits}>
           <HeatMpaCommits data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View ref={commitsChartRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Commits by user over time" description={chartDescriptions.commitsOverTime}>
           <CommitsChart data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View ref={commitsBarRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Total commits by user" description={chartDescriptions.commitsByUser}> 
           <CommitsBarChart data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View ref={commitsPieRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Percentage of commits by user" description={chartDescriptions.commitsPercentage}>
           <CommitsPieChart data={result.commitsByUser} />
         </ChartCard>    
       </View>
-      <View ref={CommitsChangesChartRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Total lines added and removed by user" description={chartDescriptions.linesAddedRemoved}>
           <CommitsChangesChart data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View style={{flexDirection: "row",gap:12}} ref={AdditionsDeletionsChangesChartRef}>
-        <View style={{ flex: 1 }}>
-          <ChartCard title="Percentage of lines added by user" description={chartDescriptions.percentageLinesAdded}>
-            <View collapsable={false}>
+      <View
+        style={{
+          flexDirection: isHeadless ? "column" : "row",
+          gap: 12,
+        }}
+      >
+        <View style={{
+    ...(isHeadless ? {} : { flex: 1 }),
+  }}>
+          <ChartCard
+            title="Percentage of lines added by user"
+            description={chartDescriptions.percentageLinesAdded}
+          >
+            <View collapsable={false} style={{ maxHeight: 280 }}>
               <AdditionsChangesChart data={result.commitsByUser} />
             </View>
-          </ChartCard> 
+          </ChartCard>
         </View>
-        <View style={{ flex: 1 }}>
-          <ChartCard title="Percentage of lines removed by user" description={chartDescriptions.percentageLinesRemoved}>
-          <View collapsable={false}>
-            <DeletionsChangesChart data={result.commitsByUser} />
-          </View>
-        </ChartCard>  
-        </View>        
+        <View style={{
+    ...(isHeadless ? { marginBottom : 20} : { flex: 1 }),
+  }}>
+          <ChartCard
+            title="Percentage of lines removed by user"
+            description={chartDescriptions.percentageLinesRemoved}
+          >
+            <View collapsable={false} style={{ maxHeight: 280 }}>
+              <DeletionsChangesChart data={result.commitsByUser} />
+            </View>
+          </ChartCard>
+        </View>
       </View>
-        <View ref={AverageChangesChartRef} collapsable={false}>
+          <View collapsable={false}>
           <ChartCard title="Average changed lines per commit by user" description={chartDescriptions.averageChanges}>   
             <AverageChangesChart data={result.commitsByUser} />
           </ChartCard>    
         </View>
-        <View ref={MostModifiedFilesRef} collapsable={false}>
+        <View collapsable={false}>
           <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
             <MostModifiedFiles data={result.mostModifiedFiles} />
           </ChartCard>    
       </View>
 
-      <Button title="Generate Report" onPress={handleGenerate} />
-    </ScrollView>
+      {!isHeadless && (
+        <Button title="Generate Report" onPress={handleGenerate} />
+      )}
+    </Container>
   );
 }
