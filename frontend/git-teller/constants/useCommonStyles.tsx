@@ -182,7 +182,6 @@ export const useCommonStyles  = () => {
     CardChart: {
       fontFamily: fonts.regular,
       backgroundColor: c.backgroundCard,
-
       borderRadius: 24,
       padding: 12,
       marginBottom: 16,
@@ -198,7 +197,10 @@ export const useCommonStyles  = () => {
         height: 8,
       },
       elevation: 6,
-      overflow: "hidden",
+      ...( {
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  } as any )
     }
   });
 };

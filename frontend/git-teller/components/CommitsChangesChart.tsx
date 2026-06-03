@@ -1,13 +1,12 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { View } from "react-native";
 import { StackedBarChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { useTheme } from "@/constants/themeProvider";
 
-const screenWidth = Dimensions.get("window").width;
-
 export default function CommitsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const [width, setWidth] = React.useState(0);
   const users = Object.keys(data);
 
   const additions = users.map(user =>
@@ -26,10 +25,17 @@ export default function CommitsChangesChart({ data }: { data: Record<string, Com
   }
 
   return (
-    <View>
+    <View
+        style={{
+          width: "100%",
+          alignItems: "center"
+        }}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      >
+        {width > 0 && (
       <StackedBarChart
         data={chartData}
-        width={screenWidth * 0.7}
+        width={width * 0.7}
         height={400}
         hideLegend = {false}
         formatYLabel={() => ""}
@@ -49,6 +55,7 @@ export default function CommitsChangesChart({ data }: { data: Record<string, Com
           borderRadius: 16,
         }}
       />
+      )};
     </View>
   );
 }

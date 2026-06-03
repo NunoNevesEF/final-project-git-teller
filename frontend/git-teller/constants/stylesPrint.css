@@ -1,0 +1,9 @@
+@media print {
+  body {
+    background: white !important;
+  }
+
+  svg, canvas {
+    max-width: 100% !important;
+  }
+}

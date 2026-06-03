@@ -1,14 +1,14 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 
-const screenWidth = Dimensions.get("window").width;
 
 export default function CommitsBarChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const [width, setWidth] = React.useState(0);
   const users = Object.keys(data);
 
   const commitsCountByUser = Object.fromEntries(
@@ -22,7 +22,8 @@ export default function CommitsBarChart({ data }: { data: Record<string, CommitD
   const segments = maxCommits <= 10 ? maxCommits : 6;
 
   return (
-    <View>
+    <View style={{ width: "100%" }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {width > 0 && (
       <BarChart
         data={{
             labels: users,
@@ -32,7 +33,7 @@ export default function CommitsBarChart({ data }: { data: Record<string, CommitD
             }]
         }}
         withCustomBarColorFromData
-        width={screenWidth*0.7} 
+        width={width*0.6} 
         height={220}
         fromZero={true}
         yAxisLabel=""
@@ -57,6 +58,7 @@ export default function CommitsBarChart({ data }: { data: Record<string, CommitD
           marginVertical: 20
         }}
       />
+      )}
     </View>
   );
 }
