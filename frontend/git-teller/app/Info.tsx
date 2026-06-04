@@ -1,20 +1,20 @@
 import { createReport } from '@/services/ReportGenerationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
-import CommitsChart from "@/components/commitsChart";
+import CommitsChart from "@/components/charts/commitsChart";
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import CommitsBarChart from '@/components/commitsBarChart';
-import CommitsPieChart from '@/components/commitsPieChart';
-import CommitsChangesChart from '@/components/CommitsChangesChart';
-import AdditionsChangesChart from '@/components/AdditionsChangesChart';
-import DeletionsChangesChart from '@/components/DeletionsChangesChart';
-import AverageChangesChart from '@/components/AverageChangesChart';
-import MostModifiedFiles from '@/components/MostModifiedFiles';
-import GitInputInfo from '@/components/GitInputInfo';
-import ChartCard from '@/components/ChartCard';
+import CommitsBarChart from '@/components/charts/commitsBarChart';
+import CommitsPieChart from '@/components/charts/commitsPieChart';
+import CommitsChangesChart from '@/components/charts/CommitsChangesChart';
+import AdditionsChangesChart from '@/components/charts/AdditionsChangesChart';
+import DeletionsChangesChart from '@/components/charts/DeletionsChangesChart';
+import AverageChangesChart from '@/components/charts/AverageChangesChart';
+import MostModifiedFiles from '@/components/charts/MostModifiedFiles';
+import GitInputInfo from '@/components/charts/GitInputInfo';
+import ChartCard from '@/components/charts/ChartCard';
 import { chartDescriptions } from '@/constants/chartDescriptions';
-import HeatMpaCommits from '@/components/HeatMapCommits';
+import HeatMpaCommits from '@/components/charts/HeatMapCommits';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
 import { useTheme } from '@/constants/themeProvider';
@@ -27,11 +27,10 @@ export default function Info() {
   const { isAuthenticated } = useAuth();
   const result = useAnalysisStore((state) => state.result);
   const setResult = useAnalysisStore((s) => s.setResult);
-  const input = useAnalysisStore((state) => state.input);
   const [isHeadless, setIsHeadless] = useState(false);
   const Container = isHeadless ? View : ScrollView;
 
-  // Headless browser
+  // Headless browser trigger render
   useEffect(() => {
     const data = (window as any).__GIT_ANALYSIS__;
     if (data) {
@@ -39,6 +38,14 @@ export default function Info() {
       setIsHeadless(true);
     }
   }, []);
+
+  // Headless browser wait to render
+  useEffect(() => {
+    if (!result) return;
+    requestAnimationFrame(() => {
+      (window as any).__REPORT_READY__ = true;
+    });
+  }, [result]);
 
   if (!result) {
     return (
@@ -54,11 +61,6 @@ export default function Info() {
       month: "long",
       day: "2-digit",
   });
-
-  const capitalizedPlatform = (platform: string | undefined) => {
-    if (!platform) return "";
-    return platform.charAt(0).toUpperCase() + platform.slice(1);
-  };
 
   const handleGenerate = async () => {
     try {
@@ -121,9 +123,9 @@ export default function Info() {
               <GitInputInfo
                 icon="folder-outline"
                 label1="Repository"
-                value1={input?.repositoryName ?? ""}
+                value1={result.searchInfo.repositoryName ?? ""}
                 label2="Owner"
-                value2={input?.repositoryOwner ?? ""}
+                value2={result.searchInfo.repositoryOwner ?? ""}
               />
             </View>
           </ChartCard> 
@@ -134,9 +136,9 @@ export default function Info() {
               <GitInputInfo
                 icon="folder-outline"
                 label1="Platform"
-                value1={capitalizedPlatform(input?.platform) ?? ""}
+                value1={result.searchInfo.platform ?? ""}
                 label2="URL"
-                value2={input?.repositoryUrl ?? ""}
+                value2={result.searchInfo.repositoryUrl ?? ""}
               />
             </View>
           </ChartCard> 
@@ -187,20 +189,20 @@ export default function Info() {
         }}
       >
         <View style={{
-    ...(isHeadless ? {} : { flex: 1 }),
-  }}>
-          <ChartCard
-            title="Percentage of lines added by user"
-            description={chartDescriptions.percentageLinesAdded}
-          >
-            <View collapsable={false} style={{ maxHeight: 280 }}>
-              <AdditionsChangesChart data={result.commitsByUser} />
-            </View>
-          </ChartCard>
-        </View>
-        <View style={{
-    ...(isHeadless ? { marginBottom : 20} : { flex: 1 }),
-  }}>
+          ...(isHeadless ? {} : { flex: 1 }),
+        }}>
+                <ChartCard
+                  title="Percentage of lines added by user"
+                  description={chartDescriptions.percentageLinesAdded}
+                >
+                  <View collapsable={false} style={{ maxHeight: 280 }}>
+                    <AdditionsChangesChart data={result.commitsByUser} />
+                  </View>
+                </ChartCard>
+              </View>
+              <View style={{
+          ...(isHeadless ? { marginBottom : 20} : { flex: 1 }),
+        }}>
           <ChartCard
             title="Percentage of lines removed by user"
             description={chartDescriptions.percentageLinesRemoved}

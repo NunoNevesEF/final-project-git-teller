@@ -17,8 +17,8 @@ import kotlin.collections.iterator
 import org.eclipse.jgit.revwalk.RevWalk
 
 data class GitAnalysis(
+    val searchInfo : SearchInfo,
     val commitsByUser: Map<String, List<CommitDTO>>,
-//    val commitsByBranch: Map<String, List<CommitDTO>>,
     val mostModifiedFiles : List<ModifiedFiles>?,
     val firstCommitTime: Instant,
     val lastCommitTime: Instant,
@@ -27,10 +27,8 @@ data class GitAnalysis(
         fun create(gitCommunication: GitCommunication): GitAnalysis {
             val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
             return GitAnalysis(
+                searchInfo = gitCommunication.getSearchInfo(),
                 commitsByUser = gitCommunication.getCommitsByUser(),
-//                gitCommunication.getCommitsByBranch().mapValues{ (_, commitList) ->
-//                    commitList.map{ CommitDTO.create(it)}
-//                },
                 mostModifiedFiles = gitCommunication.getMostModifiedFiles(),
                 firstCommitTime,
                 lastCommitTime
@@ -65,14 +63,14 @@ class CommitDTO(
     }
 }
 
-data class GitCommunication(val git: Git) {
+data class GitCommunication(val git: Git, val repoURI: String) {
     val commits by lazy{ getAllCommits() }
     val branches by lazy{ getAllBranches() }
 
     companion object{
         fun create(repoURI: String): GitCommunication {
             val git = getOrCloneGitRepo(repoURI, getRepoFile(getRepoPath(repoURI)))
-            return GitCommunication(git)
+            return GitCommunication(git,repoURI)
         }
 
         /**Temporary function for testing JGIT behavior, get a repo from gitRepos directory**/
@@ -121,7 +119,7 @@ data class GitCommunication(val git: Git) {
                 throw RepositoryNotFoundException("Local repository not found: $repoPath")
             }
 
-            return GitCommunication(Git.open(repoPathFile))
+            return GitCommunication(Git.open(repoPathFile),repoURI)
         }
     }
 
@@ -196,6 +194,34 @@ data class GitCommunication(val git: Git) {
                     )
                 }
             }
+    }
+
+    fun getSearchInfo(): SearchInfo {
+        val uri = java.net.URI(repoURI)
+
+        val segments = uri.path
+            .trim('/')
+            .split('/')
+
+        require(segments.size >= 2) {
+            "Invalid repository URL: $repoURI"
+        }
+
+        val owner = segments[0]
+        val repository = segments[1]
+
+        val platform = when (uri.host.lowercase()) {
+            "github.com" -> "github"
+            "gitlab.com" -> "gitlab"
+            else -> uri.host
+        }
+
+        return SearchInfo(
+            repositoryUrl = repoURI,
+            repositoryName = repository,
+            repositoryOwner = owner,
+            platform = platform.replaceFirstChar { it.uppercase() }
+        )
     }
 
     private fun getCommitChanges(commit: RevCommit): Pair<Int, Int> {
