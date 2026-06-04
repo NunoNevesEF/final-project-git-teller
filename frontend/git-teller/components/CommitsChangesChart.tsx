@@ -49,13 +49,8 @@ export default function CommitsChangesChart({ data }: { data: Record<string, Com
           color: () => colors.icon,
           labelColor: () => colors.text,
         }}
-        style={{
-          alignItems : "center",
-          marginVertical: 8,
-          borderRadius: 16,
-        }}
       />
-      )};
+      )}
     </View>
   );
 }

@@ -1,10 +1,11 @@
-import { AuthProvider } from '@/store/AuthProvider';
+import { AuthProvider, useAuth } from '@/store/AuthProvider';
 import { ThemeProvider, useTheme } from '@/constants/themeProvider';
 import { Stack } from 'expo-router';
 
 function RootInnerLayout() {
   const { colors } = useTheme();
-
+  const { isAuthenticated } = useAuth();
+  
   return (
     <Stack
       screenOptions={{
@@ -14,10 +15,11 @@ function RootInnerLayout() {
         },
       }}
     >
-      <Stack.Screen name="(app)" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="index" />
-      <Stack.Screen name="info" />
+       {isAuthenticated ? (
+        <Stack.Screen name="(app)" />
+      ) : (
+        <Stack.Screen name="(auth)" />
+      )}
     </Stack>
   );
 }
