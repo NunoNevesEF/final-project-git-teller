@@ -29,14 +29,13 @@ export default function Info() {
   const setResult = useAnalysisStore((s) => s.setResult);
   const input = useAnalysisStore((state) => state.input);
   const [isHeadless, setIsHeadless] = useState(false);
-  const [Container, setContainer] = useState(ScrollView as any)
+  const Container = isHeadless ? View : ScrollView;
 
   // Headless browser
   useEffect(() => {
     const data = (window as any).__GIT_ANALYSIS__;
     if (data) {
       setResult(data);
-      setContainer(View)
       setIsHeadless(true);
     }
   }, []);
@@ -109,12 +108,12 @@ export default function Info() {
   return (
     <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
       {!isHeadless && (
-  <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
-    <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
-      ← Back to search
-    </Text>
-  </Pressable>
-)}
+        <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
+            ← Back to search
+          </Text>
+        </Pressable>
+      )}
       <View style={{flexDirection: "row",gap:12}}>
         <View style={{ flex: 1 }}>
           <ChartCard title="Repository Information" description="" showToolTip={false} icon="folder-outline">
