@@ -6,7 +6,6 @@ import { useAnalysisStore } from '@/store/useAnalysisStore';
 
 export default function RepositorySearch() {
   const router = useRouter();
-  const setInput = useAnalysisStore((state) => state.setInput);
   const setResult = useAnalysisStore((state) => state.setResult);
 
   const [searchType, setSearchType] = useState<'url' | 'project'>('url');
@@ -33,12 +32,6 @@ export default function RepositorySearch() {
     const result = await analyzeRepo(url);
 
     setResult(result);
-    setInput({
-      repositoryUrl: url,
-      repositoryName: projectName,
-      repositoryOwner: usernameRepo,
-      platform,
-    });
 
     router.push('/Info');
   };
