@@ -35,6 +35,11 @@ export const useCommonStyles  = () => {
       textAlign: "center",
       fontFamily: fonts.regular
     },
+    legendStyles: {
+      fontSize: 13,
+      color: c.text,
+      fontFamily: fonts.regular
+    },
     optionButton: {
       backgroundColor: c.background,
       borderWidth: 1,

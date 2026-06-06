@@ -1,14 +1,14 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
-
-const screenWidth = Dimensions.get("window").width;
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 
 export default function AdditionsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const totalAdditions = Object.values(data).flat().reduce((sum, commit) => sum + commit.additions, 0);
 
   const shortUser = (user: string) => user.length > 18 ? user.slice(0, 18) + "…" : user;
@@ -33,23 +33,39 @@ export default function AdditionsChangesChart({ data }: { data: Record<string, C
 
   return (
     <View>
-      <PieChart
-        data={pieData}
-        width={screenWidth * 0.4}
-        height={220}
-        chartConfig={{
-          color: () => colors.icon,
-          labelColor: () => colors.text,
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
         }}
-        accessor="population"
-        backgroundColor="transparent"
-        paddingLeft="0"
-        absolute
-        style={{
-          alignItems : "center",
-          marginVertical: 20
-        }}
-      />
-    </View>
+      >
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+          }}
+        >
+        <PieChart
+          data={pieData}
+          width={A4_WIDTH - 20}
+          height={220}
+          chartConfig={{
+            color: () => colors.icon,
+            labelColor: () => colors.text,
+          }}
+          accessor="population"
+          backgroundColor="transparent"
+          paddingLeft="0"
+          absolute
+          style={{
+            alignItems : "center",
+            marginVertical: 20
+          }}
+        />
+      </View>
+    </ScrollView>
+  </View>
   );
 }

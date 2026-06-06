@@ -80,9 +80,14 @@ export default function MostModifiedFiles({
               {getFileIcon(file.extension, colors.text)}
             </View>
 
-            <Text numberOfLines={1} style={{ color: colors.text }}>
-              {file.path}
-            </Text>
+            <Text
+  style={{
+    color: colors.text,
+    flexShrink: 1,
+  }}
+>
+  {file.path}
+</Text>
           </View>
 
           <Text style={{ flex: 1, textAlign: "center", color: colors.text }}>

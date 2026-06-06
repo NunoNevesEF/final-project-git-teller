@@ -1,13 +1,13 @@
 import React from "react";
-import { Dimensions, View, Text } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { ContributionGraph } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 import { useTheme } from "@/constants/themeProvider";
 
-const screenWidth = Dimensions.get("window").width;
-
-export default function HeatMpaCommits({data,}: {data: Record<string, CommitDTO[]>;}) {
+export default function HeatMapCommits({data,}: {data: Record<string, CommitDTO[]>;}) {
   const { colors } = useTheme();
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const [selectedDay, setSelectedDay] = React.useState<{
     date: string;
     count: number;
@@ -48,12 +48,13 @@ export default function HeatMpaCommits({data,}: {data: Record<string, CommitDTO[
     <View style={{
           alignItems: "center",
         }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator>
       <ContributionGraph
         values={heatMapData}
         endDate={new Date()}
         numDays={105}
-        width={screenWidth * 0.4}
-        height={350}
+        width={A4_WIDTH - 150}
+        height={320}
         squareSize={25}
         gutterSize={10}
         chartConfig={{
@@ -77,6 +78,7 @@ export default function HeatMpaCommits({data,}: {data: Record<string, CommitDTO[
           });
         }}
       />
+  </ScrollView>
 
       {selectedDay && (
   <View

@@ -1,13 +1,15 @@
 import React from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
+import ChartLegend from "./ChartLegend";
 
 export default function CommitsChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
-  const [width, setWidth] = React.useState(0);
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const groupByDayCumulative = (commits: CommitDTO[], labels: string[]) => {
     const map: Record<string, number> = {};
     let cumulative = 0;
@@ -62,18 +64,28 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
   const segments = maxCommits <= 10 ? maxCommits : 6;
 
   return (
-  <View
-    style={{ width: "100%" }}
-    onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-  >
-    {width > 0 && (
+    <View>
+      <ChartLegend users={users}></ChartLegend>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+        }}
+      >
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+      }}
+    >
       <LineChart
         data={{
           labels: visibleLabels,
           datasets,
-          legend: users
         }}
-        width={width * 0.6}
+        width={A4_WIDTH}
         height={220}
         withShadow={false}
         formatYLabel={(yValue) => Math.round(Number(yValue)).toString()}
@@ -84,22 +96,14 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
           backgroundGradientTo: colors.backgroundCard,
           color: () => colors.icon,
           labelColor: () => colors.icon,
-          style: {
-            borderRadius: 16
-          },
-          propsForDots: {
-            r: "6",
-            strokeWidth: "1",
-            stroke: colors.text
-          },
         }}
         style={{
-          alignItems: "center",
           marginVertical: 8,
-          borderRadius: 16
+          borderRadius: 16,
         }}
       />
-    )}
-  </View>
-);
+    </View>
+  </ScrollView>
+    </View>
+  );
 }

@@ -1,13 +1,15 @@
 import React from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
+import ChartLegend from "./ChartLegend";
 
 export default function AverageChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
-  const [width, setWidth] = React.useState(0);
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const users = Object.keys(data);
 
   const avgChangesByUser = Object.fromEntries(
@@ -29,49 +31,48 @@ export default function AverageChangesChart({ data }: { data: Record<string, Com
   const segments = maxCommits <= 10 ? maxCommits : 6;
 
   return (
-    <View
-        style={{
-          width: "100%",
-          alignItems: "center"
+    <View>
+      <ChartLegend users={users}></ChartLegend>
+      <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
         }}
-        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       >
-        {width > 0 && (
-      <BarChart
-        data={{
-            labels: users,
-            datasets: [{
-                data: users.map(user => avgChangesByUser[user]),
-                colors: users.map(user => () => generateColor(user))
-            }]
-        }}
-        withCustomBarColorFromData
-        width={width*0.6} 
-        height={220}
-        fromZero={true}
-        yAxisLabel=""
-        yAxisSuffix=""
-        segments={segments}
-        chartConfig={{
-          propsForBackgroundLines: {
-            translateX: "60"
-          },
-          backgroundColor: colors.background,
-          backgroundGradientFrom: colors.background,
-          backgroundGradientTo: colors.background,
-          color: () => colors.icon,
-          labelColor: () => colors.icon,
-          decimalPlaces: 0,
-          style: {
-            borderRadius: 16
-          }
-        }}
-        style={{
-          alignItems : "center",
-          marginVertical: 20
-        }}
-      />
-        )}
-    </View>
+        <BarChart
+          data={{
+              labels: [],
+              datasets: [{
+                  data: users.map(user => avgChangesByUser[user]),
+                  colors: users.map(user => () => generateColor(user))
+              }]
+          }}
+          withCustomBarColorFromData
+          width={A4_WIDTH} 
+          height={220}
+          fromZero={true}
+          yAxisLabel=""
+          yAxisSuffix=""
+          segments={segments}
+          chartConfig={{
+            propsForBackgroundLines: {
+              translateX: "60"
+            },
+            backgroundColor: colors.backgroundCard,
+            backgroundGradientFrom: colors.backgroundCard,
+            backgroundGradientTo: colors.backgroundCard,
+            color: () => colors.icon,
+            labelColor: () => colors.icon,
+            decimalPlaces: 0,
+            style: {
+              borderRadius: 16
+            }
+          }}
+          style={{
+            alignItems : "center",
+            marginVertical: 20
+          }}
+        />
+    </ScrollView>
+  </View>
   );
 }
