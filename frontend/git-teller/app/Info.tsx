@@ -14,12 +14,12 @@ import MostModifiedFiles from '@/components/charts/MostModifiedFiles';
 import GitInputInfo from '@/components/charts/GitInputInfo';
 import ChartCard from '@/components/charts/ChartCard';
 import { chartDescriptions } from '@/constants/chartDescriptions';
-import HeatMpaCommits from '@/components/charts/HeatMapCommits';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
 import { useTheme } from '@/constants/themeProvider';
 import { useEffect, useState } from 'react';
 import '@/constants/stylesPrint.css';
+import HeatMapCommits from '@/components/charts/HeatMapCommits';
 
 export default function Info() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function Info() {
   const result = useAnalysisStore((state) => state.result);
   const setResult = useAnalysisStore((s) => s.setResult);
   const [isHeadless, setIsHeadless] = useState(false);
+  const isMobile = Platform.OS !== "web"
   const Container = isHeadless ? View : ScrollView;
 
   // Headless browser trigger render
@@ -116,7 +117,7 @@ export default function Info() {
           </Text>
         </Pressable>
       )}
-      <View style={{flexDirection: "row",gap:12}}>
+      <View style={{flexDirection: isMobile ? "column" : "row",gap:12}}>
         <View style={{ flex: 1 }}>
           <ChartCard title="Repository Information" description="" showToolTip={false} icon="folder-outline">
             <View collapsable={false}>
@@ -159,7 +160,7 @@ export default function Info() {
       </View>
       <View collapsable={false}>
         <ChartCard title="HeatMap commits of collaborators" description={chartDescriptions.heatMapCommits}>
-          <HeatMpaCommits data={result.commitsByUser} />
+          <HeatMapCommits data={result.commitsByUser} />
         </ChartCard>
       </View>
       <View collapsable={false}>
@@ -184,12 +185,12 @@ export default function Info() {
       </View>
       <View
         style={{
-          flexDirection: isHeadless ? "column" : "row",
+          flexDirection: isHeadless || isMobile ? "column" : "row",
           gap: 12,
         }}
       >
         <View style={{
-          ...(isHeadless ? {} : { flex: 1 }),
+          ...(isHeadless || isMobile ? {} : { flex: 1 }),
         }}>
                 <ChartCard
                   title="Percentage of lines added by user"
@@ -201,7 +202,7 @@ export default function Info() {
                 </ChartCard>
               </View>
               <View style={{
-          ...(isHeadless ? { marginBottom : 20} : { flex: 1 }),
+          ...(isHeadless || isMobile ? { marginBottom : 20} : { flex: 1 }),
         }}>
           <ChartCard
             title="Percentage of lines removed by user"
@@ -218,7 +219,7 @@ export default function Info() {
             <AverageChangesChart data={result.commitsByUser} />
           </ChartCard>    
         </View>
-        <View collapsable={false}>
+      <View collapsable={false}>
           <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
             <MostModifiedFiles data={result.mostModifiedFiles} />
           </ChartCard>    

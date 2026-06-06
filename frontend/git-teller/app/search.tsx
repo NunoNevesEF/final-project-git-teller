@@ -4,7 +4,7 @@ import { useCommonStyles } from "@/constants/useCommonStyles";
 import { View } from "react-native";
 
 export default function SearchScreen() {
-    const commonStyles = useCommonStyles();
+  const commonStyles = useCommonStyles();
   return (
     <View style={commonStyles.screen}>
         <AuthMenuButton />

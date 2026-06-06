@@ -1,12 +1,13 @@
 import React from "react";
-import { View } from "react-native";
+import { ScrollView, View , Text} from "react-native";
 import { StackedBarChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { useTheme } from "@/constants/themeProvider";
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 
 export default function CommitsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
-  const [width, setWidth] = React.useState(0);
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const users = Object.keys(data);
 
   const additions = users.map(user =>
@@ -25,32 +26,51 @@ export default function CommitsChangesChart({ data }: { data: Record<string, Com
   }
 
   return (
-    <View
-        style={{
-          width: "100%",
-          alignItems: "center"
-        }}
-        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      >
-        {width > 0 && (
-      <StackedBarChart
-        data={chartData}
-        width={width * 0.7}
-        height={400}
-        hideLegend = {false}
-        formatYLabel={() => ""}
-        chartConfig={{
-          propsForLabels: {
-            dx: 5
-          },
-          backgroundColor: colors.background,
-          backgroundGradientFrom: colors.background,
-          backgroundGradientTo: colors.background,
-          color: () => colors.icon,
-          labelColor: () => colors.text,
-        }}
-      />
-      )}
-    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{
+      flexGrow: 1,
+      justifyContent: "center",
+    }}>
+      <View>
+        <StackedBarChart
+          data={chartData}
+          width={A4_WIDTH}
+          height={400}
+          hideLegend={true}
+          formatYLabel={() => ""}
+          chartConfig={{
+            backgroundColor: colors.backgroundCard,
+            backgroundGradientFrom: colors.backgroundCard,
+            backgroundGradientTo: colors.backgroundCard,
+            color: () => colors.icon,
+            labelColor: () => colors.text,
+          }}
+        />
+
+        <View
+          style={{
+            position: "absolute",
+          }}
+        >
+          {users.map((user, i) => (
+            <View
+              key={user}
+              style={{
+                position: "absolute",
+                left: (A4_WIDTH / users.length) * i + 25
+              }}
+            >
+              <View>
+                <Text style={{ color: "#4caf50", fontSize: 10 }}>
+                  +{additions[i]}
+                </Text>
+                <Text style={{ color: "#f44336", fontSize: 10 }}>
+                  -{deletions[i]}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
