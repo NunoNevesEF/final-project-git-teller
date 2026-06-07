@@ -6,7 +6,7 @@ const SERVICE_PATH = "public/gitCommunication";
 type PromptComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
 type AnalysisMode = 'DIFF' | 'META';
 
-interface ByShasRequest {
+export interface ByShasRequest {
   repoURI: string;
   commitShas: string[];
   promptComplexity?: PromptComplexity;
@@ -14,7 +14,7 @@ interface ByShasRequest {
   requestedAnalyses?: string[];
 }
 
-interface ByDateRangeRequest {
+export interface ByDateRangeRequest {
   repoURI: string;
   fromDate: string;
   toDate: string;
@@ -42,49 +42,3 @@ export async function analyzeRepo(
       `${SERVICE_PATH}/gitAnalysis?repoURI=${encodeURIComponent(repoURI)}`,
   );
 }
-
-
-/*import { GitAnalysis } from "@/models/GitAnalysis";
-import { apiGet } from "./apiClient";
-
-const SERVICE_PATH = "public/gitCommunication";
-
-export async function analyzeRepo(
-    repoURI: string,
-    flag: boolean = false,
-    byShas?: {
-      repoURI: string;
-      commitShas: string[];
-      promptComplexity: "SIMPLE" | "MEDIUM" | "COMPLEX";
-      analysisMode: "DIFF" | "META"
-    } | undefined,
-    byDateRange?: {
-      repoURI: string;
-      fromDate: string;
-      toDate: string;
-      promptComplexity: "SIMPLE" | "MEDIUM" | "COMPLEX";
-      analysisMode: "DIFF" | "META"
-    } | undefined,
-): Promise<GitAnalysis> {
-
-  if(flag && byShas && byDateRange === "" ){
-    return apiGet(
-        `${SERVICE_PATH}/commitAnalysis?repoURI=${encodeURIComponent(repoURI)}&flag=${flag}&byShas=${flag}`,
-    );
-  }
-
-  if(flag && byDateRange && byShas === "" ){
-    return apiGet(
-        `${SERVICE_PATH}/commitAnalysis?repoURI=${encodeURIComponent(repoURI)}&flag=${flag}&byDateRange=${flag}`,
-    );
-  }
-
-
-  return apiGet(
-      `${SERVICE_PATH}/gitAnalysis?repoURI=${encodeURIComponent(repoURI)}`,
-  );
-
-
-
-
-}*/
