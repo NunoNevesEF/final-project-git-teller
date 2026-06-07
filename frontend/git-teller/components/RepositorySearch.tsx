@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import RepositorySearchForm from '@/components/RepositorySearchForm';
 import { analyzeRepo } from '@/services/GitCommunicationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
+import LoadingComponent from './LoadingComponent';
 
 export default function RepositorySearch() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function RepositorySearch() {
   const [text, setText] = useState('https://github.com/NunoNevesEF/final-project-git-teller');
   const [projectName, setProjectName] = useState('final-project-git-teller');
   const [usernameRepo, setUsernameRepo] = useState('NunoNevesEF');
+  const [loading, setLoading] = useState(false);
 
   const buildUrl = () => {
     if (searchType === 'url') return text;
@@ -29,26 +31,35 @@ export default function RepositorySearch() {
     const url = buildUrl();
     if (!url) return;
 
-    const result = await analyzeRepo(url);
+    try {
+      setLoading(true);
 
-    setResult(result);
+      const result = await analyzeRepo(url);
+      setResult(result);
 
-    router.push('/Info');
+      router.push('/Info');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <RepositorySearchForm
-      searchType={searchType}
-      onSearchTypeChange={setSearchType}
-      platform={platform}
-      onPlatformChange={setPlatform}
-      text={text}
-      onTextChange={setText}
-      projectName={projectName}
-      onProjectNameChange={setProjectName}
-      username={usernameRepo}
-      onUsernameChange={setUsernameRepo}
-      onSubmit={handleSubmit}
-    />
+    <>
+      <RepositorySearchForm
+        searchType={searchType}
+        onSearchTypeChange={setSearchType}
+        platform={platform}
+        onPlatformChange={setPlatform}
+        text={text}
+        onTextChange={setText}
+        projectName={projectName}
+        onProjectNameChange={setProjectName}
+        username={usernameRepo}
+        onUsernameChange={setUsernameRepo}
+        onSubmit={handleSubmit}
+      />
+
+      <LoadingComponent visible={loading} />
+    </>
   );
 }

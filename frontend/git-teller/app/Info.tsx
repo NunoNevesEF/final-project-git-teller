@@ -20,6 +20,7 @@ import { useTheme } from '@/constants/themeProvider';
 import { useEffect, useState } from 'react';
 import '@/constants/stylesPrint.css';
 import HeatMapCommits from '@/components/charts/HeatMapCommits';
+import LoadingComponent from '@/components/LoadingComponent';
 
 export default function Info() {
   const router = useRouter();
@@ -27,9 +28,10 @@ export default function Info() {
   const { isAuthenticated } = useAuth();
   const result = useAnalysisStore((state) => state.result);
   const setResult = useAnalysisStore((s) => s.setResult);
-  const [isHeadless, setIsHeadless] = useState(false);
-  const isMobile = Platform.OS !== "web"
-  const Container = isHeadless ? View : ScrollView;
+  const [isHeadless, setIsHeadless] = useState(false);  // Formatação headless
+  const Container = isHeadless ? View : ScrollView;   // Formatação headless
+  const isMobile = Platform.OS !== "web"              // Formatação mobile
+  const [loadingFile, setLoadingFile] = useState(false);
 
   // Headless browser trigger render
   useEffect(() => {
@@ -51,7 +53,6 @@ export default function Info() {
   if (!result) {
     return (
       <View>
-        <Text>Loading report...</Text>
       </View>
     );
   }
@@ -65,8 +66,9 @@ export default function Info() {
 
   const handleGenerate = async () => {
     try {
+      setLoadingFile(true);
+      const blob = await createReport(result);
       if (Platform.OS === 'web') {
-        const blob = await createReport(result);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -75,28 +77,23 @@ export default function Info() {
         window.URL.revokeObjectURL(url);
 
       } else {
-        const pdfBlob = await createReport(result);
-
         const fileUri = FileSystem.documentDirectory + 'report.pdf';
-
         const reader = new FileReader();
-
         reader.onload = async () => {
           const base64Pdf = reader.result?.toString().split(',')[1];
-
           if (!base64Pdf) return;
-
           await FileSystem.writeAsStringAsync(fileUri, base64Pdf, {
             encoding: FileSystem.EncodingType.Base64,
           });
-
           await Sharing.shareAsync(fileUri);
         };
 
-        reader.readAsDataURL(pdfBlob);
+        reader.readAsDataURL(blob);
       }
     } catch (err) {
       console.error("Error exporting info:", err);
+    } finally {
+      setLoadingFile(false);
     }
   };
 
@@ -109,7 +106,8 @@ export default function Info() {
   };
 
   return (
-    <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
+    <>
+      <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
       {!isHeadless && (
         <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
           <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
@@ -229,5 +227,7 @@ export default function Info() {
         <Button title="Generate Report" onPress={handleGenerate} />
       )}
     </Container>
+    <LoadingComponent visible={loadingFile} />
+  </>
   );
 }
