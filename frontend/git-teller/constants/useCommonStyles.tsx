@@ -153,6 +153,25 @@ export const useCommonStyles  = () => {
       maxWidth: 300,
       alignSelf: "center"
     },
+    toggleSection: {
+      width: "100%",
+      maxWidth: 300,
+      alignSelf: "center",
+      gap: spacing.xs,
+      marginBottom: spacing.lg,
+    },
+    toggleLabel: {
+      color: c.text,
+      fontFamily: fonts.bold,
+      fontSize: fontSize.md,
+      textAlign: "center",
+    },
+    toggleDescription: {
+      color: c.icon,
+      fontFamily: fonts.regular,
+      fontSize: fontSize.sm,
+      textAlign: "center",
+    },
     root: {
       flex: 1,
     },

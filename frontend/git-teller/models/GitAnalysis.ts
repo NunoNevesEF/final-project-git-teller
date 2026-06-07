@@ -7,4 +7,5 @@ export interface GitAnalysis {
   mostModifiedFiles: ModifiedFile[];
   firstCommitTime: string;
   lastCommitTime: string;
+  llmAnalysis: string;
 }

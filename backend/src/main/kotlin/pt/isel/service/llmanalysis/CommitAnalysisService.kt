@@ -185,4 +185,58 @@ class CommitAnalysisService(
 
     private fun List<CommitFileSummary>.toMetaDtos(): List<CommitFileChangeDto> =
         map { CommitFileChangeDto(null, it.path, it.changeType, it.insertions, it.deletions, "[omitted]") }
+
+    fun analyzeGitOverview(gitAnalysis: GitAnalysis): BatchCommitAnalysisResponse {
+        val prompt = buildOverviewPrompt(gitAnalysis)
+        logger.info("=== STARTING OVERVIEW ANALYSIS === Prompt length: ${prompt.length} chars")
+        val result = llmService.askText(prompt)
+        logger.info("=== OVERVIEW ANALYSIS FINISHED ===")
+        val totalCommits = gitAnalysis.commitsByUser.values.sumOf { it.size }
+        val totalInsertions = gitAnalysis.commitsByUser.values.flatten().sumOf { it.additions }
+        val totalDeletions = gitAnalysis.commitsByUser.values.flatten().sumOf { it.deletions }
+        return BatchCommitAnalysisResponse(
+            context = BatchCommitAnalysisContext(
+                repoURI = "",
+                fromDate = gitAnalysis.firstCommitTime,
+                toDate = gitAnalysis.lastCommitTime,
+                commitCount = totalCommits,
+                totalInsertions = totalInsertions,
+                totalDeletions = totalDeletions,
+                commits = emptyList()
+            ),
+            llmAnalysis = result
+        )
+    }
+
+    private fun buildOverviewPrompt(gitAnalysis: GitAnalysis): String = buildString {
+        appendLine("You are a technical assistant. Analyze this Git repository overview and provide a concise, structured summary.")
+        appendLine("Answer in English. Be factual. Do not invent information not present in the data.")
+        appendLine()
+        appendLine("## Repository Time Span")
+        appendLine("- First commit: ${gitAnalysis.firstCommitTime}")
+        appendLine("- Last commit:  ${gitAnalysis.lastCommitTime}")
+        appendLine()
+        appendLine("## Commits by Contributor")
+        gitAnalysis.commitsByUser.entries.sortedByDescending { it.value.size }.forEach { (user, commits) ->
+            val additions = commits.sumOf { it.additions }
+            val deletions = commits.sumOf { it.deletions }
+            appendLine("- $user: ${commits.size} commits (+$additions / -$deletions lines)")
+        }
+        appendLine()
+        val files = gitAnalysis.mostModifiedFiles
+        if (!files.isNullOrEmpty()) {
+            appendLine("## Most Modified Files")
+            files.forEachIndexed { i, file ->
+                appendLine("${i + 1}. ${file.path} — ${file.changes} changes")
+            }
+            appendLine()
+        }
+        appendLine("## Provide")
+        appendLine("1. A brief summary of the project activity and scope")
+        appendLine("2. Key contributors and their relative contribution")
+        appendLine("3. Most active areas of the codebase")
+        appendLine("4. Overall project health and collaboration assessment")
+    }
+
+
 }

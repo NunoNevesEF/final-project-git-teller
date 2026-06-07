@@ -18,22 +18,20 @@ import org.eclipse.jgit.revwalk.RevWalk
 
 data class GitAnalysis(
     val commitsByUser: Map<String, List<CommitDTO>>,
-//    val commitsByBranch: Map<String, List<CommitDTO>>,
     val mostModifiedFiles : List<ModifiedFiles>?,
     val firstCommitTime: Instant,
     val lastCommitTime: Instant,
+    val llmAnalysis: String = ""
 ){
     companion object {
-        fun create(gitCommunication: GitCommunication): GitAnalysis {
+        fun create(gitCommunication: GitCommunication, llmAnalysis: String = ""): GitAnalysis {
             val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
             return GitAnalysis(
                 commitsByUser = gitCommunication.getCommitsByUser(),
-//                gitCommunication.getCommitsByBranch().mapValues{ (_, commitList) ->
-//                    commitList.map{ CommitDTO.create(it)}
-//                },
                 mostModifiedFiles = gitCommunication.getMostModifiedFiles(),
                 firstCommitTime,
-                lastCommitTime
+                lastCommitTime,
+                llmAnalysis = llmAnalysis
             )
         }
     }

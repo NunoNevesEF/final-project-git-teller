@@ -7,7 +7,7 @@ import pt.isel.domain.GitCommunication
 class GitCommunicationRepo {
     private val gitCommunications = mutableMapOf<String, GitCommunication>()
 
-    fun getOrCreate(repoURI: String): GitCommunication{
+    fun getOrCreate(repoURI: String,llmAnalysis:String = ""): GitCommunication{
         return gitCommunications.getOrPut(repoURI){
             GitCommunication.create(repoURI)
         }

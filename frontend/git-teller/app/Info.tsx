@@ -217,15 +217,29 @@ export default function Info() {
             <AverageChangesChart data={result.commitsByUser} />
           </ChartCard>    
         </View>
-        <View collapsable={false}>
-          <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
-            <MostModifiedFiles data={result.mostModifiedFiles} />
-          </ChartCard>    
-      </View>
 
-      {!isHeadless && (
-        <Button title="Generate Report" onPress={handleGenerate} />
-      )}
+
+
+        <View collapsable={false}>
+            <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
+                <MostModifiedFiles data={result.mostModifiedFiles} />
+            </ChartCard>
+        </View>
+
+        {result.llmAnalysis && result.llmAnalysis.trim() !== '' && (
+            <View collapsable={false}>
+                <ChartCard title="LLM Analysis" description="AI-generated analysis of the selected commits." showToolTip={false} icon="sparkles-outline">
+                    <Text selectable style={{ color: colors.text, lineHeight: 22, fontSize: 14 }}>
+                        {result.llmAnalysis}
+                    </Text>
+                </ChartCard>
+            </View>
+        )}
+
+
+        {!isHeadless && (
+            <Button title="Generate Report" onPress={handleGenerate} />
+        )}
     </Container>
   );
 }

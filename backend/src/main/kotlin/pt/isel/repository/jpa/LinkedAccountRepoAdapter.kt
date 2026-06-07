@@ -2,6 +2,7 @@ package pt.isel.repository.jpa
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Repository
+import java.time.Instant
 import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
@@ -66,8 +67,20 @@ class LinkedAccountRepoAdapter(private val jpa: LinkedAccountRepoJpa) : ILinkedA
                 OAuthLinkedAccount(
                     _id = id,
                     _userId = userId,
-                    accessToken = null,
-                    refreshToken = null,
+                    accessToken = accessToken?.let { tokenValue ->
+                        org.springframework.security.oauth2.core.OAuth2AccessToken(
+                            org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType.BEARER,
+                            tokenValue,
+                            Instant.now(),
+                            null
+                        )
+                    },
+                    refreshToken = refreshToken?.let { tokenValue ->
+                        org.springframework.security.oauth2.core.OAuth2RefreshToken(
+                            tokenValue,
+                            Instant.now()
+                        )
+                    },
                     provider = AccountType.fromString(type),
                     providerId = providerId
                         ?: error("OAuth account missing providerId")

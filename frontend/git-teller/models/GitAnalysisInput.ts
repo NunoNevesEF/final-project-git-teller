@@ -3,4 +3,5 @@ export interface GitAnalysisInput {
   repositoryName: string;
   repositoryOwner: string;
   platform: string;
+  llmAnalysisEnabled: boolean;
 }

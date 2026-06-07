@@ -181,6 +181,14 @@ export const commonStyles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
+    analyzeButtonsRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginTop: 10,
+    },
+    analyzeButtonSecondary: {
+        backgroundColor: '#1f2937',
+    },
 
 
 });

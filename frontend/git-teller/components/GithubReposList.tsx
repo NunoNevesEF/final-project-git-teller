@@ -8,13 +8,15 @@ export default function GithubReposList({
                                             loading,
                                             error,
                                             onRetry,
-                                            onAnalyze,
+                                            onAnalyzeWithLlm,
+                                            onAnalyzeWithoutLlm,
                                         }: {
     repos: RepositorySummary[] | null;
     loading: boolean;
     error: string | null;
     onRetry?: () => void;
-    onAnalyze?: (repo: RepositorySummary) => void;
+    onAnalyzeWithLlm?: (repo: RepositorySummary) => void;
+    onAnalyzeWithoutLlm?: (repo: RepositorySummary) => void;
 }) {
     if (loading) return <ActivityIndicator />;
 
@@ -59,12 +61,20 @@ export default function GithubReposList({
                         </View>
                     </Pressable>
 
-                    <Pressable
-                        style={commonStyles.analyzeButton}
-                        onPress={() => onAnalyze?.(item)}
-                    >
-                        <Text style={commonStyles.analyzeButtonText}>Analyze</Text>
-                    </Pressable>
+                    <View style={commonStyles.analyzeButtonsRow}>
+                        <Pressable
+                            style={commonStyles.analyzeButton}
+                            onPress={() => onAnalyzeWithLlm?.(item)}
+                        >
+                            <Text style={commonStyles.analyzeButtonText}>Analyze with LLM</Text>
+                        </Pressable>
+                        <Pressable
+                            style={[commonStyles.analyzeButton, commonStyles.analyzeButtonSecondary]}
+                            onPress={() => onAnalyzeWithoutLlm?.(item)}
+                        >
+                            <Text style={commonStyles.analyzeButtonText}>Analyze without LLM</Text>
+                        </Pressable>
+                    </View>
                 </View>
             )}
         />
