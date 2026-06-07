@@ -26,3 +26,7 @@ export const chartDescriptions = {
   heatMapCommits:
     "Shows repository activity using a heatmap of commits across all collaborators over time.",
 };
+
+export const REPORT_LAYOUT = {
+  A4_WIDTH: 700,
+};

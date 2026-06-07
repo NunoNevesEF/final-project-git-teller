@@ -1,25 +1,26 @@
 import { createReport } from '@/services/ReportGenerationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
-import CommitsChart from "@/components/commitsChart";
+import CommitsChart from "@/components/charts/commitsChart";
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import CommitsBarChart from '@/components/commitsBarChart';
-import CommitsPieChart from '@/components/commitsPieChart';
-import CommitsChangesChart from '@/components/CommitsChangesChart';
-import AdditionsChangesChart from '@/components/AdditionsChangesChart';
-import DeletionsChangesChart from '@/components/DeletionsChangesChart';
-import AverageChangesChart from '@/components/AverageChangesChart';
-import MostModifiedFiles from '@/components/MostModifiedFiles';
-import GitInputInfo from '@/components/GitInputInfo';
-import ChartCard from '@/components/ChartCard';
+import CommitsBarChart from '@/components/charts/commitsBarChart';
+import CommitsPieChart from '@/components/charts/commitsPieChart';
+import CommitsChangesChart from '@/components/charts/CommitsChangesChart';
+import AdditionsChangesChart from '@/components/charts/AdditionsChangesChart';
+import DeletionsChangesChart from '@/components/charts/DeletionsChangesChart';
+import AverageChangesChart from '@/components/charts/AverageChangesChart';
+import MostModifiedFiles from '@/components/charts/MostModifiedFiles';
+import GitInputInfo from '@/components/charts/GitInputInfo';
+import ChartCard from '@/components/charts/ChartCard';
 import { chartDescriptions } from '@/constants/chartDescriptions';
-import HeatMpaCommits from '@/components/HeatMapCommits';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
 import { useTheme } from '@/constants/themeProvider';
 import { useEffect, useState } from 'react';
 import '@/constants/stylesPrint.css';
+import HeatMapCommits from '@/components/charts/HeatMapCommits';
+import LoadingComponent from '@/components/LoadingComponent';
 
 export default function Info() {
   const router = useRouter();
@@ -27,24 +28,31 @@ export default function Info() {
   const { isAuthenticated } = useAuth();
   const result = useAnalysisStore((state) => state.result);
   const setResult = useAnalysisStore((s) => s.setResult);
-  const input = useAnalysisStore((state) => state.input);
-  const [isHeadless, setIsHeadless] = useState(false);
-  const [Container, setContainer] = useState(ScrollView as any)
+  const [isHeadless, setIsHeadless] = useState(false);  // Formatação headless
+  const Container = isHeadless ? View : ScrollView;   // Formatação headless
+  const isMobile = Platform.OS !== "web"              // Formatação mobile
+  const [loadingFile, setLoadingFile] = useState(false);
 
-  // Headless browser
+  // Headless browser trigger render
   useEffect(() => {
     const data = (window as any).__GIT_ANALYSIS__;
     if (data) {
       setResult(data);
-      setContainer(View)
       setIsHeadless(true);
     }
   }, []);
 
+  // Headless browser wait to render
+  useEffect(() => {
+    if (!result) return;
+    requestAnimationFrame(() => {
+      (window as any).__REPORT_READY__ = true;
+    });
+  }, [result]);
+
   if (!result) {
     return (
       <View>
-        <Text>Loading report...</Text>
       </View>
     );
   }
@@ -56,15 +64,11 @@ export default function Info() {
       day: "2-digit",
   });
 
-  const capitalizedPlatform = (platform: string | undefined) => {
-    if (!platform) return "";
-    return platform.charAt(0).toUpperCase() + platform.slice(1);
-  };
-
   const handleGenerate = async () => {
     try {
+      setLoadingFile(true);
+      const blob = await createReport(result);
       if (Platform.OS === 'web') {
-        const blob = await createReport(result);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -73,28 +77,23 @@ export default function Info() {
         window.URL.revokeObjectURL(url);
 
       } else {
-        const pdfBlob = await createReport(result);
-
         const fileUri = FileSystem.documentDirectory + 'report.pdf';
-
         const reader = new FileReader();
-
         reader.onload = async () => {
           const base64Pdf = reader.result?.toString().split(',')[1];
-
           if (!base64Pdf) return;
-
           await FileSystem.writeAsStringAsync(fileUri, base64Pdf, {
             encoding: FileSystem.EncodingType.Base64,
           });
-
           await Sharing.shareAsync(fileUri);
         };
 
-        reader.readAsDataURL(pdfBlob);
+        reader.readAsDataURL(blob);
       }
     } catch (err) {
       console.error("Error exporting info:", err);
+    } finally {
+      setLoadingFile(false);
     }
   };
 
@@ -107,24 +106,25 @@ export default function Info() {
   };
 
   return (
-    <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
+    <>
+      <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
       {!isHeadless && (
-  <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
-    <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
-      ← Back to search
-    </Text>
-  </Pressable>
-)}
-      <View style={{flexDirection: "row",gap:12}}>
+        <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
+            ← Back to search
+          </Text>
+        </Pressable>
+      )}
+      <View style={{flexDirection: isMobile ? "column" : "row",gap:12}}>
         <View style={{ flex: 1 }}>
           <ChartCard title="Repository Information" description="" showToolTip={false} icon="folder-outline">
             <View collapsable={false}>
               <GitInputInfo
                 icon="folder-outline"
                 label1="Repository"
-                value1={input?.repositoryName ?? ""}
+                value1={result.searchInfo.repositoryName ?? ""}
                 label2="Owner"
-                value2={input?.repositoryOwner ?? ""}
+                value2={result.searchInfo.repositoryOwner ?? ""}
               />
             </View>
           </ChartCard> 
@@ -135,9 +135,9 @@ export default function Info() {
               <GitInputInfo
                 icon="folder-outline"
                 label1="Platform"
-                value1={capitalizedPlatform(input?.platform) ?? ""}
+                value1={result.searchInfo.platform ?? ""}
                 label2="URL"
-                value2={input?.repositoryUrl ?? ""}
+                value2={result.searchInfo.repositoryUrl ?? ""}
               />
             </View>
           </ChartCard> 
@@ -158,7 +158,7 @@ export default function Info() {
       </View>
       <View collapsable={false}>
         <ChartCard title="HeatMap commits of collaborators" description={chartDescriptions.heatMapCommits}>
-          <HeatMpaCommits data={result.commitsByUser} />
+          <HeatMapCommits data={result.commitsByUser} />
         </ChartCard>
       </View>
       <View collapsable={false}>
@@ -183,25 +183,25 @@ export default function Info() {
       </View>
       <View
         style={{
-          flexDirection: isHeadless ? "column" : "row",
+          flexDirection: isHeadless || isMobile ? "column" : "row",
           gap: 12,
         }}
       >
         <View style={{
-    ...(isHeadless ? {} : { flex: 1 }),
-  }}>
-          <ChartCard
-            title="Percentage of lines added by user"
-            description={chartDescriptions.percentageLinesAdded}
-          >
-            <View collapsable={false} style={{ maxHeight: 280 }}>
-              <AdditionsChangesChart data={result.commitsByUser} />
-            </View>
-          </ChartCard>
-        </View>
-        <View style={{
-    ...(isHeadless ? { marginBottom : 20} : { flex: 1 }),
-  }}>
+          ...(isHeadless || isMobile ? {} : { flex: 1 }),
+        }}>
+                <ChartCard
+                  title="Percentage of lines added by user"
+                  description={chartDescriptions.percentageLinesAdded}
+                >
+                  <View collapsable={false} style={{ maxHeight: 280 }}>
+                    <AdditionsChangesChart data={result.commitsByUser} />
+                  </View>
+                </ChartCard>
+              </View>
+              <View style={{
+          ...(isHeadless || isMobile ? { marginBottom : 20} : { flex: 1 }),
+        }}>
           <ChartCard
             title="Percentage of lines removed by user"
             description={chartDescriptions.percentageLinesRemoved}
@@ -217,14 +217,11 @@ export default function Info() {
             <AverageChangesChart data={result.commitsByUser} />
           </ChartCard>    
         </View>
-
-
-
-        <View collapsable={false}>
-            <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
-                <MostModifiedFiles data={result.mostModifiedFiles} />
-            </ChartCard>
-        </View>
+      <View collapsable={false}>
+          <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
+            <MostModifiedFiles data={result.mostModifiedFiles} />
+          </ChartCard>    
+      </View>
 
         {result.llmAnalysis && result.llmAnalysis.trim() !== '' && (
             <View collapsable={false}>
@@ -241,5 +238,7 @@ export default function Info() {
             <Button title="Generate Report" onPress={handleGenerate} />
         )}
     </Container>
+    <LoadingComponent visible={loadingFile} />
+  </>
   );
 }

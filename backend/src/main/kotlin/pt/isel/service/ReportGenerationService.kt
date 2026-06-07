@@ -2,7 +2,6 @@ package pt.isel.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.microsoft.playwright.Browser
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.LoadState
@@ -36,7 +35,12 @@ class ReportGenerationService {
             page.addInitScript("window.__GIT_ANALYSIS__ = $json")
             page.navigate("http://localhost:8081/Info")
 
-            page.waitForLoadState(LoadState.NETWORKIDLE)
+            page.setViewportSize(1920, 1080);
+
+            page.waitForLoadState(LoadState.LOAD)
+            page.waitForFunction(
+                "window.__REPORT_READY__ === true"
+            )
 
             val pdf = page.pdf(
                 Page.PdfOptions()

@@ -148,7 +148,7 @@ export default function RepositorySearchForm({
                                 <OptionButton label="Meta" active={analysisMode === 'META'} onPress={() => onAnalysisModeChange('META')} commonStyles={commonStyles} />
                             </View>
 
-                            {analysisMode === 'META' && (
+                            {analysisMode === 'DIFF' && (
                                 <>
                                     <Text style={commonStyles.toggleLabel}>
                                         Requested Analyses ({requestedAnalyses.length}/{maxAnalyses})
