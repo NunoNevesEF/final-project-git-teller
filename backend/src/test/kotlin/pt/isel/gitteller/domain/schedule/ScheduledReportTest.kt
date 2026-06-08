@@ -10,7 +10,10 @@ import pt.isel.domain.schedule.OneTimeScheduledReport
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
-import pt.isel.domain.schedule.ScheduledReportJob
+import pt.isel.entity.User
+import pt.isel.entity.schedule.OneTimeScheduledReportEntity
+import pt.isel.entity.schedule.PeriodicScheduledReportEntity
+import pt.isel.entity.schedule.ScheduledReportEntity
 import pt.isel.utils.CronInput
 import pt.isel.utils.YearlyMode
 import java.time.Duration
@@ -18,12 +21,21 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-abstract class ScheduledReportTest<T: ScheduledReport> {
+abstract class ScheduledReportTest<
+        DOMAIN: ScheduledReport<DOMAIN, ENTITY>,
+        ENTITY: ScheduledReportEntity<ENTITY, DOMAIN>
+>{
     val validId = 0
+
     val validUserId = 0
+    val validEmail = "test@email.com"
+    val validUserName = "test"
+
     val validRepoURI = "gitTest.com/user/test"
-    val validDataStart = Instant.now()
-    val validNextRun = validDataStart.plus(Duration.ofDays(1))
+    val validDataFrom = Instant.now()!!
+    val validNextRun = validDataFrom.plus(Duration.ofDays(1))!!
+
+    val validUser = User(validId, validEmail, validUserName)
 
     abstract fun createScheduledReport(
         id: Int = validId,
@@ -31,7 +43,10 @@ abstract class ScheduledReportTest<T: ScheduledReport> {
         repoUri: String = validRepoURI,
         nextRun: Instant? = validNextRun,
         lastRun: Instant? = null,
-    ): T
+    ): DOMAIN
+
+    abstract fun assertAdvanceScheduled(original: DOMAIN, result: DOMAIN)
+    abstract fun assertToEntity(original: DOMAIN, result: ENTITY)
 
     @Test
     fun `creation fails if id less than 0`(){
@@ -59,126 +74,113 @@ abstract class ScheduledReportTest<T: ScheduledReport> {
     fun `creation succeeds repoUri not blank`(){ assertDoesNotThrow { createScheduledReport(repoUri = "SomeRepoUri") } }
 
     @Test
-    fun `method createJob properly creates job`(){
+    fun `creation fails if dataFrom after nextRun`(){
+        assertFailsWith<IllegalArgumentException> {
+            OneTimeScheduledReport(
+                id = validId, userId = validUserId, repoUri = validRepoURI,
+                nextRunAt = validDataFrom.minusSeconds(100), lastRunAt = null, dataFrom = validDataFrom
+            )
+        }
+    }
+
+    @Test
+    fun `creation fails if dataFrom equals nextRun`(){
+        assertFailsWith<IllegalArgumentException> {
+            OneTimeScheduledReport(
+                id = validId, userId = validUserId, repoUri = validRepoURI,
+                nextRunAt = validDataFrom, lastRunAt = null, dataFrom = validDataFrom
+            )
+        }
+    }
+
+    @Test
+    fun `creation succeeds if dataFrom before nextRun`(){
+        assertDoesNotThrow {
+            OneTimeScheduledReport(
+                id = validId, userId = validUserId, repoUri = validRepoURI,
+                nextRunAt = validDataFrom.plusSeconds(100), lastRunAt = null, dataFrom = validDataFrom
+            )
+        }
+    }
+
+    @Test
+    fun `method createJob properly creates Pending job`(){
         val testSchedule = createScheduledReport()
 
         val actual = testSchedule.createJob()
-        val expected = ScheduledReportJob(
+        val expected = PendingJob(
             id = actual.id,
             scheduledReportId = testSchedule.id,
-            state = PendingJob(runAt = testSchedule.nextRun!!, retryCount = 1),
-            repoUri = testSchedule.repoUri,
-            dataFrom = testSchedule.dataStart,
-            dataTo = testSchedule.nextRun!!
+            dataFrom = testSchedule.dataFrom,
+            scheduledFor = testSchedule.nextRunAt!!,
         )
         assertEquals(expected, actual)
     }
 
     @Test
-    fun `creation fails if dataStart after nextRun`(){
-        assertFailsWith<IllegalArgumentException> {
-            OneTimeScheduledReport(
-                id = validId, userId = validUserId, repoUri = validRepoURI,
-                nextRun = validDataStart.minusSeconds(100), lastRun = null, dataStart = validDataStart
-            )
-        }
+    fun `method advanceSchedule properly creates next state`(){
+        val original = createScheduledReport()
+        val result = original.advanceSchedule()
+        assertAdvanceScheduled(original, result)
     }
 
     @Test
-    fun `creation fails if dataStart equals nextRun`(){
-        assertFailsWith<IllegalArgumentException> {
-            OneTimeScheduledReport(
-                id = validId, userId = validUserId, repoUri = validRepoURI,
-                nextRun = validDataStart, lastRun = null, dataStart = validDataStart
-            )
-        }
+    fun `method recordExecution properly updates lastRunAt`(){
+        val execTime = Instant.now().plus(Duration.ofDays(1))
+        val actual = createScheduledReport().recordExecution(execTime)
+        assertEquals(execTime, actual.lastRunAt)
     }
 
     @Test
-    fun `creation succeeds if dataStart after nextRun`(){
-        assertDoesNotThrow {
-            OneTimeScheduledReport(
-                id = validId, userId = validUserId, repoUri = validRepoURI,
-                nextRun = validDataStart.plusSeconds(100), lastRun = null, dataStart = validDataStart
-            )
-        }
+    fun `method toEntity properly creates Entity`(){
+        val original = createScheduledReport()
+        val result = original.toEntity(validUser)
+        assertToEntity(original, result)
     }
 }
 
-class OneTimeScheduledReportTest: ScheduledReportTest<OneTimeScheduledReport>(){
+class OneTimeScheduledReportTest: ScheduledReportTest<OneTimeScheduledReport, OneTimeScheduledReportEntity>(){
     override fun createScheduledReport(
         id: Int, userId: Int, repoUri: String, nextRun: Instant?, lastRun: Instant?
     ): OneTimeScheduledReport = OneTimeScheduledReport(
-        id = id, userId = userId, repoUri = repoUri, nextRun = nextRun, lastRun = lastRun, dataStart = validDataStart
+        id = id, userId = userId, repoUri = repoUri, nextRunAt = nextRun, lastRunAt = lastRun, dataFrom = validDataFrom
     )
 
-    @Test
-    fun `creation fails if both nextRun and lastRun are null`(){
-        assertFailsWith<IllegalArgumentException> { createScheduledReport(nextRun = null, lastRun = null) }
+    override fun assertAdvanceScheduled(original: OneTimeScheduledReport, result: OneTimeScheduledReport) {
+        assertNull(result.nextRunAt)
     }
 
-    @Test
-    fun `creation fails if both nextRun and lastRun are not null`(){
-        assertFailsWith<IllegalArgumentException> { createScheduledReport(nextRun = validNextRun, lastRun = validNextRun) }
-    }
-
-    @Test
-    fun `creation succeeds if nextRun is not null and last run is null`(){ //Before run scenario
-        assertDoesNotThrow { createScheduledReport(nextRun = validNextRun, lastRun = null) }
-    }
-
-    @Test
-    fun `creation succeeds if nextRun is null and lastRun are not null`(){ //After run scenario
-        assertDoesNotThrow  { createScheduledReport(nextRun = null, lastRun = validNextRun) }
+    override fun assertToEntity(original: OneTimeScheduledReport, result: OneTimeScheduledReportEntity) {
+        assertEquals(original.userId, result.user.id)
+        assertEquals(original.repoUri, result.repoUri)
+        assertEquals(original.nextRunAt, result.nextRunAt)
+        assertEquals(original.lastRunAt, result.lastRunAt)
+        assertEquals(original.dataFrom, result.dataFrom)
     }
 
     @Test
     fun `companion method create defaults id to 0 if not passed`(){
         val actual = OneTimeScheduledReport.create(
             userId = validUserId, repoURI = validRepoURI,
-            nextRun = validNextRun, dataStart = validDataStart
+            nextRun = validNextRun, dataStart = validDataFrom
         )
         val expected = createScheduledReport(id = 0)
         assertEquals(expected, actual)
     }
 
     @Test
-    fun `companion method create defaults dataStart to now if not passed`(){
+    fun `companion method create defaults dataFrom to now if not passed`(){
         val before = Instant.now()
         val actual = OneTimeScheduledReport.create(
-            id = validId, userId = validUserId, repoURI = validRepoURI,
+            /*id = validId, */userId = validUserId, repoURI = validRepoURI,
             nextRun = validNextRun,
         )
         val after = Instant.now()
-        assertTrue(actual.dataStart in before..after)
-    }
-
-    @Test
-    fun `method completeCurrentExecution returns object with nextRun as null and lastRun as passed exec time`(){
-        val testSchedule = createScheduledReport()
-        val expectExecTime = testSchedule.nextRun!!.plusSeconds(15)
-        val actual = testSchedule.completeCurrentExecution(expectExecTime)
-        assertNull(actual.nextRun)
-        assertEquals(expectExecTime, actual.lastRun)
-    }
-
-    @Test
-    fun `method scheduledReportCopy returns object with updated id`(){
-        val testSchedule = createScheduledReport()
-        val newId = Integer.MAX_VALUE
-        val actual = testSchedule.scheduledReportCopy(id = newId)
-        val expected = testSchedule.copy(id = newId)
-        assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `method createJob fails if job already completed`(){ //nextRun == null
-        val testSchedule = createScheduledReport(nextRun = null, lastRun = validNextRun)
-        assertFailsWith<IllegalArgumentException> { testSchedule.createJob() }
+        assertTrue(actual.dataFrom in before..after)
     }
 }
 
-class PeriodicScheduledReportTest: ScheduledReportTest<PeriodicScheduledReport>(){
+class PeriodicScheduledReportTest: ScheduledReportTest<PeriodicScheduledReport, PeriodicScheduledReportEntity>(){
     val validMinute = 0; val validHour = 0
     val validMonth = 1; val validDOM = 1
     val validFreqMode = YearlyMode(validDOM, validMonth)
@@ -191,9 +193,25 @@ class PeriodicScheduledReportTest: ScheduledReportTest<PeriodicScheduledReport>(
         id: Int, userId: Int, repoUri: String, nextRun: Instant?, lastRun: Instant?
     ): PeriodicScheduledReport = PeriodicScheduledReport(
         id = id, userId = userId, repoUri = repoUri,
-        nextRun = nextRun!!, lastRun = lastRun, dataStart = validDataStart,
+        nextRunAt = nextRun!!, lastRunAt = lastRun, dataFrom = validDataFrom,
         cronExpression = validCronExpression, timeZone = validTimezone,
     )
+
+    override fun assertAdvanceScheduled(original: PeriodicScheduledReport, result: PeriodicScheduledReport) {
+        assert(original.nextRunAt <= result.nextRunAt)
+        assertEquals(original.nextRunAt, result.dataFrom)
+    }
+
+    override fun assertToEntity(original: PeriodicScheduledReport, result: PeriodicScheduledReportEntity) {
+        assertEquals(original.userId, result.user.id)
+        assertEquals(original.repoUri, result.repoUri)
+        assertEquals(original.nextRunAt, result.nextRunAt)
+        assertEquals(original.lastRunAt, result.lastRunAt)
+        assertEquals(original.dataFrom, result.dataFrom)
+        assertEquals(original.active, result.active)
+        assertEquals(original.timeZone, result.timeZone)
+        assertEquals(original.cronExpression, result.cronExpression)
+    }
 
     @Test
     fun `companion method create defaults id to 0 if not passed`(){
@@ -201,29 +219,7 @@ class PeriodicScheduledReportTest: ScheduledReportTest<PeriodicScheduledReport>(
             userId = validUserId, repoURI = validRepoURI,
             timeZone = validTimezone, cronInput = validCronInput
         )
-        val expected = createScheduledReport(id = 0).copy(nextRun = actual.nextRun, dataStart = actual.dataStart)
+        val expected = createScheduledReport(id = 0).copy(nextRunAt = actual.nextRunAt, dataFrom = actual.dataFrom)
         assertEquals(expected, actual)
     }
-
-    @Test
-    fun `method completeCurrentExecution returns object with calculated nextRun passed execTime as lastRun and dataStart as old nextRun`(){
-        val testSchedule = createScheduledReport()
-        val expectExecTime = testSchedule.nextRun.plusSeconds(15)
-        val actual = testSchedule.completeCurrentExecution(expectExecTime)
-
-        assert(testSchedule.nextRun < actual.nextRun)
-        assertEquals(expectExecTime, actual.lastRun)
-        assertEquals(testSchedule.nextRun, actual.dataStart)
-    }
-
-    @Test
-    fun `method scheduledReportCopy returns object with updated id`(){
-        val testSchedule = createScheduledReport()
-        val newId = Integer.MAX_VALUE
-        val actual = testSchedule.scheduledReportCopy(id = newId)
-        val expected = testSchedule.copy(id = newId)
-        assertEquals(expected, actual)
-    }
-
-
 }

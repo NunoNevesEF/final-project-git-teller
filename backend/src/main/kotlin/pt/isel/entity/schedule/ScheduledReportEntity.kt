@@ -15,6 +15,8 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import pt.isel.domain.schedule.OneTimeScheduledReport
 import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
@@ -26,54 +28,53 @@ import java.time.Instant
 @Table(name = "scheduled_reports")
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "report_type")
-abstract class ScheduledReportEntity(
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    override var id: Int = 0,
+abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>, DOMAIN : ScheduledReport<DOMAIN, SELF>>(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) override var id: Int = 0,
 
-    @Column(name = "repo_uri", nullable = false)
-    var repoUri: String = "",
+    @Column(name = "repo_uri", nullable = false) var repoUri: String = "",
 
-    @Column(name = "next_run", nullable = true)
-    var nextRun: Instant?,
+    @Column(name = "next_run", nullable = true) var nextRunAt: Instant?,
 
-    @Column(name = "last_run", nullable = true)
-    var lastRun: Instant?,
+    @Column(name = "last_run", nullable = true) var lastRunAt: Instant?,
 
-    @Column(name = "data_start", nullable = false)
-    var dataStart: Instant
-): IsEntity{
+    @Column(name = "data_start", nullable = false) var dataFrom: Instant,
+
+    @Column(name = "is_cancelled", nullable = false) var isCancelled: Boolean = false,
+
+    @Column(name = "cancellation_reason") var cancellationReason: String? = null,
+) : IsEntity {
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    lateinit var user : User
+    lateinit var user: User
 
     @OneToMany(mappedBy = "scheduledReport", cascade = [CascadeType.ALL])
     var jobs: MutableList<ScheduledReportJobEntity> = mutableListOf()
 
-    abstract fun toDomain() : ScheduledReport
+    abstract fun toDomain(): DOMAIN
 
     fun addJob(job: ScheduledReportJobEntity) {
         job.scheduledReport = this
         jobs.add(job)
     }
 
-    fun findJob(jobId: Int): ScheduledReportJobEntity? =
-        jobs.firstOrNull { it.id == jobId }
-
-    fun updateJob(jobId: Int, update: (ScheduledReportJobEntity) -> ScheduledReportJobEntity): ScheduledReportJobEntity? {
+    fun updateJob(
+        jobId: Int, update: (ScheduledReportJobEntity) -> ScheduledReportJobEntity
+    ): ScheduledReportJobEntity? {
         val job = jobs.firstOrNull { it.id == jobId } ?: return null
         return update(job)
     }
 
-    fun isJobScheduled(scheduledRun: Instant) =
-        jobs.any{ it.state.scheduledAt == scheduledRun }
+    fun isDue(limit: Instant): Boolean = isActive() && !isJobScheduled() && limit >= nextRunAt
 
-    fun isDue(limit: Instant): Boolean{
-        val runAt = nextRun ?: return false
-        return runAt <= limit && !isJobScheduled(runAt)
+    fun cancel(errorMsg: String) {
+        isCancelled = true
+        cancellationReason = errorMsg
     }
 
+    private fun isJobScheduled() = jobs.any { it.scheduledFor == nextRunAt }
 
+    protected abstract fun isActive(): Boolean
 }
 
 @Entity
@@ -81,47 +82,35 @@ abstract class ScheduledReportEntity(
 class OneTimeScheduledReportEntity(
     id: Int = 0,
     repoUri: String = "",
-    nextRun: Instant? = null,
-    lastRun: Instant? = null,
-    dataStart: Instant = Instant.now()
-) : ScheduledReportEntity(id, repoUri, nextRun, lastRun, dataStart) {
-    override fun toDomain(): ScheduledReport =
-        OneTimeScheduledReport(
-            userId = user.id,
-            repoUri = repoUri,
-            nextRun = nextRun,
-            lastRun = lastRun,
-            dataStart = dataStart
-        )
+    nextRunAt: Instant? = null,
+    lastRunAt: Instant? = null,
+    dataFrom: Instant = Instant.now()
+) : ScheduledReportEntity<OneTimeScheduledReportEntity, OneTimeScheduledReport>(
+    id, repoUri, nextRunAt, lastRunAt, dataFrom
+) {
+    override fun toDomain() = OneTimeScheduledReport(
+        id, user.id, repoUri, nextRunAt, lastRunAt, dataFrom
+    )
+
+    override fun isActive(): Boolean = nextRunAt != null && !isCancelled
 }
 
 @Entity
 @DiscriminatorValue("PERIODIC")
 class PeriodicScheduledReportEntity(
-    id: Int = 0,
-    repoUri: String,
-    nextRun: Instant,
-    lastRun: Instant? = null,
-    dataStart: Instant,
+    id: Int = 0, repoUri: String, nextRunAt: Instant, lastRunAt: Instant? = null, dataFrom: Instant,
 
-    @Column(nullable = false)
-    var active: Boolean = true,
+    @Column(nullable = false) var active: Boolean = true,
 
-    @Column(name = "timezone", nullable = false)
-    var timeZone: String,
+    @Column(name = "timezone", nullable = false) var timeZone: String,
 
-    @Column(name = "cron_expression", nullable = false)
-    var cronExpression: String
-) : ScheduledReportEntity(id, repoUri, nextRun, lastRun, dataStart) {
-    override fun toDomain(): ScheduledReport =
-        PeriodicScheduledReport(
-            userId = user.id,
-            repoUri = repoUri,
-            nextRun = nextRun!!,
-            lastRun = lastRun,
-            dataStart = dataStart,
-            timeZone = timeZone,
-            cronExpression = cronExpression,
-            active = active
-        )
+    @Column(name = "cron_expression", nullable = false) var cronExpression: String
+) : ScheduledReportEntity<PeriodicScheduledReportEntity, PeriodicScheduledReport>(
+    id, repoUri, nextRunAt, lastRunAt, dataFrom
+) {
+    override fun toDomain() = PeriodicScheduledReport(
+        id, user.id, repoUri, nextRunAt!!, lastRunAt, dataFrom, active, timeZone, cronExpression,
+    )
+
+    override fun isActive(): Boolean = active && !isCancelled
 }

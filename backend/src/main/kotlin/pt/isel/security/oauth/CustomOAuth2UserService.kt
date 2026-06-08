@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import pt.isel.security.principal.UserPrincipal
+import pt.isel.service.ServiceError
 import pt.isel.service.account.AccountService
-import pt.isel.service.account.AccountServiceError
 import pt.isel.service.account.AccountTypeMaxedError
 import pt.isel.service.account.EmailAlreadyExists
 import pt.isel.service.auth.JwtService
@@ -75,7 +75,7 @@ class CustomOAuth2UserService(
         oauth2User.getAttribute<Int?>("id")?.toString() ?:
             throw OAuth2AuthenticationException("Github Authentication Failed - Id Not Found")
 
-    private fun mapToOAuthException(error: AccountServiceError): OAuth2AuthenticationException =
+    private fun mapToOAuthException(error: ServiceError): OAuth2AuthenticationException =
         when (error) {
             is AccountTypeMaxedError ->
                 OAuth2AuthenticationException("Account already linked for this provider")

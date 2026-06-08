@@ -5,7 +5,7 @@ import pt.isel.domain.report.GitCommunication
 import java.time.Instant
 
 
-data class RepoAnalysis(
+data class GitAnalysis(
     val commitsByUser: Map<String,List<CommitAnalysis>>,
     val mostModifiedFiles: List<ModifiedFile>,
 
@@ -13,9 +13,9 @@ data class RepoAnalysis(
     val lastCommitTime: Instant
 ){
     companion object{
-        fun create(gitCommunication: GitCommunication): RepoAnalysis {
+        fun create(gitCommunication: GitCommunication): GitAnalysis {
             val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
-            return RepoAnalysis(
+            return GitAnalysis(
                 firstCommitTime = firstCommitTime,
                 lastCommitTime = lastCommitTime,
                 commitsByUser = gitCommunication.commits.toCommitAnalysis(gitCommunication).byUser(),

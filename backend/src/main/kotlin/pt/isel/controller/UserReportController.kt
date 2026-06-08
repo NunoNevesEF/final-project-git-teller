@@ -12,14 +12,12 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import pt.isel.model.report.RepoAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.model.report.UserReportDTO
 import pt.isel.security.principal.UserPrincipal
-import pt.isel.service.report.ReportPDFGenerationService
 import pt.isel.service.report.UserReportService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
-import java.util.Base64
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
@@ -31,12 +29,22 @@ class UserReportPublicController(
     fun getReport(
         @RequestParam repoURI: String,
         @AuthenticationPrincipal userPrincipal: UserPrincipal?
-    ): ResponseEntity<RepoAnalysis> {
+    ): ResponseEntity<GitAnalysis> {
         val userId = userPrincipal?.getUserId()
 
-        return when (val report = userReportService.createReport(userId, repoURI)){
-            is Success -> ResponseEntity.ok(report.right)
-            is Failure -> ResponseEntity.notFound().build()
+        if(userId != null){
+            return when (val reportId = userReportService.createReport(userId, repoURI)){
+                is Success -> when(val analysisResult = userReportService.getAnalysis(reportId.right, userId)){
+                    is Success -> ResponseEntity.ok(analysisResult.right)
+                    is Failure -> ResponseEntity.notFound().build()
+                }
+                is Failure -> ResponseEntity.badRequest().build()
+            }
+        }
+
+        return when(val analysisResult = userReportService.createAnalysis(repoURI)){
+            is Success -> ResponseEntity.ok(analysisResult.right)
+            is Failure -> ResponseEntity.status(analysisResult.left.toStatus()).build()
         }
     }
 
@@ -69,18 +77,18 @@ class UserReportPrivateController(
         return ResponseEntity.ok(reports)
     }
 
-    @GetMapping("/user-reports/{id}/analysis")
+    @GetMapping("/user-reports/analysis/{id}")
     fun getAnalysis(
         @PathVariable id: Int,
         @AuthenticationPrincipal principal: UserPrincipal
-    ): ResponseEntity<RepoAnalysis> {
+    ): ResponseEntity<GitAnalysis> {
         return when(val analysis = userReportService.getAnalysis(id, principal.getUserId())){
             is Success -> ResponseEntity.ok(analysis.right)
             is Failure -> ResponseEntity.notFound().build()
         }
     }
 
-    @GetMapping("/user-reports/{id}/download")
+    @GetMapping("/user-reports/download/{id}")
     fun downloadReport(
         @PathVariable id: Int,
         @AuthenticationPrincipal principal: UserPrincipal

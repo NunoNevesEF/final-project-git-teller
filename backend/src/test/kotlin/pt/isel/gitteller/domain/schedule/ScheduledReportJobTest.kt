@@ -1,176 +1,305 @@
 package pt.isel.gitteller.domain.schedule
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledJobReportPolicy
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.domain.schedule.ScheduledReportJobState
 import pt.isel.domain.schedule.SuccessfulJob
+import pt.isel.entity.schedule.FailedJobStateEmbeddable
+import pt.isel.entity.schedule.OneTimeScheduledReportEntity
+import pt.isel.entity.schedule.PendingJobStateEmbeddable
+import pt.isel.entity.schedule.RunningJobStateEmbeddable
+import pt.isel.entity.schedule.ScheduledReportEntity
+import pt.isel.entity.schedule.ScheduledReportJobEntity
+import pt.isel.entity.schedule.SuccessfulJobStateEmbeddable
 import java.time.Duration
 import java.time.Instant
-import java.util.stream.Stream
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-class ScheduledReportJobTest {
-    private val validId = 0
-    private val validScheduleId = 0
-    private val validRepoURI = "gitTest.com/user/test"
-    private val validDataStart : Instant = Instant.now()
-    private val validDataEnd : Instant = validDataStart.plus(Duration.ofDays(1))
-    private val validState = PendingJob(validDataEnd)
+abstract class ScheduledReportJobTest<T : ScheduledReportJob> {
+    val now = Instant.now()
 
-    private val now = Instant.now()
+    val validId = 0
+    val validScheduledReportId = 0
+    val validDataFrom: Instant = now.minus(Duration.ofDays(1))
+    val validScheduledFor: Instant = now
+    val validRetryCount: Int = 0
 
+    abstract fun createScheduledReportJob(
+        id: Int = validId,
+        scheduledReportId: Int = validScheduledReportId,
+        dataFrom: Instant = validDataFrom,
+        scheduledFor: Instant = validScheduledFor
+    ): T
 
-    companion object {
-
-        @JvmStatic
-        fun incompleteStates(): Stream<ScheduledReportJobState> {
-            val now = Instant.now()
-            return Stream.of(PendingJob(runAt = now), RunningJob(startedAt = now, retryCount = 1))
-        }
-
-        @JvmStatic
-        fun completeStates(): Stream<ScheduledReportJobState>{
-            val now = Instant.now()
-            return Stream.of(
-                SuccessfulJob(startedAt = now, retryCount = 1),
-                FailedJob(startedAt = now, retryCount = 1, errorMsg = "someErrorMsg")
-            )
-        }
-    }
-
-    fun createScheduledReportJob(
-        id: Int = validId, scheduleId: Int = validScheduleId, state : ScheduledReportJobState = validState,
-        repoUri : String = validRepoURI, dataStart : Instant = validDataStart, dataEnd : Instant = validDataEnd
-    ) = ScheduledReportJob(id, scheduleId, state, repoUri, dataStart, dataEnd)
+    abstract fun assertToEntity(original: T, result: ScheduledReportJobEntity)
 
     @Test
-    fun `creation fails if id less than 0`(){
+    fun `creation fails if id less than 0`() {
         assertFailsWith<IllegalArgumentException> { createScheduledReportJob(id = -1) }
     }
 
     @Test
-    fun `creation success if id is 0`(){
+    fun `creation success if id is 0`() {
         assertDoesNotThrow { createScheduledReportJob(id = 0) }
     }
 
     @Test
-    fun `creation fails if scheduledReportId less than 0`(){
-        assertFailsWith<IllegalArgumentException> { createScheduledReportJob(scheduleId = -1) }
+    fun `creation fails if scheduledReportId less than 0`() {
+        assertFailsWith<IllegalArgumentException> { createScheduledReportJob(scheduledReportId = -1) }
     }
 
     @Test
-    fun `creation success if scheduledReportId is 0`(){
-        assertDoesNotThrow { createScheduledReportJob(scheduleId = 0) }
+    fun `creation success if scheduledReportId is 0`() {
+        assertDoesNotThrow { createScheduledReportJob(scheduledReportId = 0) }
     }
 
     @Test
-    fun `creation fails if dataFrom greater than dataTo`(){
+    fun `creation fails if dataFrom greater than dataTo`() {
         assertFailsWith<IllegalArgumentException> {
-            createScheduledReportJob(dataStart = now.plusSeconds(1), dataEnd = now)
+            createScheduledReportJob(dataFrom = now.plusSeconds(1), scheduledFor = now)
         }
     }
 
     @Test
-    fun `creation fails if dataFrom equals dataTo`(){
+    fun `creation fails if dataFrom equals dataTo`() {
         assertFailsWith<IllegalArgumentException> {
-            createScheduledReportJob(dataStart = now, dataEnd = now)
+            createScheduledReportJob(dataFrom = now, scheduledFor = now)
         }
     }
 
     @Test
-    fun `creation success if dataFrom less than dataTo`(){
-        assertDoesNotThrow { createScheduledReportJob(dataStart = now.minusSeconds(1), dataEnd = now) }
+    fun `creation success if dataFrom less than dataTo`() {
+        assertDoesNotThrow { createScheduledReportJob(dataFrom = now.minusSeconds(1), scheduledFor = now) }
     }
 
     @Test
-    fun `companion method creates job with id as 0 if none passed`(){
+    fun `method toEntity properly creates Entity`() {
+        val original = createScheduledReportJob()
+        val entity = original.toEntity()
+        assertToEntity(original, entity)
+    }
+}
+
+class PendingJobTest : ScheduledReportJobTest<PendingJob>() {
+    override fun createScheduledReportJob(
+        id: Int, scheduledReportId: Int, dataFrom: Instant, scheduledFor: Instant
+    ) = PendingJob(id, scheduledReportId, dataFrom, scheduledFor)
+
+    override fun assertToEntity(
+        original: PendingJob, result: ScheduledReportJobEntity
+    ) {
+        assertEquals(original.id, result.id)
+        assertEquals(original.dataFrom, result.dataFrom)
+        assertEquals(original.scheduledFor, result.scheduledFor)
+        assertEquals(original.retryCount, result.retryCount)
+        assertTrue(result.state is PendingJobStateEmbeddable)
+        assertEquals(original.runAt, (result.state as PendingJobStateEmbeddable).runAt)
+    }
+
+    @Test
+    fun `method run returns Running state with correct parameters`() {
+        val testJob = PendingJob(dataFrom = validDataFrom, scheduledReportId = validScheduledReportId, scheduledFor = validScheduledFor)
+
+        val before = Instant.now()
+        val actual = testJob.run()
+        val after = Instant.now()
+
+        val expected = RunningJob(
+            testJob.id, testJob.scheduledReportId, testJob.dataFrom, testJob.scheduledFor, testJob.retryCount
+        ).copy(startedAt = actual.startedAt)
+
+        assertTrue(actual.startedAt in before..after)
+        assertEquals(expected, actual)
+    }
+}
+
+class RunningJobTest : ScheduledReportJobTest<RunningJob>() {
+    private fun createRunningJob(
+        id: Int = validId,
+        scheduledReportId: Int = validScheduledReportId,
+        dataFrom: Instant = validDataFrom,
+        scheduledFor: Instant = validScheduledFor,
+        retryCount: Int = validRetryCount,
+        startedAt: Instant = scheduledFor
+    ) = RunningJob(id, scheduledReportId, dataFrom, scheduledFor, retryCount, startedAt)
+
+    override fun createScheduledReportJob(
+        id: Int, scheduledReportId: Int, dataFrom: Instant, scheduledFor: Instant
+    ) = createRunningJob(id, scheduledReportId, dataFrom, scheduledFor)
+
+    override fun assertToEntity(
+        original: RunningJob, result: ScheduledReportJobEntity
+    ) {
+        assertEquals(original.id, result.id)
+        assertEquals(original.dataFrom, result.dataFrom)
+        assertEquals(original.scheduledFor, result.scheduledFor)
+        assertEquals(original.retryCount, result.retryCount)
+        assertTrue(result.state is RunningJobStateEmbeddable)
+        assertEquals(original.startedAt, (result.state as RunningJobStateEmbeddable).startedAt)
+    }
+
+    @Test
+    fun `method end returns Success state with correct parameters if success is true`() {
+        val testJob = createRunningJob()
+        val before = Instant.now()
+        val actual = testJob.end(true, allowRetry = true)
+        val after = Instant.now()
+
+        assertTrue(actual is SuccessfulJob)
+
+        val expected = SuccessfulJob(
+            testJob.id, testJob.scheduledReportId, testJob.dataFrom, testJob.scheduledFor, testJob.retryCount, testJob.startedAt
+        ).copy(endedAt = actual.endedAt)
+
+        assertTrue(actual.endedAt in before..after)
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `state Running method end returns Failure state with correct parameters if success is false and retry not allowed`() {
+        val expectedErrorMsg = "some big error"
+        val testJob = createRunningJob(retryCount = 0)
+        val before = Instant.now()
+        val actual = testJob.end(false, expectedErrorMsg, false)
+        val after = Instant.now()
+
+        assertTrue(actual is FailedJob)
+
+        val expected = FailedJob(
+            testJob.id,
+            testJob.scheduledReportId,
+            testJob.dataFrom,
+            testJob.scheduledFor,
+            testJob.retryCount,
+            testJob.startedAt,
+            errorMsg = expectedErrorMsg
+        ).copy(endedAt = actual.endedAt)
+
+        assertTrue(actual.endedAt in before..after)
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `state Running method end returns Failure state with correct parameters if success is false and max retries exceeded`() {
+        val expectedErrorMsg = "exceeded retries"
+        val testJob = createRunningJob(retryCount = ScheduledJobReportPolicy.MAX_RETRIES + 1)
+        val before = Instant.now()
+        val actual = testJob.end(false, expectedErrorMsg, true)
+        val after = Instant.now()
+
+        assertTrue(actual is FailedJob)
+
+        val expected = FailedJob(
+            testJob.id,
+            testJob.scheduledReportId,
+            testJob.dataFrom,
+            testJob.scheduledFor,
+            testJob.retryCount,
+            testJob.startedAt,
+            errorMsg = expectedErrorMsg
+        ).copy(endedAt = actual.endedAt)
+
+        assertTrue(actual.endedAt in before..after)
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `state Running method end returns Pending state with correct parameters if success is false and max retries not exceeded`() {
+        val testJob = createRunningJob(retryCount = ScheduledJobReportPolicy.MAX_RETRIES - 1)
+        val actual = testJob.end(false, allowRetry = true)
+
+        assertTrue(actual is PendingJob)
+
+        val expected = PendingJob(
+            testJob.id, testJob.scheduledReportId, testJob.dataFrom, testJob.scheduledFor, testJob.retryCount + 1
+        ).copy(runAt = actual.runAt)
+
+        assertTrue(testJob.startedAt < actual.runAt)
+        assertEquals(expected, actual)
+    }
+}
+
+class SuccessfulJobTest : ScheduledReportJobTest<SuccessfulJob>() {
+    override fun createScheduledReportJob(
+        id: Int, scheduledReportId: Int, dataFrom: Instant, scheduledFor: Instant
+    ) = SuccessfulJob(
+        id, scheduledReportId, dataFrom, scheduledFor, validRetryCount, validScheduledFor
+    )
+
+    override fun assertToEntity(
+        original: SuccessfulJob, result: ScheduledReportJobEntity
+    ) {
+        assertEquals(original.id, result.id)
+        assertEquals(original.dataFrom, result.dataFrom)
+        assertEquals(original.scheduledFor, result.scheduledFor)
+        assertEquals(original.retryCount, result.retryCount)
+
+        assertTrue(result.state is SuccessfulJobStateEmbeddable)
+        val state = result.state as SuccessfulJobStateEmbeddable
+
+        assertEquals(original.startedAt, state.startedAt)
+        assertEquals(original.endedAt, state.endedAt)
+    }
+}
+
+class FailedJobTest : ScheduledReportJobTest<FailedJob>() {
+    override fun createScheduledReportJob(
+        id: Int, scheduledReportId: Int, dataFrom: Instant, scheduledFor: Instant
+    ) = FailedJob(
+        id, scheduledReportId, dataFrom, scheduledFor, validRetryCount, validScheduledFor, errorMsg = "some error"
+    )
+
+    override fun assertToEntity(
+        original: FailedJob, result: ScheduledReportJobEntity
+    ) {
+        assertEquals(original.id, result.id)
+        assertEquals(original.dataFrom, result.dataFrom)
+        assertEquals(original.scheduledFor, result.scheduledFor)
+        assertEquals(original.retryCount, result.retryCount)
+
+        assertTrue(result.state is FailedJobStateEmbeddable)
+        val state = result.state as FailedJobStateEmbeddable
+
+        assertEquals(original.startedAt, state.startedAt)
+        assertEquals(original.endedAt, state.endedAt)
+    }
+}
+
+class ScheduledReportJobFactoryTest {
+    val now = Instant.now()
+
+    val validScheduledReportId = 0
+    val validDataFrom: Instant = now.minus(Duration.ofDays(1))
+    val validScheduledFor: Instant = now
+
+    @Test
+    fun `companion method creates Pending job with scheduledFor as runAt`() {
+        val expected = PendingJob(scheduledReportId = validScheduledReportId, dataFrom = validDataFrom, scheduledFor = validScheduledFor, runAt = validScheduledFor)
         val actual = ScheduledReportJob.create(
-            scheduledReportId = validScheduleId, repoUri = validRepoURI,
-            scheduledRunAt = validState.runAt, dataFrom = validDataStart, dataTo = validDataEnd,
+            scheduledReportId = validScheduledReportId, dataFrom = validDataFrom, scheduledFor = validScheduledFor,
+        )
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `companion method creates job with id as 0`() {
+        val actual = ScheduledReportJob.create(
+            scheduledReportId = validScheduledReportId, dataFrom = validDataFrom, scheduledFor = validScheduledFor,
         ).id
         assertEquals(0, actual)
     }
 
     @Test
-    fun `companion method creates job with dataTo as scheduledRunAt if none passed`(){
-        val expected = validState.runAt
-        val testJob = ScheduledReportJob.create(
-            id = validId, scheduledReportId = validScheduleId, repoUri = validRepoURI,
-            scheduledRunAt = expected, dataFrom = validDataStart,
-        )
-        assertEquals(expected, testJob.dataTo)
-    }
-
-    @Test
-    fun `state Pending method run returns Running state with correct parameters`(){
-        val expectedAttempt = 1
-        val before = Instant.now()
-
-        val actual = PendingJob(before, expectedAttempt).run()
-
-        val after = Instant.now()
-
-        assertTrue(actual.startedAt in before..after)
-        assertEquals(expectedAttempt, actual.retryCount)
-    }
-
-    @Test
-    fun `state Running method end returns Success state with correct parameters if success is true`(){
-        val testJob = RunningJob(retryCount = 1)
-        val before = Instant.now()
-        val actual = testJob.end(true)
-        val after = Instant.now()
-
-        assertTrue(actual is SuccessfulJob)
-        assertEquals(testJob.startedAt, actual.startedAt)
-        assertTrue(actual.endedAt in before..after)
-        assertEquals(testJob.retryCount, actual.retryCount)
-    }
-
-    @Test
-    fun `state Running method end returns Failure state with correct parameters if success is false and max attempts exceeded`(){
-        val expectedErrorMsg = "Retries Exceeded"
-        val testJob = RunningJob(retryCount = ScheduledJobReportPolicy.MAX_RETRIES + 1)
-        val before = Instant.now()
-        val actual = testJob.end(false, expectedErrorMsg)
-        val after = Instant.now()
-
-        assertTrue(actual is FailedJob)
-        assertEquals(testJob.startedAt, actual.startedAt)
-        assertTrue(actual.endedAt in before..after)
-        assertEquals(testJob.retryCount, actual.retryCount)
-        assertEquals(expectedErrorMsg, actual.errorMsg)
-    }
-
-    @Test
-    fun `state Running method end returns Pending state with correct parameters if success is false and max attempts not exceeded`(){
-        val testJob = RunningJob(retryCount = ScheduledJobReportPolicy.MAX_RETRIES - 1)
-        val actual = testJob.end(false)
-
-        assertTrue(actual is PendingJob)
-        assertTrue(testJob.startedAt < actual.runAt)
-        assertEquals(testJob.retryCount + 1, actual.retryCount)
-    }
-
-    @ParameterizedTest
-    @MethodSource("incompleteStates")
-    fun `incomplete states should return false`(state: ScheduledReportJobState) {
-        assertFalse(state.isComplete)
-    }
-
-    @ParameterizedTest
-    @MethodSource("completeStates")
-    fun `complete states should return true`(state: ScheduledReportJobState) {
-        assertTrue(state.isComplete)
+    fun `companion method creates job with retryCount as 0`() {
+        val actual = ScheduledReportJob.create(
+            scheduledReportId = validScheduledReportId, dataFrom = validDataFrom, scheduledFor = validScheduledFor
+        ).retryCount
+        assertEquals(0, actual)
     }
 }

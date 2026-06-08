@@ -1,7 +1,5 @@
 package pt.isel.utils
 
-import pt.isel.domain.schedule.ScheduledReport
-import pt.isel.service.InvalidScheduleDomainConstructorParameters
 import pt.isel.utils.Either.Left
 import pt.isel.utils.Either.Right
 
@@ -32,6 +30,7 @@ fun <L, R, T> Either<L, R>.map(f: (R) -> T): Either<L, T> =
         is Left -> this
         is Right -> success(f(this.right))
     }
+
 
 fun <L, R> Either<L, R>.getOrThrow(mapError: (L) -> Throwable): R =
     when (this) {

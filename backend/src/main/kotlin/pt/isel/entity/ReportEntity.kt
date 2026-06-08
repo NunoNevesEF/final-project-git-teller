@@ -11,7 +11,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
-import pt.isel.model.report.RepoAnalysis
+import pt.isel.model.report.GitAnalysis
 import java.time.Instant
 
 @Entity
@@ -34,8 +34,8 @@ class ReportEntity (
     //TODO: SPECIFY REQUEST PARAMETERS WHEN PARAMETERIZING ANALYSIS REQUEST
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "repo_analysis", columnDefinition = "jsonb", nullable = false)
-    val repoAnalysis: RepoAnalysis,
+    @Column(name = "analysis", columnDefinition = "jsonb", nullable = false)
+    val gitAnalysis: GitAnalysis,
 
     @Column(nullable = true)
     var pdf: ByteArray? = null

@@ -3,16 +3,16 @@ package pt.isel.service.account
 import org.springframework.stereotype.Service
 import pt.isel.entity.User
 import pt.isel.repository.interfaces.account.IUserRepository
+import pt.isel.service.ServiceError
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
 import pt.isel.utils.toEither
 
 
-sealed class UserServiceError : AccountServiceError()
+sealed class UserServiceError : ServiceError
 object UserNotFound : UserServiceError()
 object EmailAlreadyExists : UserServiceError()
-object AuthenticationFailure : UserServiceError()
 
 @Service
 class UserService(private val userRepo: IUserRepository) {
