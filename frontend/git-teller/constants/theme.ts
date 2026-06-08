@@ -107,27 +107,18 @@ const COLORS = [
   "#000075",
 ];
 
-const usedMap = new Map<string, string>();
+const colorCache = new Map<string, string>();
 
 export const generateColor = (str: string) => {
-  if (usedMap.has(str)) return usedMap.get(str)!;
+  if (colorCache.has(str)) return colorCache.get(str)!;
 
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
   }
 
-  let index = hash % COLORS.length;
+  const color = COLORS[hash % COLORS.length];
 
-  let color = COLORS[index];
-  let tries = 0;
-
-  while ([...usedMap.values()].includes(color) && tries < COLORS.length) {
-    index = (index + 1) % COLORS.length;
-    color = COLORS[index];
-    tries++;
-  }
-
-  usedMap.set(str, color);
+  colorCache.set(str, color);
   return color;
 };

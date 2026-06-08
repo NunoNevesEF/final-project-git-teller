@@ -6,6 +6,7 @@ import LlmAnalysisSettings, {
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import { useState } from 'react';
 import { View, Button, Text, Pressable, ScrollView } from 'react-native';
+import { useAuth } from '@/store/AuthProvider';
 
 export type { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType };
 
@@ -57,6 +58,8 @@ export default function RepositorySearchForm({
                                              }: RepositorySearchFormProps) {
     const commonStyles = useCommonStyles();
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+    const { isAuthenticated } = useAuth();
+
 
     return (
         <ScrollView contentContainerStyle={[commonStyles.screen, commonStyles.centered]}>
@@ -82,6 +85,7 @@ export default function RepositorySearchForm({
                 </View>
             )}
 
+            {(isAuthenticated) && 
             <View style={commonStyles.toggleSection}>
                 <Text style={commonStyles.toggleLabel}>LLM Analysis</Text>
                 <View style={commonStyles.optionGroup}>
@@ -104,7 +108,7 @@ export default function RepositorySearchForm({
                         </Text>
                     </Pressable>
                 )}
-            </View>
+            </View>}
 
             <LlmAnalysisSettings
                 visible={settingsModalVisible}
