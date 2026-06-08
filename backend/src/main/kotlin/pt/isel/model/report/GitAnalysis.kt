@@ -1,25 +1,32 @@
 package pt.isel.model.report
 
 import org.eclipse.jgit.revwalk.RevCommit
+import pt.isel.domain.SearchInfo
 import pt.isel.domain.report.GitCommunication
+import pt.isel.model.ModifiedFiles
 import java.time.Instant
 
 
 data class GitAnalysis(
+    val searchInfo : SearchInfo,
+    val llmAnalysis: String = "",
+
     val commitsByUser: Map<String,List<CommitAnalysis>>,
-    val mostModifiedFiles: List<ModifiedFile>,
+    val mostModifiedFiles: List<ModifiedFiles>?,
 
     val firstCommitTime: Instant,
     val lastCommitTime: Instant
 ){
     companion object{
-        fun create(gitCommunication: GitCommunication): GitAnalysis {
+        fun create(gitCommunication: GitCommunication, llmAnalysis: String = ""): GitAnalysis {
             val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
             return GitAnalysis(
+                searchInfo = gitCommunication.getSearchInfo(),
+                llmAnalysis = llmAnalysis,
                 firstCommitTime = firstCommitTime,
                 lastCommitTime = lastCommitTime,
                 commitsByUser = gitCommunication.commits.toCommitAnalysis(gitCommunication).byUser(),
-                mostModifiedFiles = gitCommunication.getMostModifiedFiles().toModifiedFile()
+                mostModifiedFiles = gitCommunication.getMostModifiedFiles()
             )
         }
         private fun List<RevCommit>.toCommitAnalysis(gitCommunication: GitCommunication) =
@@ -30,9 +37,6 @@ data class GitAnalysis(
 
         private fun List<CommitAnalysis>.byUser(): Map<String, List<CommitAnalysis>> =
             groupBy{ it.author }
-
-        private fun List<Pair<String,Int>>.toModifiedFile(): List<ModifiedFile> =
-            map{ (file, count) -> ModifiedFile(file, count) }
     }
 }
 
@@ -60,8 +64,3 @@ data class CommitAnalysis(
             )
     }
 }
-
-data class ModifiedFile(
-    val fileName: String,
-    val modificationCount: Int = 0
-)

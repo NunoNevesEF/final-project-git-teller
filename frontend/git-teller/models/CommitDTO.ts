@@ -3,7 +3,7 @@ export interface CommitDTO {
   name: string;
   author: string;
   parentCount: number;
-  timestamp: string;
+  timestamp: number;
   message: string;
   additions: number;
   deletions: number;

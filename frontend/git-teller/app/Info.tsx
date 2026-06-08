@@ -1,46 +1,61 @@
 import { createReport } from '@/services/ReportGenerationService';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
-import { View, ScrollView, Button, Platform } from 'react-native';
-import CommitsChart from "@/components/commitsChart";
-import { useRef } from 'react';
-import { captureRef } from 'react-native-view-shot';
+import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
+import CommitsChart from "@/components/charts/commitsChart";
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import CommitsBarChart from '@/components/commitsBarChart';
-import CommitsPieChart from '@/components/commitsPieChart';
-import CommitsChangesChart from '@/components/CommitsChangesChart';
-import AdditionsChangesChart from '@/components/AdditionsChangesChart';
-import DeletionsChangesChart from '@/components/DeletionsChangesChart';
-import AverageChangesChart from '@/components/AverageChangesChart';
-import MostModifiedFiles from '@/components/MostModifiedFiles';
-import GitInputInfo from '@/components/GitInputInfo';
-import ChartCard from '@/components/ChartCard';
+import CommitsBarChart from '@/components/charts/commitsBarChart';
+import CommitsPieChart from '@/components/charts/commitsPieChart';
+import CommitsChangesChart from '@/components/charts/CommitsChangesChart';
+import AdditionsChangesChart from '@/components/charts/AdditionsChangesChart';
+import DeletionsChangesChart from '@/components/charts/DeletionsChangesChart';
+import AverageChangesChart from '@/components/charts/AverageChangesChart';
+import MostModifiedFiles from '@/components/charts/MostModifiedFiles';
+import GitInputInfo from '@/components/charts/GitInputInfo';
+import ChartCard from '@/components/charts/ChartCard';
 import { chartDescriptions } from '@/constants/chartDescriptions';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/store/AuthProvider';
+import { useTheme } from '@/constants/themeProvider';
+import { useEffect, useState } from 'react';
+import '@/constants/stylesPrint.css';
+import HeatMapCommits from '@/components/charts/HeatMapCommits';
+import LoadingComponent from '@/components/LoadingComponent';
 
 export default function Info() {
+  const router = useRouter();
+  const { colors } = useTheme()
+  const { isAuthenticated } = useAuth();
   const result = useAnalysisStore((state) => state.result);
-  const input = useAnalysisStore((state) => state.input);
-  const gitInputInfoRef = useRef(null);
-  const commitsChartRef = useRef(null);
-  const commitsBarRef = useRef(null);
-  const commitsPieRef = useRef(null);
-  const CommitsChangesChartRef = useRef(null);
-  const AdditionsDeletionsChangesChartRef = useRef(null);
-  const AverageChangesChartRef = useRef(null);
-  const MostModifiedFilesRef = useRef(null);
+  const setResult = useAnalysisStore((s) => s.setResult);
+  const [isHeadless, setIsHeadless] = useState(false);  // Formatação headless
+  const Container = isHeadless ? View : ScrollView;   // Formatação headless
+  const isMobile = Platform.OS !== "web"              // Formatação mobile
+  const [loadingFile, setLoadingFile] = useState(false);
 
-  const refs = [
-    gitInputInfoRef,
-    commitsChartRef,
-    commitsBarRef,
-    commitsPieRef,
-    CommitsChangesChartRef,
-    AdditionsDeletionsChangesChartRef,
-    AverageChangesChartRef,
-    MostModifiedFilesRef
-  ];
+  // Headless browser trigger render
+  useEffect(() => {
+    const data = (window as any).__GIT_ANALYSIS__;
+    if (data) {
+      setResult(data);
+      setIsHeadless(true);
+    }
+  }, []);
 
-  if (!result) return null;
+  // Headless browser wait to render
+  useEffect(() => {
+    if (!result) return;
+    requestAnimationFrame(() => {
+      (window as any).__REPORT_READY__ = true;
+    });
+  }, [result]);
+
+  if (!result) {
+    return (
+      <View>
+      </View>
+    );
+  }
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("pt-PT", {
@@ -49,84 +64,67 @@ export default function Info() {
       day: "2-digit",
   });
 
-  const capitalizedPlatform = (platform: string | undefined) => {
-    if (!platform) return "";
-    return platform.charAt(0).toUpperCase() + platform.slice(1);
-  };
-
   const handleGenerate = async () => {
     try {
+      setLoadingFile(true);
+      const blob = await createReport(result);
       if (Platform.OS === 'web') {
-        const htmlToImage = await import('html-to-image');
-
-        const images = await Promise.all(
-          refs.map(async (ref) => {
-            const node = ref.current as unknown as HTMLElement;
-
-            const dataUrl = await htmlToImage.toPng(node);
-
-            return dataUrl.split(",")[1];
-          })
-        );
-
-        const blob = await createReport(images);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'report.pdf';
         a.click();
         window.URL.revokeObjectURL(url);
+
       } else {
-        const images = await Promise.all(
-          refs.map(async (ref) => {
-            const uri = await captureRef(ref.current!, {
-              format: "png",
-              quality: 1,
-            });
-
-            return await FileSystem.readAsStringAsync(uri, {
-              encoding: "base64",
-            });
-          })
-        );
-
-        const pdfBlob = await createReport(images);
-
         const fileUri = FileSystem.documentDirectory + 'report.pdf';
-
         const reader = new FileReader();
-
         reader.onload = async () => {
           const base64Pdf = reader.result?.toString().split(',')[1];
-
           if (!base64Pdf) return;
-
           await FileSystem.writeAsStringAsync(fileUri, base64Pdf, {
             encoding: FileSystem.EncodingType.Base64,
           });
-
           await Sharing.shareAsync(fileUri);
         };
 
-        reader.readAsDataURL(pdfBlob);
+        reader.readAsDataURL(blob);
       }
     } catch (err) {
       console.error("Error exporting info:", err);
+    } finally {
+      setLoadingFile(false);
+    }
+  };
+
+  const back = () => {
+    if (isAuthenticated) {
+      router.push("/(app)/home");
+    } else {
+      router.push("/search");
     }
   };
 
   return (
-    <ScrollView style={{ flex: 1, padding: 20}} contentContainerStyle={{ paddingBottom: 120 }}>
-      <View style={{flexDirection: "row",gap:12}} ref={gitInputInfoRef}>
+    <>
+      <Container style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 120 }}>
+      {!isHeadless && (
+        <Pressable onPress={back} style={{ alignSelf: "flex-start", marginBottom: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>
+            ← Back to search
+          </Text>
+        </Pressable>
+      )}
+      <View style={{flexDirection: isMobile ? "column" : "row",gap:12}}>
         <View style={{ flex: 1 }}>
           <ChartCard title="Repository Information" description="" showToolTip={false} icon="folder-outline">
             <View collapsable={false}>
               <GitInputInfo
                 icon="folder-outline"
                 label1="Repository"
-                value1={input?.repositoryName ?? ""}
+                value1={result.searchInfo.repositoryName ?? ""}
                 label2="Owner"
-                value2={input?.repositoryOwner ?? ""}
+                value2={result.searchInfo.repositoryOwner ?? ""}
               />
             </View>
           </ChartCard> 
@@ -137,9 +135,9 @@ export default function Info() {
               <GitInputInfo
                 icon="folder-outline"
                 label1="Platform"
-                value1={capitalizedPlatform(input?.platform) ?? ""}
+                value1={result.searchInfo.platform ?? ""}
                 label2="URL"
-                value2={input?.repositoryUrl ?? ""}
+                value2={result.searchInfo.repositoryUrl ?? ""}
               />
             </View>
           </ChartCard> 
@@ -158,54 +156,89 @@ export default function Info() {
           </ChartCard> 
         </View>
       </View>
-      <View ref={commitsChartRef} collapsable={false}>
+      <View collapsable={false}>
+        <ChartCard title="HeatMap commits of collaborators" description={chartDescriptions.heatMapCommits}>
+          <HeatMapCommits data={result.commitsByUser} />
+        </ChartCard>
+      </View>
+      <View collapsable={false}>
         <ChartCard title="Commits by user over time" description={chartDescriptions.commitsOverTime}>
           <CommitsChart data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View ref={commitsBarRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Total commits by user" description={chartDescriptions.commitsByUser}> 
           <CommitsBarChart data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View ref={commitsPieRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Percentage of commits by user" description={chartDescriptions.commitsPercentage}>
           <CommitsPieChart data={result.commitsByUser} />
         </ChartCard>    
       </View>
-      <View ref={CommitsChangesChartRef} collapsable={false}>
+      <View collapsable={false}>
         <ChartCard title="Total lines added and removed by user" description={chartDescriptions.linesAddedRemoved}>
           <CommitsChangesChart data={result.commitsByUser} />
         </ChartCard>
       </View>
-      <View style={{flexDirection: "row",gap:12}} ref={AdditionsDeletionsChangesChartRef}>
-        <View style={{ flex: 1 }}>
-          <ChartCard title="Percentage of lines added by user" description={chartDescriptions.percentageLinesAdded}>
-            <View collapsable={false}>
-              <AdditionsChangesChart data={result.commitsByUser} />
+      <View
+        style={{
+          flexDirection: isHeadless || isMobile ? "column" : "row",
+          gap: 12,
+        }}
+      >
+        <View style={{
+          ...(isHeadless || isMobile ? {} : { flex: 1 }),
+        }}>
+                <ChartCard
+                  title="Percentage of lines added by user"
+                  description={chartDescriptions.percentageLinesAdded}
+                >
+                  <View collapsable={false} style={{ maxHeight: 280 }}>
+                    <AdditionsChangesChart data={result.commitsByUser} />
+                  </View>
+                </ChartCard>
+              </View>
+              <View style={{
+          ...(isHeadless || isMobile ? { marginBottom : 20} : { flex: 1 }),
+        }}>
+          <ChartCard
+            title="Percentage of lines removed by user"
+            description={chartDescriptions.percentageLinesRemoved}
+          >
+            <View collapsable={false} style={{ maxHeight: 280 }}>
+              <DeletionsChangesChart data={result.commitsByUser} />
             </View>
-          </ChartCard> 
+          </ChartCard>
         </View>
-        <View style={{ flex: 1 }}>
-          <ChartCard title="Percentage of lines removed by user" description={chartDescriptions.percentageLinesRemoved}>
-          <View collapsable={false}>
-            <DeletionsChangesChart data={result.commitsByUser} />
-          </View>
-        </ChartCard>  
-        </View>        
       </View>
-        <View ref={AverageChangesChartRef} collapsable={false}>
+          <View collapsable={false}>
           <ChartCard title="Average changed lines per commit by user" description={chartDescriptions.averageChanges}>   
             <AverageChangesChart data={result.commitsByUser} />
           </ChartCard>    
         </View>
-        <View ref={MostModifiedFilesRef} collapsable={false}>
+      <View collapsable={false}>
           <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
             <MostModifiedFiles data={result.mostModifiedFiles} />
           </ChartCard>    
       </View>
 
-      <Button title="Generate Report" onPress={handleGenerate} />
-    </ScrollView>
+        {result.llmAnalysis && result.llmAnalysis.trim() !== '' && (
+            <View collapsable={false}>
+                <ChartCard title="LLM Analysis" description="AI-generated analysis of the selected commits." showToolTip={false} icon="sparkles-outline">
+                    <Text selectable style={{ color: colors.text, lineHeight: 22, fontSize: 14 }}>
+                        {result.llmAnalysis}
+                    </Text>
+                </ChartCard>
+            </View>
+        )}
+
+
+        {!isHeadless && (
+            <Button title="Generate Report" onPress={handleGenerate} />
+        )}
+    </Container>
+    <LoadingComponent visible={loadingFile} />
+  </>
   );
 }

@@ -1,14 +1,14 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
-
-const screenWidth = Dimensions.get("window").width;
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 
 export default function CommitsPieChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const totalCommits = Object.values(data)
     .flat()
     .length;
@@ -33,10 +33,14 @@ export default function CommitsPieChart({ data }: { data: Record<string, CommitD
   });
 
   return (
+    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{
+        flexGrow: 1,
+        justifyContent: "center",
+      }}>
     <View>
       <PieChart
         data={pieData}
-        width={screenWidth * 0.4}
+        width={A4_WIDTH}
         height={220}
         chartConfig={{
           color: () => colors.icon,
@@ -47,11 +51,10 @@ export default function CommitsPieChart({ data }: { data: Record<string, CommitD
         paddingLeft="0"
         absolute
         style={{
-          marginLeft : screenWidth/3,
-          alignItems : "center",
           marginVertical: 20
         }}
       />
     </View>
-  );
+    </ScrollView>
+);
 }

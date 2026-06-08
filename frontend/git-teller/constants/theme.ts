@@ -86,7 +86,48 @@ export const fontSize = {
   xl: 28,
 };
 
+const COLORS = [
+  "#e6194b",
+  "#3cb44b",
+  "#4363d8",
+  "#f58231",
+  "#911eb4",
+  "#42d4f4",
+  "#f032e6",
+  "#bfef45",
+  "#fabed4",
+  "#469990",
+  "#dcbeff",
+  "#9a6324",
+  "#ffe119",
+  "#800000",
+  "#aaffc3",
+  "#808000",
+  "#ffd8b1",
+  "#000075",
+];
+
+const usedMap = new Map<string, string>();
+
 export const generateColor = (str: string) => {
-  const hue = [...str].reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
-  return `hsl(${hue}, 55%, 65%)`;
+  if (usedMap.has(str)) return usedMap.get(str)!;
+
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+
+  let index = hash % COLORS.length;
+
+  let color = COLORS[index];
+  let tries = 0;
+
+  while ([...usedMap.values()].includes(color) && tries < COLORS.length) {
+    index = (index + 1) % COLORS.length;
+    color = COLORS[index];
+    tries++;
+  }
+
+  usedMap.set(str, color);
+  return color;
 };

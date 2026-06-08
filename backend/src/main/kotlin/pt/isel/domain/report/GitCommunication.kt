@@ -9,18 +9,21 @@ import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.treewalk.AbstractTreeIterator
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
+import pt.isel.model.ModifiedFiles
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
+import org.eclipse.jgit.revwalk.RevWalk
+import pt.isel.domain.SearchInfo
 
-data class GitCommunication(val git: Git) {
+data class GitCommunication(val git: Git, val repoURI: String) {
     val commits by lazy{ getAllCommits() }
     val branches by lazy{ getAllBranches() }
 
     companion object{
         fun create(repoURI: String): GitCommunication {
             val git = getOrCloneGitRepo(repoURI, getRepoFile(getRepoPath(repoURI)))
-            return GitCommunication(git)
+            return GitCommunication(git,repoURI)
         }
 
         /**Temporary function for testing JGIT behavior, get a repo from gitRepos directory**/
@@ -59,6 +62,17 @@ data class GitCommunication(val git: Git) {
         /**Temporary function for testing JGIT behavior, creates file from directory path**/
         private fun getRepoFile(repoPath: String): File{
             return File(repoPath)
+        }
+
+        fun openExisting(repoURI: String): GitCommunication {
+            val repoPath = getRepoPath(repoURI)
+            val repoPathFile = File(repoPath)
+
+            if (!repoPathFile.exists() || !File(repoPathFile, ".git").exists()) {
+                throw RepositoryNotFoundException("Local repository not found: $repoPath")
+            }
+
+            return GitCommunication(Git.open(repoPathFile),repoURI)
         }
     }
 
@@ -106,6 +120,34 @@ data class GitCommunication(val git: Git) {
         return branchCommits
     }
 
+    fun getSearchInfo(): SearchInfo {
+        val uri = java.net.URI(repoURI)
+
+        val segments = uri.path
+            .trim('/')
+            .split('/')
+
+        require(segments.size >= 2) {
+            "Invalid repository URL: $repoURI"
+        }
+
+        val owner = segments[0]
+        val repository = segments[1]
+
+        val platform = when (uri.host.lowercase()) {
+            "github.com" -> "github"
+            "gitlab.com" -> "gitlab"
+            else -> uri.host
+        }
+
+        return SearchInfo(
+            repositoryUrl = repoURI,
+            repositoryName = repository,
+            repositoryOwner = owner,
+            platform = platform.replaceFirstChar { it.uppercase() }
+        )
+    }
+
     fun getCommitChanges(commit: RevCommit): Pair<Int, Int> {
         if (commit.parentCount == 0) {
             return Pair(0, 0)
@@ -139,12 +181,11 @@ data class GitCommunication(val git: Git) {
         return Pair(additions, deletions)
     }
 
-    fun getMostModifiedFiles(): List<Pair<String, Int>> {
-        val fileFrequency = mutableMapOf<String, Int>()
+    fun getMostModifiedFiles(): List<ModifiedFiles> {
+        val fileStats = mutableMapOf<String, Pair<Int, Long>>()
 
-        for ( commit in commits) {
+        for (commit in commits) {
             if (commit.parentCount == 0) continue
-
             val parent = commit.getParent(0)
 
             val diffs = git.diff()
@@ -152,24 +193,33 @@ data class GitCommunication(val git: Git) {
                 .setNewTree(getTreeParser(commit))
                 .call()
 
+            val commitTime = commit.commitTime.toLong()
             for (diff in diffs) {
-
-                val path =
-                    if (diff.newPath != "/dev/null")
-                        diff.newPath
-                    else
-                        diff.oldPath
-
+                val path = if (diff.newPath != "/dev/null")
+                    diff.newPath
+                else
+                    diff.oldPath
                 if (path == "/dev/null") continue
+                val (currentChanges, currentLast) =
+                    fileStats[path] ?: (0 to 0L)
+                val updatedChanges = currentChanges + 1
+                val updatedLast = maxOf(currentLast, commitTime)
 
-                fileFrequency[path] =
-                    (fileFrequency[path] ?: 0) + 1
+                fileStats[path] = updatedChanges to updatedLast
             }
         }
-        return fileFrequency.entries
-            .sortedByDescending { it.value }
+
+        return fileStats.entries
+            .sortedByDescending { it.value.first }
             .take(10)
-            .map { Pair(it.key, it.value) };
+            .map { (path, data) ->
+                ModifiedFiles(
+                    path = path,
+                    changes = data.first,
+                    lastModified = data.second,
+                    extension = path.substringAfterLast('.', "")
+                )
+            }
     }
 
     fun getFirstAndLastCommitDate(): Pair<Instant, Instant> {
@@ -207,9 +257,37 @@ data class GitCommunication(val git: Git) {
         parser.reset(reader, commit.tree.id)
         return parser
     }
+
+    fun findCommitBySha(commitSha: String): RevCommit? {
+        val objectId = git.repository.resolve("${commitSha}^{commit}")
+            ?: git.repository.resolve(commitSha)
+            ?: return null
+
+        return RevWalk(git.repository).use { walk ->
+            walk.parseCommit(objectId)
+        }
+    }
+
+    fun getMissingCommitShas(commitShas: List<String>): List<String> {
+        return commitShas.filter { findCommitBySha(it) == null }
+    }
+
+    fun getCommitsByShas(commitShas: List<String>): List<RevCommit> {
+        return commitShas.mapNotNull { findCommitBySha(it) }
+    }
+
+    fun getCommitsBetween(from: Instant, to: Instant): List<RevCommit> {
+        require(!from.isAfter(to)) { "fromDate não pode ser depois de toDate" }
+
+        return commits
+            .filter { commit ->
+                val commitInstant = Instant.ofEpochSecond(commit.commitTime.toLong())
+                !commitInstant.isBefore(from) && !commitInstant.isAfter(to)
+            }
+            .sortedBy { it.commitTime }
+    }
+
+
 }
 
 const val reposStorageLocation = "gitRepos"
-const val testRepoURISmall = "https://github.com/octocat/Hello-World"
-const val testRepoURILarge = "https://github.com/github/testrepo"
-const val testRepoURI = testRepoURILarge

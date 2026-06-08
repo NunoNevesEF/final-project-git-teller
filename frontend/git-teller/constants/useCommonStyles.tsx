@@ -35,6 +35,11 @@ export const useCommonStyles  = () => {
       textAlign: "center",
       fontFamily: fonts.regular
     },
+    legendStyles: {
+      fontSize: 13,
+      color: c.text,
+      fontFamily: fonts.regular
+    },
     optionButton: {
       backgroundColor: c.background,
       borderWidth: 1,
@@ -153,6 +158,25 @@ export const useCommonStyles  = () => {
       maxWidth: 300,
       alignSelf: "center"
     },
+    toggleSection: {
+      width: "100%",
+      maxWidth: 300,
+      alignSelf: "center",
+      gap: spacing.xs,
+      marginBottom: spacing.lg,
+    },
+    toggleLabel: {
+      color: c.text,
+      fontFamily: fonts.bold,
+      fontSize: fontSize.md,
+      textAlign: "center",
+    },
+    toggleDescription: {
+      color: c.icon,
+      fontFamily: fonts.regular,
+      fontSize: fontSize.sm,
+      textAlign: "center",
+    },
     root: {
       flex: 1,
     },
@@ -182,7 +206,6 @@ export const useCommonStyles  = () => {
     CardChart: {
       fontFamily: fonts.regular,
       backgroundColor: c.backgroundCard,
-
       borderRadius: 24,
       padding: 12,
       marginBottom: 16,
@@ -198,7 +221,10 @@ export const useCommonStyles  = () => {
         height: 8,
       },
       elevation: 6,
-      overflow: "hidden",
+      ...( {
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  } as any )
     }
   });
 };

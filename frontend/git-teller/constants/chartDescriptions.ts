@@ -22,4 +22,11 @@ export const chartDescriptions = {
 
   mostModifiedFiles:
     "Shows the most frequently modified files, identifying hotspots in the codebase with high change activity.",
+
+  heatMapCommits:
+    "Shows repository activity using a heatmap of commits across all collaborators over time.",
+};
+
+export const REPORT_LAYOUT = {
+  A4_WIDTH: 700,
 };

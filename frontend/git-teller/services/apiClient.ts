@@ -50,7 +50,7 @@ export async function apiPost(path: string, body: object) {
 
 export async function apiPostBlob(
   path: string,
-  body: string[],
+  body: unknown,
   token?: string | null,
 ) {
   const res = await fetch(`${API_BASE_URL}/${path}`, {
@@ -61,8 +61,10 @@ export async function apiPostBlob(
     },
     body: JSON.stringify(body),
   });
+
   if (!res.ok) {
     throw new Error(`POST ${path} falhou com status ${res.status}`);
   }
+
   return res.blob();
 }

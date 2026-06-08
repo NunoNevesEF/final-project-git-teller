@@ -1,39 +1,57 @@
 package pt.isel.service.report
 
-import com.itextpdf.io.image.ImageDataFactory
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Image
-import com.itextpdf.layout.element.Paragraph
-import java.io.ByteArrayOutputStream
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.microsoft.playwright.Page
+import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.options.LoadState
+import com.microsoft.playwright.options.Media
 import org.springframework.stereotype.Service
+import pt.isel.model.report.GitAnalysis
 
 @Service
 class ReportPDFGenerationService {
 
-    fun createPdf(componentsImageBytes: List<ByteArray>): ByteArray {
-        val outputStream = ByteArrayOutputStream()
+    private val objectMapper: ObjectMapper = ObjectMapper()
+        .registerModule(JavaTimeModule())
+        .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-        val writer = PdfWriter(outputStream)
-        val pdf = PdfDocument(writer)
-        val document = Document(pdf)
+    fun createPdf(gitAnalysis: GitAnalysis): ByteArray {
+        val byte = generatePdfFromFrontend(gitAnalysis)
+        return byte;
+    }
 
-        document.add(Paragraph("Git Analysis Report").setBold().setFontSize(18f))
-        document.add(Paragraph("\n"))
+    fun generatePdfFromFrontend(gitAnalysis: GitAnalysis): ByteArray {
 
-        val pageWidth = pdf.defaultPageSize.width - document.leftMargin - document.rightMargin
+        Playwright.create().use { pw ->
 
-        componentsImageBytes.forEach { componentBytes ->
-            val imageData = ImageDataFactory.create(componentBytes);
-            val image = Image(imageData)
-            val scale = pageWidth / image.imageWidth
-            image.scale(scale, scale)
-            image.scale(scale, scale)
-            document.add(image)
+            val browser = pw.chromium().launch()
+            val context = browser.newContext()
+            val page = context.newPage()
+
+            val json = objectMapper.writeValueAsString(gitAnalysis)
+
+            page.emulateMedia(Page.EmulateMediaOptions().setMedia(Media.PRINT))
+            page.addInitScript("window.__GIT_ANALYSIS__ = $json")
+            page.navigate("http://localhost:8081/Info")
+
+            page.setViewportSize(1920, 1080);
+
+            page.waitForLoadState(LoadState.LOAD)
+            page.waitForFunction(
+                "window.__REPORT_READY__ === true"
+            )
+
+            val pdf = page.pdf(
+                Page.PdfOptions()
+                    .setFormat("A4")
+                    .setPrintBackground(true)
+                    .setPreferCSSPageSize(true)
+            )
+
+            browser.close()
+
+            return pdf
         }
-
-        document.close()
-        return outputStream.toByteArray()
     }
 }

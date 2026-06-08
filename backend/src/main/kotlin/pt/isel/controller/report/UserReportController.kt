@@ -1,4 +1,4 @@
-package pt.isel.controller
+package pt.isel.controller.report
 
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -13,8 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import pt.isel.model.report.GitAnalysis
+import pt.isel.model.report.PDFGenerationContext
+import pt.isel.model.report.ReportGenerationContext
 import pt.isel.model.report.UserReportDTO
 import pt.isel.security.principal.UserPrincipal
+import pt.isel.service.account.UserNotFound
+import pt.isel.service.git.GitAnalysisService
+import pt.isel.service.git.GitOutcome
 import pt.isel.service.report.UserReportService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
@@ -23,37 +28,42 @@ import pt.isel.utils.Success
 @RestController
 @RequestMapping("/api/public/report")
 class UserReportPublicController(
-    private val userReportService: UserReportService
+    private val userReportService: UserReportService,
 ){
     @GetMapping("/generateReport")
-    fun getReport(
+    fun generateReportNoLLM(
         @RequestParam repoURI: String,
         @AuthenticationPrincipal userPrincipal: UserPrincipal?
     ): ResponseEntity<GitAnalysis> {
-        val userId = userPrincipal?.getUserId()
-
-        if(userId != null){
-            return when (val reportId = userReportService.createReport(userId, repoURI)){
-                is Success -> when(val analysisResult = userReportService.getAnalysis(reportId.right, userId)){
-                    is Success -> ResponseEntity.ok(analysisResult.right)
-                    is Failure -> ResponseEntity.notFound().build()
-                }
-                is Failure -> ResponseEntity.badRequest().build()
-            }
+        val context = when(val userId = userPrincipal?.getUserId()){
+            null -> ReportGenerationContext.Guest
+            else -> ReportGenerationContext.User(userId)
         }
 
-        return when(val analysisResult = userReportService.createAnalysis(repoURI)){
-            is Success -> ResponseEntity.ok(analysisResult.right)
-            is Failure -> ResponseEntity.status(analysisResult.left.toStatus()).build()
+        return when (val analysisResult = userReportService.generateAnalysis(context, repoURI)) {
+            is Success -> ResponseEntity.ok(analysisResult.right.analysis)
+            is Failure -> when(analysisResult.left){
+                is UserNotFound -> ResponseEntity.notFound().build()
+                is GitOutcome -> ResponseEntity.status(analysisResult.left.toStatus()).build()
+                else -> ResponseEntity.badRequest().build()
+            }
         }
     }
 
+    //TODO: GENERATE REPORT WITH LLM.
+
     @PostMapping("/generatePDF")
-    fun getPDF(
-        @RequestBody images: List<String>,
-        @RequestParam reportId: Int?
+    fun generatePdf(
+        @RequestBody gitAnalysis: GitAnalysis,
+        @RequestParam reportId: Int?,
+        @AuthenticationPrincipal userPrincipal: UserPrincipal?
     ): ResponseEntity<ByteArray> {
-        return when (val pdf = userReportService.createReportPDF(reportId, images)){
+        val context = when(val userId = userPrincipal?.getUserId()){
+            null -> PDFGenerationContext.Guest(gitAnalysis)
+            else -> PDFGenerationContext.User(reportId, userId, gitAnalysis)
+        }
+
+        return when (val pdf = userReportService.generatePDF(context)){
             is Success -> ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
@@ -77,7 +87,7 @@ class UserReportPrivateController(
         return ResponseEntity.ok(reports)
     }
 
-    @GetMapping("/user-reports/analysis/{id}")
+    @GetMapping("/user-reports/{id}/analysis")
     fun getAnalysis(
         @PathVariable id: Int,
         @AuthenticationPrincipal principal: UserPrincipal
@@ -88,7 +98,7 @@ class UserReportPrivateController(
         }
     }
 
-    @GetMapping("/user-reports/download/{id}")
+    @GetMapping("/user-reports/{id}/download")
     fun downloadReport(
         @PathVariable id: Int,
         @AuthenticationPrincipal principal: UserPrincipal

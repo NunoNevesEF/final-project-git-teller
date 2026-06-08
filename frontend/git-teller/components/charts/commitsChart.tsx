@@ -1,14 +1,15 @@
 import React from "react";
-import { Dimensions, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
-
-const screenWidth = Dimensions.get("window").width;
+import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
+import ChartLegend from "./ChartLegend";
 
 export default function CommitsChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const { A4_WIDTH } = REPORT_LAYOUT;
   const groupByDayCumulative = (commits: CommitDTO[], labels: string[]) => {
     const map: Record<string, number> = {};
     let cumulative = 0;
@@ -36,6 +37,11 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
 
   const labels = Array.from(allDaysSet).sort();
 
+  const step = Math.ceil(labels.length / 6);
+  const visibleLabels = labels.map((label, index) =>
+    index % step === 0 ? label : ""
+  );
+
   const datasets = Object.entries(data).map(
     ([user, commits]) => {
       const grouped = groupByDayCumulative(commits, labels);
@@ -59,14 +65,29 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
 
   return (
     <View>
+      <ChartLegend users={users}></ChartLegend>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+        }}
+      >
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+      }}
+    >
       <LineChart
         data={{
-          labels,
+          labels: visibleLabels,
           datasets,
-          legend: users
         }}
-        width={screenWidth*0.7} 
+        width={A4_WIDTH}
         height={220}
+        withShadow={false}
         formatYLabel={(yValue) => Math.round(Number(yValue)).toString()}
         segments={segments}
         chartConfig={{
@@ -75,21 +96,14 @@ export default function CommitsChart({ data }: { data: Record<string, CommitDTO[
           backgroundGradientTo: colors.backgroundCard,
           color: () => colors.icon,
           labelColor: () => colors.icon,
-          style: {
-            borderRadius: 16
-          },
-          propsForDots: {
-            r: "6",
-            strokeWidth: "2",
-            stroke: colors.tint
-          }
         }}
         style={{
-          alignItems : "center",
           marginVertical: 8,
-          borderRadius: 16
+          borderRadius: 16,
         }}
       />
+    </View>
+  </ScrollView>
     </View>
   );
 }

@@ -16,12 +16,12 @@ export default function AuthMenuButton() {
 
     const handleLogin = () => {
         closeMenu();
-        router.push('/login');
+        router.push('../login');
     };
 
     const handleSignup = () => {
         closeMenu();
-        router.push('/signup');
+        router.push('../signup');
     };
 
     const handleLogout = async () => {
@@ -87,10 +87,10 @@ export default function AuthMenuButton() {
                             </>
                         ) : (
                             <Pressable
-                                style={commonStyles.dangerButton}
+                                style={commonStyles.primaryButton }
                                 onPress={handleLogout}
                             >
-                                <Text style={commonStyles.dangerButtonText}>Log out</Text>
+                                <Text style={commonStyles.primaryButtonText}>Log out</Text>
                             </Pressable>
                         )}
                                                 <Pressable

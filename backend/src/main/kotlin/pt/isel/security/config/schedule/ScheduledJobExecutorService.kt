@@ -7,9 +7,10 @@ import org.springframework.stereotype.Service
 import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.SuccessfulJob
+import pt.isel.model.report.ReportGenerationContext
 import pt.isel.service.ScheduledReportService
 import pt.isel.service.account.UserNotFound
-import pt.isel.service.report.FailureDoNotRetry
+import pt.isel.service.git.FailureDoNotRetry
 import pt.isel.service.report.UserReportService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
@@ -28,7 +29,7 @@ class ScheduledJobExecutor(
         try{
             val runningJob = scheduledReportService.runJob(pendingJob)
 
-            when(val result = reportService.createReport(userId, repoUri)) {
+            when(val result = reportService.generateAnalysis(ReportGenerationContext.User(userId), repoUri)) {
                 is Success -> {
                     val successJob = scheduledReportService.endJob(runningJob, true)
                             as? SuccessfulJob ?: throw IllegalStateException("what")
