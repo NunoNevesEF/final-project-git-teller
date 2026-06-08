@@ -1,13 +1,15 @@
 import React from "react";
-import { ScrollView, View } from "react-native";
+import { Platform, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { CommitDTO } from "@/models/CommitDTO";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
+import ChartLegend from "./ChartLegend";
 
 export default function CommitsPieChart({ data }: { data: Record<string, CommitDTO[]> }) {
   const { colors } = useTheme()
+  const isMobile = Platform.OS !== "web" 
   const { A4_WIDTH } = REPORT_LAYOUT;
   const totalCommits = Object.values(data)
     .flat()
@@ -33,19 +35,17 @@ export default function CommitsPieChart({ data }: { data: Record<string, CommitD
   });
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{
-        flexGrow: 1,
-        justifyContent: "center",
-      }}>
-    <View>
+    <View style={isMobile ? {} : { alignItems: "center" }}>
+      {(isMobile && <ChartLegend users={pieData.map(item => item.name)} standardUsers={sortedEntries.map(item => item.user)} />)}
       <PieChart
         data={pieData}
-        width={A4_WIDTH}
+        width={A4_WIDTH - 50}
         height={220}
         chartConfig={{
           color: () => colors.icon,
           labelColor: () => colors.text,
         }}
+        hasLegend={!isMobile}
         accessor="population"
         backgroundColor="transparent"
         paddingLeft="0"
@@ -55,6 +55,5 @@ export default function CommitsPieChart({ data }: { data: Record<string, CommitD
         }}
       />
     </View>
-    </ScrollView>
-);
+  );
 }
