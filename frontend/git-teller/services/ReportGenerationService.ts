@@ -11,11 +11,11 @@ export async function createReport(gitAnaylsis: GitAnalysis): Promise<Blob> {
 }
 
 export async function getUserReports() {
-  const token = localStorage.getItem("accessToken");
-  return apiGet(`${SERVICE_PATH}/user-reports`, token);
+  const { accessToken } = await getTokens();
+  return apiGet(`${SERVICE_PATH}/user-reports`, accessToken);
 }
 
 export async function downloadReport(id: number) {
-  const token = localStorage.getItem("accessToken");
-  return apiGetBlob(`${SERVICE_PATH}/user-reports/${id}/download`, token);
+  const { accessToken } = await getTokens();
+  return apiGetBlob(`${SERVICE_PATH}/user-reports/${id}/download`, accessToken);
 }

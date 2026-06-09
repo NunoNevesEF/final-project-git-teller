@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { clearTokens, getTokens, saveTokens } from '@/services/secureStore';
+import { clearTokens, clearUsername, getTokens, getUsername, saveTokens, saveUsername } from '@/services/secureStore';
 
 type SignInPayload = {
     accessToken: string;
@@ -19,8 +19,6 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USERNAME_KEY = 'username';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
@@ -31,11 +29,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(true);
             const { accessToken: storedAccessToken } = await getTokens();
             setAccessToken(storedAccessToken ?? null);
-
-            if (typeof window !== 'undefined') {
-                const savedUsername = window.localStorage.getItem(USERNAME_KEY);
-                setUsername(savedUsername);
-            }
+            const savedUsername = await getUsername();
+            setUsername(savedUsername);
         } catch {
             await clearTokens();
             setAccessToken(null);
@@ -55,24 +50,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (username) {
             setUsername(username);
-            if (typeof window !== 'undefined') {
-                window.localStorage.setItem(USERNAME_KEY, username);
-            }
+            await saveUsername(username);
         } else {
             setUsername(null);
-            if (typeof window !== 'undefined') {
-                window.localStorage.removeItem(USERNAME_KEY);
-            }
+            await clearUsername();
         }
     };
 
     const signOut = async () => {
         await clearTokens();
+        await clearUsername();
         setAccessToken(null);
         setUsername(null);
-        if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(USERNAME_KEY);
-        }
     };
 
     const value = useMemo( // Memoize the context value to prevent unnecessary re-renders
