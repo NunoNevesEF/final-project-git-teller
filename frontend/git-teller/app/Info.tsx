@@ -89,10 +89,10 @@ export default function Info() {
       }
   };
 
-  const handleDownloadPdf = async () => {
+  const handleGeneratePdf = async () => {
     try {
       setLoadingFile(true);
-      const blob = reportId ? await downloadPdf(reportId) : generatePdf(result);
+      const blob = await generatePdf(result);
 
       if (Platform.OS === 'web') {
         const url = window.URL.createObjectURL(blob);
@@ -263,16 +263,20 @@ export default function Info() {
             </View>
         )}
 
+          {isAuthenticated && !isHeadless && (
+              <View style={{ gap: 10}}>
+                  <Button
+                      title={reportId ? "Saved" : "Save Report"}
+                      onPress={handleSaveReport}
+                      disabled={!!reportId}
+                      color={reportId ? "gray" : undefined}
+                  />
+              </View>)
+          }
 
         {!isHeadless && (
             <View style={{ gap: 10 }}>
-                <Button
-                    title={reportId ? "Saved" : "Save Report"}
-                    onPress={handleSaveReport}
-                    disabled={!!reportId}
-                    color={reportId ? "gray" : undefined}
-                />
-                <Button title="Download PDF" onPress={handleDownloadPdf} />
+                <Button title="Generate PDF" onPress={handleGeneratePdf} />
             </View>
         )}
     </Container>

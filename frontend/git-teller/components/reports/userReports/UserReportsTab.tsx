@@ -31,7 +31,9 @@ export default function UserReportsTab(){
 
             setResult(analysis);
             setReportId(report.id);
-            setProjectName(getRepoName(report.repoUri));
+
+            const projectName = getRepoName(report.repoUri)
+            if(projectName != undefined) setProjectName(projectName);
 
             router.push("/Info");
         } catch (err) {
