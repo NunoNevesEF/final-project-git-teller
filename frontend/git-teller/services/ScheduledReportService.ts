@@ -1,13 +1,13 @@
 import {CreateScheduledReportDTO} from "@/models/scheduledReport/CreateScheduledReportDTO";
-import {apiGetAuthenticated, apiPostAuthenticated} from "@/services/apiClient";
+import authApiClient from "@/services/authApiClient";
 import {GetScheduledReportDTO} from "@/models/scheduledReport/GetScheduledReportDTO";
 
-const SERVICE_PATH = 'private/schedule'
+const SERVICE_PATH = '/api/private/schedule'
 
 export async function createScheduledReport(dto: CreateScheduledReportDTO){
-    return apiPostAuthenticated(`${SERVICE_PATH}/create`, dto);
+    return (await authApiClient.post(`${SERVICE_PATH}/create`, dto)).data;
 }
 
 export async function getUserScheduledReports(): Promise<GetScheduledReportDTO[]>{
-    return apiGetAuthenticated(`${SERVICE_PATH}/get`)
+    return (await authApiClient.get<GetScheduledReportDTO[]>(`${SERVICE_PATH}/get`)).data;
 }

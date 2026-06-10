@@ -19,8 +19,12 @@ export default function UserReportsTab(){
 
     useEffect(() => {
         const load = async () => {
-            const data = await getUserReports();
-            setReports(data);
+            try {
+                const data = await getUserReports();
+                setReports(data);
+            } catch (err) {
+                console.error("Failed to load reports", err);
+            }
         };
         load();
     }, []);

@@ -10,7 +10,7 @@ import java.time.Instant
 @Repository
 interface ScheduledReportRepoJpa : JpaRepository<ScheduledReportEntity<*,*>, Int>{
     fun findByUserId(userId: Int): List<ScheduledReportEntity<*,*>>
-    fun findDue(): List<ScheduledReportEntity<*,*>>
+
 }
 
 class ScheduledReportJpaAdapter(

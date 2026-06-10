@@ -1,24 +1,21 @@
-import {apiGetAuthenticated, apiGetBlob, apiPostAuthenticated, apiPostBlob} from "@/services/apiClient";
+import authApiClient from "@/services/authApiClient";
 import {CreateUserReportDTO, UserReportDTO} from "@/models/UserReportDTO";
 import {GitAnalysis} from "@/models/GitAnalysis";
-import {getTokens} from "@/services/secureStore";
 
-const SERVICE_PATH = "private/report"
+const SERVICE_PATH = "/api/private/report"
 
 export async function createReport(dto: CreateUserReportDTO): Promise<number>{
-    return apiPostAuthenticated(`${SERVICE_PATH}/create`, dto);
+    return (await authApiClient.post<number>(`${SERVICE_PATH}/create`, dto)).data;
 }
 
 export async function getUserReports(): Promise<UserReportDTO[]>{
-    return apiGetAuthenticated(`${SERVICE_PATH}/user-reports`)
+    return (await authApiClient.get<UserReportDTO[]>(`${SERVICE_PATH}/user-reports`)).data;
 }
 
 export async function getReportAnalysis(reportId: number): Promise<GitAnalysis>{
-    return apiGetAuthenticated(`${SERVICE_PATH}/user-reports/${reportId}/analysis`)
+    return (await authApiClient.get<GitAnalysis>(`${SERVICE_PATH}/user-reports/${reportId}/analysis`)).data;
 }
 
 export async function downloadPdf(reportId: number): Promise<Blob>{
-    const { accessToken } = await getTokens()
-
-    return apiGetBlob(`${SERVICE_PATH}/user-reports/${reportId}/download`, accessToken)
+    return (await authApiClient.get<Blob>(`${SERVICE_PATH}/user-reports/${reportId}/download`, { responseType: 'blob' })).data;
 }
