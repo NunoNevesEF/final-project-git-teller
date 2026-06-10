@@ -3,7 +3,7 @@ package pt.isel.repository.memory.account
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Repository
 import pt.isel.entity.User
-import pt.isel.repository.IUserRepository
+import pt.isel.repository.interfaces.account.IUserRepository
 import java.util.concurrent.atomic.AtomicInteger
 
 @Repository

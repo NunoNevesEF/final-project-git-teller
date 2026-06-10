@@ -1,84 +1,42 @@
-import { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
-import { getUserReports, downloadReport } from "@/services/ReportGenerationService";
-import { useTheme } from "@/constants/themeProvider";
+import {useState} from "react";
+import {View} from "react-native";
+import UserReportPageTabs from "@/components/reports/UserReportPageTabs";
+import UserReportsTab from "@/components/reports/userReports/UserReportsTab";
+import CreateScheduledReportButton from "@/components/reports/scheduledReports/CreateScheduledReportButton";
+import ScheduledReportsTab from "@/components/reports/scheduledReports/ScheduledReportsTab";
+import ScheduledReportModal from "@/components/reports/scheduledReports/Modal/CreateScheduledReportModal";
 
-type UserReport = {
-  id: number;
-  createdAt: string;
-};
+export const ReportPageTabs = {
+    REPORTS: 'reports',
+    SCHEDULED: 'scheduled',
+} as const;
 
-const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("pt-PT", {
-    year: "numeric",
-    month: "long",
-    day: "2-digit",
-});
+export type ReportsPageTab = typeof ReportPageTabs[keyof typeof ReportPageTabs];
 
 export default function UserReports() {
-    const { colors } = useTheme()
-    const [reports, setReports] = useState<UserReport[]>([]);
+    const [activeTab, setActiveTab] = useState<ReportsPageTab>(ReportPageTabs.REPORTS);
+    const [showScheduleModal, setShowScheduleModal] = useState(false)
+    const [reloadScheduledReports, setReloadScheduledReports] = useState(0);
 
-    useEffect(() => {
-        const load = async () => {
-        const data = await getUserReports();
-        setReports(data);
-        };
-        load();
-    }, []);
+    return(
+        <View style={{flex: 1}}>
+            <UserReportPageTabs
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+            />
 
-    const handleDownload = async (id: number) => {
-        try {
-            const blob = await downloadReport(id);
+            { activeTab === ReportPageTabs.REPORTS ? <UserReportsTab/> : <ScheduledReportsTab refreshKey={reloadScheduledReports}/>}
 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `report-${id}.pdf`;
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch (e) {
-            console.error("Download failed", e);
-        }
-    };
+            <CreateScheduledReportButton
+                onPress={() => setShowScheduleModal(true)}
+            />
 
-    return (
-        <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
-        <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12, color : colors.text }}>
-            My Reports
-        </Text>
-
-        <FlatList
-            data={reports}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-            <View
-                style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.text,
-                }}>
-                <Text style={{ color: colors.text }}>
-                    {formatDate(item.createdAt)}
-                </Text>
-
-                <Pressable
-                onPress={() => handleDownload(item.id)}
-                style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 12,
-                    backgroundColor: "#2563eb",
-                    borderRadius: 6,
-                }}
-                >
-                <Text style={{ color: "white" }}>Download</Text>
-                </Pressable>
-            </View>
-            )}
-        />
+            <ScheduledReportModal
+                visible={showScheduleModal}
+                onClose={() => setShowScheduleModal(false)}
+                onCreated={() => {setReloadScheduledReports(curr => curr + 1)}} //TODO: REFRESH MODULES
+            />
         </View>
-    );
-    }
+    )
+}
+

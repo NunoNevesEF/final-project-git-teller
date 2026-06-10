@@ -1,104 +1,128 @@
 package pt.isel.service
 
+import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import pt.isel.domain.schedule.CompletedState
-import pt.isel.domain.schedule.Failure
-import pt.isel.domain.schedule.OneTimeScheduledReport
-import pt.isel.domain.schedule.Pending
-import pt.isel.domain.schedule.PeriodicScheduledReport
-import pt.isel.domain.schedule.Running
+import pt.isel.domain.schedule.CompletedJob
+import pt.isel.domain.schedule.PendingJob
+import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.domain.schedule.Success
-import pt.isel.model.CreateOneTimeScheduledReportDTO
-import pt.isel.model.CreatePeriodicScheduledReportDTO
-import pt.isel.model.CreateScheduleReportDTO
-import pt.isel.repository.IScheduledReportJobRepository
-import pt.isel.repository.IScheduledReportRepository
-import pt.isel.utils.CronInput
+import pt.isel.entity.schedule.ScheduledReportEntity
+import pt.isel.model.scheduledReport.CreateScheduleReportDTO
+import pt.isel.model.scheduledReport.GetScheduledReportDTO
+import pt.isel.repository.interfaces.IScheduledReportRepository
+import pt.isel.service.account.UserNotFound
+import pt.isel.service.account.UserService
 import pt.isel.utils.Either
 import pt.isel.utils.failure
+import pt.isel.utils.flatMap
 import pt.isel.utils.success
-import pt.isel.utils.toEither
 
-sealed interface ScheduledReportServiceError
-object ScheduledReportNotFound : ScheduledReportServiceError
-object InvalidScheduleDomainConstructorParameters: ScheduledReportServiceError
-object InvalidJobDomainConstructorParameters: ScheduledReportServiceError
-object InvalidJobState: ScheduledReportServiceError
+
+interface ScheduledReportServiceError: ServiceError
+
+class InvalidScheduledReportDomainArguments(val msg: String) : ScheduledReportServiceError
+
+class ScheduledReportNotFoundException(scheduleId: Int) : Exception("Scheduled report $scheduleId not found")
+class ScheduledReportJobNotFoundException(jobId: Int) : Exception("Job $jobId not found")
 
 @Service
 class ScheduledReportService(
     private val scheduledReportRepo: IScheduledReportRepository,
-    private val scheduledReportJobRepo: IScheduledReportJobRepository
+    private val userService: UserService,
 ) {
-    fun createScheduledReport(dto: CreateScheduleReportDTO): Either<InvalidScheduleDomainConstructorParameters, ScheduledReport> =
-        try{
-            val schedule = when(dto){
-                is CreateOneTimeScheduledReportDTO -> createOneTimeScheduledReport(dto)
-                is CreatePeriodicScheduledReportDTO -> createPeriodicScheduledReport(dto)
+
+    fun createScheduledReport(
+        dto: CreateScheduleReportDTO<*>, userId: Int
+    ): Either<ServiceError, Int> {
+        try {
+            return userService.findById(userId).flatMap { user ->
+                success(scheduledReportRepo.create(dto.toDomain(userId).toEntity(user)).id)
             }
-            success(scheduledReportRepo.create(schedule))
-        } catch(e: IllegalArgumentException){
-            failure(InvalidScheduleDomainConstructorParameters)
-        }
-
-    fun createScheduledReportJob(schedule: ScheduledReport): Either<InvalidJobDomainConstructorParameters, ScheduledReportJob> =
-        try{
-            success(scheduledReportJobRepo.create(schedule.createJob()))
-        } catch(e: IllegalArgumentException){
-            failure(InvalidJobDomainConstructorParameters)
-        }
-
-
-    private fun createOneTimeScheduledReport(dto: CreateOneTimeScheduledReportDTO): OneTimeScheduledReport =
-        OneTimeScheduledReport.create(
-            userId = dto.userId, repoURI = dto.repoURI, nextRun = dto.runAt, dataStart = dto.dataStart
-        )
-
-    private fun createPeriodicScheduledReport(dto: CreatePeriodicScheduledReportDTO): PeriodicScheduledReport =
-        PeriodicScheduledReport.create(
-            userId = dto.userId, repoURI = dto.repoURI,
-            timeZone = dto.timeZone, cronInput = CronInput(dto.time.minute, dto.time.hour, dto.freqMode)
-        )
-
-    fun getAllSchedules(): List<ScheduledReport> = scheduledReportRepo.readAll()
-
-    fun getAllJobs(): List<ScheduledReportJob> = scheduledReportJobRepo.readAll()
-
-    fun getDueSchedules() : List<ScheduledReport>{
-        val test = scheduledReportRepo.readPending()
-        return test
-    }
-
-    fun runJob(pendingJob: ScheduledReportJob): Either<ScheduledReportServiceError, ScheduledReportJob> =
-        when(val state = pendingJob.state){
-            is Pending -> updateScheduledJob(pendingJob.copy(state = state.run()))
-            else -> failure(InvalidJobState)
-        }
-
-    fun endJob(pendingJob: ScheduledReportJob, isSuccess: Boolean, errorMsg: String = ""): Either<ScheduledReportServiceError, ScheduledReportJob> =
-        when(val state = pendingJob.state){
-            is Running -> updateScheduledJob(pendingJob.copy(
-                state = state.end(isSuccess, errorMsg))
-            )
-            else -> failure(InvalidJobState)
-        }
-
-    fun calculateNextReport(endedJob: ScheduledReportJob): Either<ScheduledReportServiceError, ScheduledReport> {
-        when(val state = endedJob.state){
-            is CompletedState -> {
-                val schedule = scheduledReportRepo.findById(endedJob.id) ?: return failure(ScheduledReportNotFound)
-                val updatedSchedule = schedule.completeCurrentExecution(state.startedAt)
-                return updateSchedule(updatedSchedule)
-            }
-            else -> return failure(InvalidJobState)
+        } catch (e: IllegalArgumentException) {
+            return failure(InvalidScheduledReportDomainArguments(e.message ?: ""))
         }
     }
 
-    private fun updateScheduledJob(scheduledReportJob: ScheduledReportJob) =
-        scheduledReportJobRepo.update(scheduledReportJob).toEither{ ScheduledReportNotFound }
+    fun getUserScheduledReports(userId: Int): Either<UserNotFound, List<GetScheduledReportDTO>> {
+        return userService.findById(userId).flatMap{ user ->
+            success(scheduledReportRepo.findByUserId(user.id).map{ it.toDTO() })
+        }
+    }
 
-    private fun updateSchedule(scheduledReport: ScheduledReport) =
-        scheduledReportRepo.update(scheduledReport).toEither{ ScheduledReportNotFound }
+    fun getUserScheduledJobs(userId: Int): Either<UserNotFound, List<List<ScheduledReportJob>>> {
+        return userService.findById(userId).flatMap{ user ->
+            success(scheduledReportRepo.findByUserId(user.id).map{
+                schedule -> schedule.jobs.map{ it.toDomain() }
+            })
+        }
+    }
+
+    @Transactional
+    fun createScheduledReportJob(scheduleId: Int): PendingJob {
+        val schedule = scheduledReportRepo.findById(scheduleId) ?: throw ScheduledReportNotFoundException(scheduleId)
+
+        val pendingJob = schedule.toDomain().createJob() //Note: Check if need to handle illegal argument here. Should not be needed since tested on report but best be safe.
+        schedule.addJob(pendingJob.toEntity())
+
+        scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(scheduleId)
+
+        return pendingJob
+    }
+
+    fun listDueJobs() = scheduledReportRepo.findDue().map { Triple(it.id, it.repoUri, it.user.id) }
+
+    @Transactional
+    fun calculateNextReport(scheduleId: Int): ScheduledReport<*, *> = updateReport(scheduleId) { schedule ->
+        schedule.advanceSchedule()
+    }
+
+    @Transactional
+    fun updateReportLastRun(completedJob: CompletedJob): ScheduledReport<*, *> =
+        updateReport(completedJob.scheduledReportId) { schedule ->
+            schedule.recordExecution(completedJob.startedAt)
+        }
+
+    @Transactional
+    fun cancelReport(scheduleId: Int, errorMsg: String){
+        val schedule = scheduledReportRepo.findById(scheduleId) ?: throw ScheduledReportNotFoundException(scheduleId)
+        schedule.cancel(errorMsg)
+        scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(scheduleId)
+    }
+
+    @Transactional
+    fun runJob(pendingJob: PendingJob): RunningJob = updateJob(pendingJob) { pendingJob.run() }
+
+    @Transactional
+    fun endJob(runningJob: RunningJob, isSuccess: Boolean, errorMsg: String = "", allowRetry: Boolean = true) =
+        updateJob(runningJob) { runningJob.end(isSuccess, errorMsg, allowRetry) }
+
+    private fun updateReport(
+        scheduleId: Int, update: (ScheduledReport<*, *>) -> ScheduledReport<*, *>
+    ): ScheduledReport<*, *> {
+        val schedule = scheduledReportRepo.findById(scheduleId) ?: throw ScheduledReportNotFoundException(scheduleId)
+
+        val updated = update(schedule.toDomain())
+
+        val entity = updated.toEntity(schedule.user).also { it.jobs = schedule.jobs }
+
+        scheduledReportRepo.update(entity) ?: throw ScheduledReportNotFoundException(scheduleId)
+
+        return updated
+    }
+
+    private fun <T : ScheduledReportJob> updateJob(job: ScheduledReportJob, update: (ScheduledReportJob) -> T): T {
+        val schedule = scheduledReportRepo.findById(job.scheduledReportId)
+            ?: throw ScheduledReportNotFoundException(job.scheduledReportId)
+
+        val updated = update(job)
+
+        schedule.updateJob(job.id) {
+            it.updateState(updated.getStateEmbeddable())
+        } ?: throw ScheduledReportJobNotFoundException(job.scheduledReportId)
+
+        scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(job.scheduledReportId)
+
+        return updated
+    }
 }

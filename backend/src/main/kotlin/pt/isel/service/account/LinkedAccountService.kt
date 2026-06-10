@@ -8,13 +8,14 @@ import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
-import pt.isel.repository.ILinkedAccountRepository
+import pt.isel.repository.interfaces.account.ILinkedAccountRepository
+import pt.isel.service.ServiceError
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
 import pt.isel.utils.toEither
 
-sealed class LinkedAccountServiceError : AccountServiceError()
+sealed class LinkedAccountServiceError : ServiceError
 object PasswordEncodingError : LinkedAccountServiceError()
 object AccountTypeMaxedError : LinkedAccountServiceError()
 object AccountNotFoundError : LinkedAccountServiceError()

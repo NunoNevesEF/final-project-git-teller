@@ -1,13 +1,13 @@
 import React from "react";
 import { Platform, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
-import { CommitDTO } from "@/models/CommitDTO";
+import { CommitAnalysis } from "@/models/CommitAnalysis";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 import ChartLegend from "./ChartLegend";
 
-export default function CommitsPieChart({ data }: { data: Record<string, CommitDTO[]> }) {
+export default function CommitsPieChart({ data }: { data: Record<string, CommitAnalysis[]> }) {
   const { colors } = useTheme()
   const isMobile = Platform.OS !== "web" 
   const { A4_WIDTH } = REPORT_LAYOUT;

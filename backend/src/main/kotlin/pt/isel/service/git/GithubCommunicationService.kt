@@ -9,7 +9,7 @@ import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
 import pt.isel.domain.account.AccountType
 import pt.isel.domain.account.OAuthLinkedAccount
-import pt.isel.repository.ILinkedAccountRepository
+import pt.isel.repository.interfaces.account.ILinkedAccountRepository
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success

@@ -7,7 +7,7 @@ import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.treewalk.EmptyTreeIterator
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import pt.isel.domain.GitCommunication
+import pt.isel.domain.report.GitCommunication
 import pt.isel.model.AnalysisMode
 import pt.isel.service.llmanalysis.util.AnalysisLimits
 import java.io.ByteArrayOutputStream

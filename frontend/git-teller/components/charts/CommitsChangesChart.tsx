@@ -1,11 +1,11 @@
 import React from "react";
 import { ScrollView, View , Text} from "react-native";
 import { StackedBarChart } from "react-native-chart-kit";
-import { CommitDTO } from "@/models/CommitDTO";
+import { CommitAnalysis } from "@/models/CommitAnalysis";
 import { useTheme } from "@/constants/themeProvider";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 
-export default function CommitsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
+export default function CommitsChangesChart({ data }: { data: Record<string, CommitAnalysis[]> }) {
   const { colors } = useTheme()
   const { A4_WIDTH } = REPORT_LAYOUT;
   const users = Object.keys(data);

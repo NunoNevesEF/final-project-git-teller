@@ -6,7 +6,7 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
-import pt.isel.domain.GitCommunication
+import pt.isel.domain.report.GitCommunication
 import java.time.Instant
 
 @Service

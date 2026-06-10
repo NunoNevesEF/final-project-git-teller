@@ -1,5 +1,6 @@
 package pt.isel.security.filterChain
 
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -29,7 +30,7 @@ class AuthorizationSecurityConfig(
             .securityMatcher("/api/**")
             .authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers("/api/**").permitAll()   //   TODO: Remove this line when all endpoints are protected
+                    //.requestMatchers("/api/**").permitAll()   //   TODO: Remove this line when all endpoints are protected
                     .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
@@ -38,6 +39,11 @@ class AuthorizationSecurityConfig(
                 sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .exceptionHandling {
+                it.authenticationEntryPoint { _, response, _ ->
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                }
+            }
         return http.build()
     }
 

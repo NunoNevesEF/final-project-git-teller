@@ -3,6 +3,7 @@ package pt.isel.service.account
 import org.springframework.stereotype.Service
 import pt.isel.domain.account.AccountType
 import pt.isel.entity.User
+import pt.isel.service.ServiceError
 import pt.isel.utils.Either
 import pt.isel.utils.flatMap
 import pt.isel.utils.isSuccess
@@ -10,23 +11,21 @@ import pt.isel.utils.map
 import pt.isel.utils.rightOrNull
 import pt.isel.utils.success
 
-sealed class AccountServiceError
+sealed interface SignUpResult {
+    val user: User
+}
 
-sealed interface SignUpResult{ val user: User }
-data class CreatedNewAccount(override val user: User): SignUpResult
-data class LinkedNewProvider(override val user: User): SignUpResult
-data class LoggedIntoAccount(override val user: User): SignUpResult
+data class CreatedNewAccount(override val user: User) : SignUpResult
+data class LinkedNewProvider(override val user: User) : SignUpResult
+data class LoggedIntoAccount(override val user: User) : SignUpResult
 
 @Service
 class AccountService(
-    private val userService: UserService,
-    private val linkedAccountService: LinkedAccountService
+    private val userService: UserService, private val linkedAccountService: LinkedAccountService
 ) {
     fun formSignUp(
-        email: String,
-        userName: String?,
-        password: String
-    ): Either<AccountServiceError, SignUpResult> {
+        email: String, userName: String?, password: String
+    ): Either<ServiceError, SignUpResult> {
 
         val existing = userService.findByEmail(email)
 
@@ -39,12 +38,10 @@ class AccountService(
             if (account != null) {
                 success(LoggedIntoAccount(user))
             } else {
-                linkedAccountService.createFormAccount(user.id, password)
-                    .map { LinkedNewProvider(user) }
+                linkedAccountService.createFormAccount(user.id, password).map { LinkedNewProvider(user) }
             }
         } else {
-            userService.create(email, userName)
-                .flatMap { createdUser ->
+            userService.create(email, userName).flatMap { createdUser ->
                     linkedAccountService.createFormAccount(createdUser.id, password)
                         .map { CreatedNewAccount(createdUser) }
                 }
@@ -52,10 +49,8 @@ class AccountService(
     }
 
     fun oAuthSignUp(
-        email: String,
-        provider: String,
-        providerId: String
-    ): Either<AccountServiceError, SignUpResult> {
+        email: String, provider: String, providerId: String
+    ): Either<ServiceError, SignUpResult> {
         val existing = userService.findByEmail(email)
         return if (existing.isSuccess()) {
 
@@ -65,13 +60,11 @@ class AccountService(
             if (account != null) {
                 success(LoggedIntoAccount(user))
             } else {
-                linkedAccountService.createOAuthAccount(user.id, provider, providerId)
-                    .map { LinkedNewProvider(user) }
+                linkedAccountService.createOAuthAccount(user.id, provider, providerId).map { LinkedNewProvider(user) }
             }
 
         } else {
-            userService.create(email)
-                .flatMap { createdUser ->
+            userService.create(email).flatMap { createdUser ->
                     linkedAccountService.createOAuthAccount(createdUser.id, provider, providerId)
                         .map { CreatedNewAccount(createdUser) }
                 }
@@ -80,11 +73,10 @@ class AccountService(
 
     fun oAuthAccountLink(
         userId: Int, provider: String, providerId: String
-    ): Either<AccountServiceError, LinkedNewProvider> {
+    ): Either<ServiceError, LinkedNewProvider> {
         val userEither = userService.findById(userId)
-        return userEither.flatMap{ user ->
-            linkedAccountService.createOAuthAccount(user.id, provider, providerId)
-                .map{ LinkedNewProvider(user) }
+        return userEither.flatMap { user ->
+            linkedAccountService.createOAuthAccount(user.id, provider, providerId).map { LinkedNewProvider(user) }
         }
     }
 }

@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Text, ScrollView } from "react-native";
 import { ContributionGraph } from "react-native-chart-kit";
-import { CommitDTO } from "@/models/CommitDTO";
+import { CommitAnalysis } from "@/models/CommitAnalysis";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 import { useTheme } from "@/constants/themeProvider";
 
-export default function HeatMapCommits({data,}: {data: Record<string, CommitDTO[]>;}) {
+export default function HeatMapCommits({data,}: {data: Record<string, CommitAnalysis[]>;}) {
   const { colors } = useTheme();
   const { A4_WIDTH } = REPORT_LAYOUT;
   const [selectedDay, setSelectedDay] = React.useState<{

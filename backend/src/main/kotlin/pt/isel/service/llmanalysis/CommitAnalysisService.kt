@@ -7,9 +7,11 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
 import pt.isel.domain.*
+import pt.isel.domain.report.GitCommunication
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
 import pt.isel.model.PromptComplexityLevel
+import pt.isel.model.report.GitAnalysis
 import pt.isel.service.OpenRouterLlmService
 import pt.isel.service.llmanalysis.prompt.PromptBuilderService
 import pt.isel.service.llmanalysis.util.*

@@ -9,7 +9,7 @@ sealed class Either<out L, out R>{
 }
 
 fun <R> success(value: R) = Right(value)
-fun <L> failure(error: L) = Left<L>(error)
+fun <L> failure(error: L) = Left(error)
 fun <L,R> R?.toEither(left: () -> L): Either<L, R> =
     this?.let { success(it) } ?: failure(left())
 
@@ -30,6 +30,7 @@ fun <L, R, T> Either<L, R>.map(f: (R) -> T): Either<L, T> =
         is Left -> this
         is Right -> success(f(this.right))
     }
+
 
 fun <L, R> Either<L, R>.getOrThrow(mapError: (L) -> Throwable): R =
     when (this) {

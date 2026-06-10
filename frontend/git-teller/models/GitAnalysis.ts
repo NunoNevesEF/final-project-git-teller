@@ -1,11 +1,11 @@
-import { CommitDTO } from "./CommitDTO";
+import { CommitAnalysis } from "./CommitAnalysis";
 import { ModifiedFile } from "./ModifiedFile";
 import { SearchInfo } from "./SearchInfo";
 
 export interface GitAnalysis {
   searchInfo: SearchInfo;
-  commitsByUser: Record<string, CommitDTO[]>;
-  commitsByBranch: Record<string, CommitDTO[]>;
+  commitsByUser: Record<string, CommitAnalysis[]>;
+  commitsByBranch: Record<string, CommitAnalysis[]>;
   mostModifiedFiles: ModifiedFile[];
   firstCommitTime: string;
   lastCommitTime: string;

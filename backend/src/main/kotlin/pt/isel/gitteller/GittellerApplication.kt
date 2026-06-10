@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     exclude = [SecurityAutoConfiguration::class]
 )
 @EnableScheduling
-@EnableJpaRepositories(basePackages = ["pt.isel.repository.jpa"])
+//@EnableJpaRepositories(basePackages = ["pt.isel.repository.jpa"])
 @EntityScan(basePackages = ["pt.isel.entity"])
 class GitTellerApplication
 
