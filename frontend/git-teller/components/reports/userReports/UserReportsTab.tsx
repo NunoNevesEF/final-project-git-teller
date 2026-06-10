@@ -55,7 +55,7 @@ export default function UserReportsTab(){
     };
 
     return (
-        <View style={{ flex: 1, padding: 16 }}>
+        <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
             <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12, color : colors.text }}>
                 My Reports
             </Text>

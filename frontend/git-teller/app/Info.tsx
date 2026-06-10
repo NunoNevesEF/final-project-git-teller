@@ -224,19 +224,19 @@ export default function Info() {
                   title="Percentage of lines added by user"
                   description={chartDescriptions.percentageLinesAdded}
                 >
-                  <View collapsable={false} style={{ maxHeight: 280 }}>
+                  <View collapsable={false} style={{ maxHeight: 400 }}>
                     <AdditionsChangesChart data={result.commitsByUser} />
                   </View>
                 </ChartCard>
               </View>
               <View style={{
-          ...(isHeadless || isMobile ? { marginBottom : 20} : { flex: 1 }),
+          ...(isHeadless ? { marginBottom : 20} : { flex: 1 }),
         }}>
           <ChartCard
             title="Percentage of lines removed by user"
             description={chartDescriptions.percentageLinesRemoved}
           >
-            <View collapsable={false} style={{ maxHeight: 280 }}>
+            <View collapsable={false} style={{ maxHeight: 400 }}>
               <DeletionsChangesChart data={result.commitsByUser} />
             </View>
           </ChartCard>

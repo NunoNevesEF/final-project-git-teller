@@ -72,3 +72,17 @@ export async function clearTokens() {
     await deleteItem(REFRESH_TOKEN_KEY);
     await deleteItem(TOKEN_EXPIRES_AT_KEY);
 }
+
+const USERNAME_KEY = 'username';
+
+export async function saveUsername(username: string) {
+    await setItem(USERNAME_KEY, username);
+}
+
+export async function getUsername(): Promise<string | null> {
+    return getItem(USERNAME_KEY);
+}
+
+export async function clearUsername() {
+    await deleteItem(USERNAME_KEY);
+}

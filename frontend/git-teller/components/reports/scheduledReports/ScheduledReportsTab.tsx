@@ -24,7 +24,7 @@ export default function ScheduledReportsTab({refreshKey}: Props){
     }, [refreshKey]);
 
     return (
-        <View style={{ flex: 1, padding: 16 }}>
+        <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
             <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12, color : colors.text }}>
                 Scheduled Reports
             </Text>
