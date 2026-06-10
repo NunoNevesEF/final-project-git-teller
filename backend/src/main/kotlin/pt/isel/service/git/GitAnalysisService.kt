@@ -15,11 +15,11 @@ import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
 
-sealed class GitOutcome(): ServiceError{ abstract fun toStatus(): Int }
+sealed class GitAnalysisServiceError(): ServiceError{ abstract fun toStatus(): Int }
 
-object FailureRetry : GitOutcome() { override fun toStatus() = 504 }
+object FailureRetry : GitAnalysisServiceError() { override fun toStatus() = 504 }
 
-class FailureDoNotRetry(val err: GitErrors) : GitOutcome() {
+class FailureDoNotRetry(val err: GitErrors) : GitAnalysisServiceError() {
     override fun toStatus() = when(err){
         GitErrors.INVALID_REPO_URI -> 400
         GitErrors.REPO_NOT_FOUND -> 400
@@ -39,7 +39,7 @@ enum class GitErrors {
 class GitAnalysisService(
     private val llmAnalysisService: CommitAnalysisService  // Add this dependency
 ) {
-    fun createAnalysis(repoUri: String): Either<GitOutcome, GitAnalysis> {
+    fun createAnalysis(repoUri: String): Either<GitAnalysisServiceError, GitAnalysis> {
         try {
             val gitCommunication = GitCommunication.create(repoUri)
             return success(GitAnalysis.create(gitCommunication))
@@ -53,7 +53,7 @@ class GitAnalysisService(
         flag: Boolean,
         byShas: CommitShasAnalysisRequest?,
         byDateRange: CommitDateRangeAnalysisRequest?,
-    ): Either<GitOutcome, GitAnalysis> {
+    ): Either<GitAnalysisServiceError, GitAnalysis> {
 
         if (flag && byShas == null && byDateRange == null) {
             return try {
@@ -93,7 +93,7 @@ class GitAnalysisService(
             else -> failure(FailureDoNotRetry(GitErrors.UNKNOWN_ERROR))
         }
 
-    private fun handleTransport(e: TransportException): GitOutcome {
+    private fun handleTransport(e: TransportException): GitAnalysisServiceError {
         val msg = e.message.orEmpty()
         return when {
             rootCause(e) is NoRemoteRepositoryException -> FailureDoNotRetry(GitErrors.REPO_NOT_FOUND)

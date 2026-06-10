@@ -8,14 +8,14 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.entity.schedule.ScheduledReportEntity
-import pt.isel.model.CreateScheduleReportDTO
+import pt.isel.model.scheduledReport.CreateScheduleReportDTO
+import pt.isel.model.scheduledReport.GetScheduledReportDTO
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.ScheduledReportService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
+import java.net.URI
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
@@ -24,20 +24,20 @@ class ScheduledReportController(
     private val scheduledReportService: ScheduledReportService,
 ) {
     @PostMapping("/create")
-    fun createSchedule(
+    fun createScheduledReport(
         @AuthenticationPrincipal principal: UserPrincipal,
         @RequestBody dto: CreateScheduleReportDTO<*>
-    ): ResponseEntity<ScheduledReport<*,*>> {
-        return when(val scheduledReport = scheduledReportService.createScheduledReport(dto, principal.getUserId())){
-            is Success -> ResponseEntity.ok(scheduledReport.right)
+    ): ResponseEntity<Int> {
+        return when(val id = scheduledReportService.createScheduledReport(dto, principal.getUserId())){
+            is Success -> ResponseEntity.created(URI("/api/private/schedule/get/${id.right}")).body(id.right)
             is Failure -> ResponseEntity.badRequest().build()
         }
     }
 
     @GetMapping("/get")
-    fun getSchedules(
+    fun getUserScheduledReports(
         @AuthenticationPrincipal principal: UserPrincipal
-    ): ResponseEntity<List<ScheduledReport<*, out ScheduledReportEntity<*, *>>>> {
+    ): ResponseEntity<List<GetScheduledReportDTO>> {
         return when(val scheduledReports = scheduledReportService.getUserScheduledReports(principal.getUserId())){
             is Success -> ResponseEntity.ok(scheduledReports.right)
             is Failure -> ResponseEntity.badRequest().build()
@@ -45,7 +45,7 @@ class ScheduledReportController(
     }
 
     @GetMapping("/get-job")
-    fun getJobs(
+    fun getUserJobs(
         @AuthenticationPrincipal principal: UserPrincipal
     ): ResponseEntity<List<List<ScheduledReportJob>>> {
         return when(val scheduledReports = scheduledReportService.getUserScheduledJobs(principal.getUserId())){

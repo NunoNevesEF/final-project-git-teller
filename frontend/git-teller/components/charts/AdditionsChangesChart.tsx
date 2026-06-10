@@ -1,12 +1,12 @@
 import React from "react";
 import { ScrollView, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
-import { CommitDTO } from "@/models/CommitDTO";
+import { CommitAnalysis } from "@/models/CommitAnalysis";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 
-export default function AdditionsChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
+export default function AdditionsChangesChart({ data }: { data: Record<string, CommitAnalysis[]> }) {
   const { colors } = useTheme()
   const { A4_WIDTH } = REPORT_LAYOUT;
   const totalAdditions = Object.values(data).flat().reduce((sum, commit) => sum + commit.additions, 0);

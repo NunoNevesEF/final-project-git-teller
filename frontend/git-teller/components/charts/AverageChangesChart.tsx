@@ -1,13 +1,13 @@
 import React from "react";
 import { ScrollView, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-import { CommitDTO } from "@/models/CommitDTO";
+import { CommitAnalysis } from "@/models/CommitAnalysis";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 import ChartLegend from "./ChartLegend";
 
-export default function AverageChangesChart({ data }: { data: Record<string, CommitDTO[]> }) {
+export default function AverageChangesChart({ data }: { data: Record<string, CommitAnalysis[]> }) {
   const { colors } = useTheme()
   const { A4_WIDTH } = REPORT_LAYOUT;
   const users = Object.keys(data);

@@ -22,6 +22,9 @@ import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.entity.IsEntity
 import pt.isel.entity.User
+import pt.isel.model.scheduledReport.GetOneTimeScheduledReportDTO
+import pt.isel.model.scheduledReport.GetPeriodicScheduledReportDTO
+import pt.isel.model.scheduledReport.GetScheduledReportDTO
 import java.time.Instant
 
 @Entity
@@ -52,6 +55,8 @@ abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>,
     var jobs: MutableList<ScheduledReportJobEntity> = mutableListOf()
 
     abstract fun toDomain(): DOMAIN
+
+    abstract fun toDTO(): GetScheduledReportDTO
 
     fun addJob(job: ScheduledReportJobEntity) {
         job.scheduledReport = this
@@ -92,6 +97,17 @@ class OneTimeScheduledReportEntity(
         id, user.id, repoUri, nextRunAt, lastRunAt, dataFrom
     )
 
+    override fun toDTO(): GetScheduledReportDTO =
+        GetOneTimeScheduledReportDTO(
+            id = id,
+            repoUri = repoUri,
+            nextRunAt = nextRunAt,
+            lastRunAt = lastRunAt,
+            dataFrom = dataFrom,
+            isCancelled = isCancelled,
+            cancellationReason = cancellationReason
+        )
+
     override fun isActive(): Boolean = nextRunAt != null && !isCancelled
 }
 
@@ -111,6 +127,19 @@ class PeriodicScheduledReportEntity(
     override fun toDomain() = PeriodicScheduledReport(
         id, user.id, repoUri, nextRunAt!!, lastRunAt, dataFrom, active, timeZone, cronExpression,
     )
+
+    override fun toDTO(): GetScheduledReportDTO =
+        GetPeriodicScheduledReportDTO(
+            id = id,
+            repoUri = repoUri,
+            nextRunAt = nextRunAt,
+            lastRunAt = lastRunAt,
+            dataFrom = dataFrom,
+            isCancelled = isCancelled,
+            cancellationReason = cancellationReason,
+            active = active,
+            timeZone = timeZone
+        )
 
     override fun isActive(): Boolean = active && !isCancelled
 }

@@ -1,5 +1,6 @@
-import { createReport } from '@/services/ReportGenerationService';
-import { useAnalysisStore } from '@/store/useAnalysisStore';
+import { generatePdf } from '@/services/PdfGenerationService';
+import { createReport, downloadPdf} from "@/services/UserReportService";
+import { useAnalysisInfoStore } from '@/store/useAnalysisInfoStore';
 import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
 import CommitsChart from "@/components/charts/commitsChart";
 import * as FileSystem from 'expo-file-system/legacy';
@@ -21,13 +22,21 @@ import { useEffect, useState } from 'react';
 import '@/constants/stylesPrint.css';
 import HeatMapCommits from '@/components/charts/HeatMapCommits';
 import LoadingComponent from '@/components/LoadingComponent';
+import {CreateUserReportDTO} from "@/models/UserReportDTO";
 
 export default function Info() {
   const router = useRouter();
   const { colors } = useTheme()
   const { isAuthenticated } = useAuth();
-  const result = useAnalysisStore((state) => state.result);
-  const setResult = useAnalysisStore((s) => s.setResult);
+
+  const result = useAnalysisInfoStore((state) => state.result);
+  const setResult = useAnalysisInfoStore((s) => s.setResult);
+
+  const projectName = useAnalysisInfoStore((state) => state.projectName);
+
+  const reportId = useAnalysisInfoStore((state) => state.reportId);
+  const setReportId = useAnalysisInfoStore((s) => s.setReportId);
+
   const [isHeadless, setIsHeadless] = useState(false);  // Formatação headless
   const Container = isHeadless ? View : ScrollView;   // Formatação headless
   const isMobile = Platform.OS !== "web"              // Formatação mobile
@@ -64,10 +73,27 @@ export default function Info() {
       day: "2-digit",
   });
 
-  const handleGenerate = async () => {
+  const handleSaveReport = async() => {
+      try{
+          setLoadingFile(true);
+
+          const dto: CreateUserReportDTO = { gitAnalysis: result, repoUri: projectName };
+
+          const id = await createReport(dto);
+
+          setReportId(id);
+      } catch(err){
+          console.error("Error saving report", err);
+      } finally{
+          setLoadingFile(false);
+      }
+  };
+
+  const handleDownloadPdf = async () => {
     try {
       setLoadingFile(true);
-      const blob = await createReport(result);
+      const blob = reportId ? await downloadPdf(reportId) : generatePdf(result);
+
       if (Platform.OS === 'web') {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -78,13 +104,17 @@ export default function Info() {
 
       } else {
         const fileUri = FileSystem.documentDirectory + 'report.pdf';
+
         const reader = new FileReader();
+
         reader.onload = async () => {
           const base64Pdf = reader.result?.toString().split(',')[1];
           if (!base64Pdf) return;
+
           await FileSystem.writeAsStringAsync(fileUri, base64Pdf, {
             encoding: FileSystem.EncodingType.Base64,
           });
+
           await Sharing.shareAsync(fileUri);
         };
 
@@ -127,7 +157,7 @@ export default function Info() {
                 value2={result.searchInfo.repositoryOwner ?? ""}
               />
             </View>
-          </ChartCard> 
+          </ChartCard>
         </View>
         <View style={{ flex: 1 }}>
           <ChartCard title="Source Repository" description="" showToolTip={false} icon="cloud-outline">
@@ -140,7 +170,7 @@ export default function Info() {
                 value2={result.searchInfo.repositoryUrl ?? ""}
               />
             </View>
-          </ChartCard> 
+          </ChartCard>
         </View>
         <View style={{ flex: 1 }}>
           <ChartCard title="Project Time Span" description="" showToolTip={false} icon="time-outline">
@@ -153,7 +183,7 @@ export default function Info() {
                 value2={formatDate(result.lastCommitTime)}
               />
             </View>
-          </ChartCard> 
+          </ChartCard>
         </View>
       </View>
       <View collapsable={false}>
@@ -167,14 +197,14 @@ export default function Info() {
         </ChartCard>
       </View>
       <View collapsable={false}>
-        <ChartCard title="Total commits by user" description={chartDescriptions.commitsByUser}> 
+        <ChartCard title="Total commits by user" description={chartDescriptions.commitsByUser}>
           <CommitsBarChart data={result.commitsByUser} />
         </ChartCard>
       </View>
       <View collapsable={false}>
         <ChartCard title="Percentage of commits by user" description={chartDescriptions.commitsPercentage}>
           <CommitsPieChart data={result.commitsByUser} />
-        </ChartCard>    
+        </ChartCard>
       </View>
       <View collapsable={false}>
         <ChartCard title="Total lines added and removed by user" description={chartDescriptions.linesAddedRemoved}>
@@ -213,14 +243,14 @@ export default function Info() {
         </View>
       </View>
           <View collapsable={false}>
-          <ChartCard title="Average changed lines per commit by user" description={chartDescriptions.averageChanges}>   
+          <ChartCard title="Average changed lines per commit by user" description={chartDescriptions.averageChanges}>
             <AverageChangesChart data={result.commitsByUser} />
-          </ChartCard>    
+          </ChartCard>
         </View>
       <View collapsable={false}>
           <ChartCard title="Most modified files" description={chartDescriptions.mostModifiedFiles}>
             <MostModifiedFiles data={result.mostModifiedFiles} />
-          </ChartCard>    
+          </ChartCard>
       </View>
 
         {result.llmAnalysis && result.llmAnalysis.trim() !== '' && (
@@ -235,7 +265,15 @@ export default function Info() {
 
 
         {!isHeadless && (
-            <Button title="Generate Report" onPress={handleGenerate} />
+            <View style={{ gap: 10 }}>
+                <Button
+                    title={reportId ? "Saved" : "Save Report"}
+                    onPress={handleSaveReport}
+                    disabled={!!reportId}
+                    color={reportId ? "gray" : undefined}
+                />
+                <Button title="Download PDF" onPress={handleDownloadPdf} />
+            </View>
         )}
     </Container>
     <LoadingComponent visible={loadingFile} />

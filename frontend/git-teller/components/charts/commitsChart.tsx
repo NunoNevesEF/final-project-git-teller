@@ -1,16 +1,16 @@
 import React from "react";
 import { ScrollView, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
-import { CommitDTO } from "@/models/CommitDTO";
+import { CommitAnalysis } from "@/models/CommitAnalysis";
 import { generateColor } from "@/constants/theme";
 import { useTheme } from "@/constants/themeProvider";
 import { REPORT_LAYOUT } from "@/constants/chartDescriptions"
 import ChartLegend from "./ChartLegend";
 
-export default function CommitsChart({ data }: { data: Record<string, CommitDTO[]> }) {
+export default function CommitsChart({ data }: { data: Record<string, CommitAnalysis[]> }) {
   const { colors } = useTheme()
   const { A4_WIDTH } = REPORT_LAYOUT;
-  const groupByDayCumulative = (commits: CommitDTO[], labels: string[]) => {
+  const groupByDayCumulative = (commits: CommitAnalysis[], labels: string[]) => {
     const map: Record<string, number> = {};
     let cumulative = 0;
 

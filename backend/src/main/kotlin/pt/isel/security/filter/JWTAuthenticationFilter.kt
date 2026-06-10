@@ -48,7 +48,6 @@ class JWTAuthenticationFilter(
             }
 
         } catch (ex: Exception) {
-            println(ex.message)
             SecurityContextHolder.clearContext()
         }
 

@@ -5,7 +5,7 @@ import {useAuth} from '@/store/AuthProvider';
 import GithubReposList from '@/components/GithubReposList';
 import {getMyGithubRepos, RepositorySummary} from '@/services/GithubService';
 import {analyzeRepo, ByShasRequest, ByDateRangeRequest} from '@/services/GitCommunicationService';
-import {useAnalysisStore} from '@/store/useAnalysisStore';
+import {useAnalysisInfoStore} from '@/store/useAnalysisInfoStore';
 import {commonStyles} from '@/constants/commonStyles';
 import LlmAnalysisSettings, {
     LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType,
@@ -14,8 +14,9 @@ import LlmAnalysisSettings, {
 export default function GithubReposPage() {
     const {isAuthenticated, loading} = useAuth();
     const router = useRouter();
-    const setResult = useAnalysisStore((state) => state.setResult);
-
+    const setResult = useAnalysisInfoStore((state) => state.setResult);
+    const setProjectName = useAnalysisInfoStore((state) => state.setProjectName);
+    const setReportId = useAnalysisInfoStore((state) => state.setReportId)
 
     const [repos, setRepos] = useState<RepositorySummary[] | null>(null);
     const [reposLoading, setReposLoading] = useState(true);
@@ -32,6 +33,9 @@ export default function GithubReposPage() {
     const [promptComplexity, setPromptComplexity] = useState<PromptComplexity>('SIMPLE');
     const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('DIFF');
     const [requestedAnalyses, setRequestedAnalyses] = useState<AnalysisType[]>(['DEFAULT']);
+
+    const getProjectName = (url: string) =>
+        url.split("/").filter(Boolean).pop() ?? "";
 
     useEffect(() => {
         loadRepos();
@@ -67,7 +71,8 @@ export default function GithubReposPage() {
             const result = await analyzeRepo(repo.htmlUrl, llmAnalysisEnabled, byShas, byDateRange);
 
             setResult(result);
-
+            setProjectName(getProjectName(repo.htmlUrl));
+            setReportId(null)
 
 
             router.push('/Info');

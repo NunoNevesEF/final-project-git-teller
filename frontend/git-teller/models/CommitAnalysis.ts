@@ -1,4 +1,4 @@
-export interface CommitDTO {
+export interface CommitAnalysis {
   id: string;
   name: string;
   author: string;

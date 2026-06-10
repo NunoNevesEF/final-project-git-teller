@@ -1,18 +1,16 @@
 package pt.isel.service
 
 import jakarta.transaction.Transactional
-import org.hibernate.action.internal.BulkOperationCleanupAction.schedule
 import org.springframework.stereotype.Service
 import pt.isel.domain.schedule.CompletedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.entity.User
 import pt.isel.entity.schedule.ScheduledReportEntity
-import pt.isel.model.CreateScheduleReportDTO
+import pt.isel.model.scheduledReport.CreateScheduleReportDTO
+import pt.isel.model.scheduledReport.GetScheduledReportDTO
 import pt.isel.repository.interfaces.IScheduledReportRepository
-import pt.isel.repository.interfaces.account.IUserRepository
 import pt.isel.service.account.UserNotFound
 import pt.isel.service.account.UserService
 import pt.isel.utils.Either
@@ -36,19 +34,19 @@ class ScheduledReportService(
 
     fun createScheduledReport(
         dto: CreateScheduleReportDTO<*>, userId: Int
-    ): Either<ServiceError, ScheduledReport<*, out ScheduledReportEntity<*, *>>> {
+    ): Either<ServiceError, Int> {
         try {
             return userService.findById(userId).flatMap { user ->
-                success(scheduledReportRepo.create(dto.toDomain(userId).toEntity(user)).toDomain())
+                success(scheduledReportRepo.create(dto.toDomain(userId).toEntity(user)).id)
             }
         } catch (e: IllegalArgumentException) {
             return failure(InvalidScheduledReportDomainArguments(e.message ?: ""))
         }
     }
 
-    fun getUserScheduledReports(userId: Int): Either<UserNotFound, List<ScheduledReport<*, out ScheduledReportEntity<*, *>>>> {
+    fun getUserScheduledReports(userId: Int): Either<UserNotFound, List<GetScheduledReportDTO>> {
         return userService.findById(userId).flatMap{ user ->
-            success(scheduledReportRepo.findByUserId(user.id).map{ it.toDomain() })
+            success(scheduledReportRepo.findByUserId(user.id).map{ it.toDTO() })
         }
     }
 

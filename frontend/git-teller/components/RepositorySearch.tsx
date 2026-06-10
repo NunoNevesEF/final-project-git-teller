@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import RepositorySearchForm, { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType } from '@/components/RepositorySearchForm';
 import { analyzeRepo } from '@/services/GitCommunicationService';
-import { useAnalysisStore } from '@/store/useAnalysisStore';
+import { useAnalysisInfoStore } from '@/store/useAnalysisInfoStore';
 import LoadingComponent from './LoadingComponent';
 
 
 export default function RepositorySearch() {
   const router = useRouter();
-  const setResult = useAnalysisStore((state) => state.setResult);
+  const setResult = useAnalysisInfoStore((state) => state.setResult);
+  const setProjectNameStore = useAnalysisInfoStore((s) => s.setProjectName);
+  const setReportId = useAnalysisInfoStore((state) => state.setReportId);
 
   const [searchType, setSearchType] = useState<'url' | 'project'>('url');
   const [platform, setPlatform] = useState<'github' | 'gitlab'>('github');
@@ -67,6 +69,8 @@ export default function RepositorySearch() {
 
 
         setResult(result);
+        setProjectNameStore(projectName);
+        setReportId(null);
         /*
             setInput({
       repositoryUrl: url,

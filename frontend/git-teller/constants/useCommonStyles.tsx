@@ -150,6 +150,12 @@ export const useCommonStyles  = () => {
       width: "100%",
       justifyContent: "center",
     },
+    pickerGrid:{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: "center"
+    },
     inputSection: {
       borderColor: c.icon,
       width: "100%",

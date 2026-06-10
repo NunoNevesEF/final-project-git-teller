@@ -18,7 +18,7 @@ import pt.isel.entity.User
 import pt.isel.entity.schedule.OneTimeScheduledReportEntity
 import pt.isel.entity.schedule.PeriodicScheduledReportEntity
 import pt.isel.entity.schedule.ScheduledReportJobEntity
-import pt.isel.model.CreateOneTimeScheduledReportDTO
+import pt.isel.model.scheduledReport.CreateOneTimeScheduledReportDTO
 import pt.isel.repository.interfaces.IScheduledReportRepository
 import pt.isel.service.InvalidScheduledReportDomainArguments
 import pt.isel.service.ScheduledReportNotFoundException
@@ -86,7 +86,7 @@ class ScheduledReportServiceTest(){
         val result = service.createScheduledReport(createScheduledReportDto, validUserId)
 
         assertTrue(result.isSuccess())
-        assertEquals(mockScheduledReport, result.rightOrNull())
+        assertEquals(mockScheduledReport.id, result.rightOrNull())
     }
 
     @Test
