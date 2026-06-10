@@ -4,7 +4,7 @@ import { create } from "zustand";
 interface AnalysisInfoState {
     result: GitAnalysis | null;
     reportId: number | null;
-    projectName: string | null;
+    projectName: string;
 
     setResult: (result: GitAnalysis) => void;
     setReportId: (id: number | null) => void;
@@ -16,7 +16,7 @@ interface AnalysisInfoState {
 export const useAnalysisInfoStore = create<AnalysisInfoState>((set) => ({
     result: null,
     reportId: null,
-    projectName: null,
+    projectName: '',
 
     setResult: (result) => set({ result }),
 
@@ -28,6 +28,6 @@ export const useAnalysisInfoStore = create<AnalysisInfoState>((set) => ({
         set({
             result: null,
             reportId: null,
-            projectName: null,
+            projectName: '',
         }),
 }));
