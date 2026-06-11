@@ -2,6 +2,7 @@ import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 
 export default function LoadingComponent({ visible }: { visible: boolean }) {
   if (!visible) return null;
+  console.log("loading component called");
 
   return (
     <View style={styles.overlay}>
@@ -18,6 +19,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 9999,
+    elevation: 9999, 
   },
   blur: {
     ...StyleSheet.absoluteFillObject,

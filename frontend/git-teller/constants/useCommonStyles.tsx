@@ -94,7 +94,8 @@ export const useCommonStyles  = () => {
       fontFamily: fonts.regular
     },
     authInput: {
-      width: '60%',
+      width: '100%',
+      maxWidth: 800,
       borderWidth: 1,
       borderColor: c.tint,
       paddingVertical: 10,
@@ -115,15 +116,15 @@ export const useCommonStyles  = () => {
       fontFamily: fonts.regular
     },
     primaryButton: {
-      backgroundColor: c.tint,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 8,
-      fontFamily: fonts.regular
-    },
+  width: '100%',
+  maxWidth: 200,
+  minHeight: 48,
+  backgroundColor: c.tint,
+  borderRadius: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginTop: 8,
+},
     primaryButtonText: {
       color: c.background,
       fontFamily: fonts.regular
@@ -187,14 +188,14 @@ export const useCommonStyles  = () => {
       flex: 1,
     },
     oauthButton: {
-      width: '15%',
-      alignSelf: 'center',
-      padding: 15,
+      width: '100%',
+      maxWidth: 200,
+      minHeight: 48,
       borderRadius: 10,
-      alignItems: "center",
+      alignItems: 'center',
+      justifyContent: 'center',
       marginTop: 10,
       backgroundColor: c.icon,
-      fontFamily: fonts.regular
     },
     oauthButtonText: {
       color: c.text,

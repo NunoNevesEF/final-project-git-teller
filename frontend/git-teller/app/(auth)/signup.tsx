@@ -78,7 +78,7 @@ export default function Signup() {
             {errorMessage ? <Text style={commonStyles.errorText}>{errorMessage}</Text> : null}
 
             <Pressable
-                style={[commonStyles.primaryButton, loading && commonStyles.buttonDisabled, commonStyles.fullWidth]}
+                style={[commonStyles.primaryButton, loading && commonStyles.buttonDisabled]}
                 onPress={handleSubmit}
                 disabled={loading}
             >

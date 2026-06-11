@@ -10,6 +10,7 @@ import {commonStyles} from '@/constants/commonStyles';
 import LlmAnalysisSettings, {
     LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType,
 } from '@/components/LlmAnalysisSettings';
+import LoadingComponent from '@/components/LoadingComponent';
 
 export default function GithubReposPage() {
     const {isAuthenticated, loading} = useAuth();
@@ -23,6 +24,8 @@ export default function GithubReposPage() {
     const [error, setError] = useState<string | null>(null);
     const [analyzingId, setAnalyzingId] = useState<number | null>(null);
     const [analyzingWithLlm, setAnalyzingWithLlm] = useState<boolean | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
 
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
     const [selectedRepo, setSelectedRepo] = useState<RepositorySummary | null>(null);
@@ -68,6 +71,7 @@ export default function GithubReposPage() {
         try {
             setAnalyzingId(repo.id);
             setAnalyzingWithLlm(llmAnalysisEnabled);
+            setIsLoading(true)
             const result = await analyzeRepo(repo.htmlUrl, llmAnalysisEnabled, byShas, byDateRange);
 
             setResult(result);
@@ -79,6 +83,7 @@ export default function GithubReposPage() {
         } catch (err) {
             console.error('Error analyzing repo:', err);
         } finally {
+            setIsLoading(false)
             setAnalyzingId(null);
             setAnalyzingWithLlm(null);
         }
@@ -132,7 +137,7 @@ export default function GithubReposPage() {
 
     return (
         <View style={commonStyles.screen}>
-            <Text style={commonStyles.pageTitle}>My Repos</Text>
+            <LoadingComponent visible={isLoading} />
             <Text style={commonStyles.pageSubtitle}>GitHub Repositories</Text>
 
             <View style={commonStyles.reposList}>
@@ -166,12 +171,6 @@ export default function GithubReposPage() {
                 requestedAnalyses={requestedAnalyses}
                 onRequestedAnalysesChange={setRequestedAnalyses}
             />
-
-            {analyzingId !== null ? (
-                <Text style={{textAlign: 'center', marginTop: 12}}>
-                    {analyzingWithLlm ? 'Analyzing repository with LLM...' : 'Analyzing repository without LLM...'}
-                </Text>
-            ) : null}
         </View>
     );
 }
