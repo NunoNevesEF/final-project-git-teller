@@ -11,6 +11,7 @@ export type RepositorySummary = {
     starsCount: number;
     forksCount: number;
     updatedAt: string;
+    gitAccountId: number;
 };
 
 export async function getMyGithubRepos(): Promise<RepositorySummary[]> {

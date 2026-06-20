@@ -1,7 +1,11 @@
 import { GitAnalysis } from "@/models/GitAnalysis";
 import { apiGet, apiPost } from "./apiClient";
+import {CreateScheduledReportDTO} from "@/models/scheduledReport/CreateScheduledReportDTO";
+import authApiClient from "@/services/authApiClient";
+import {GetScheduledReportDTO} from "@/models/scheduledReport/GetScheduledReportDTO";
 
-const SERVICE_PATH = "public/gitCommunication";
+const PUBLIC_SERVICE_PATH = "public/gitCommunication";
+const PRIVATE_SERVICE_PATH = "private/gitCommunication";
 
 type PromptComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
 type AnalysisMode = 'DIFF' | 'META';
@@ -30,7 +34,7 @@ export async function analyzeRepo(
     byDateRange?: ByDateRangeRequest,
 ): Promise<GitAnalysis> {
   if (flag) {
-    return apiPost(`${SERVICE_PATH}/commitAnalysis`, {
+    return apiPost(`${PUBLIC_SERVICE_PATH}/commitAnalysis`, {
       repoURI,
       flag,
       byShas: byShas ?? null,
@@ -39,6 +43,34 @@ export async function analyzeRepo(
   }
 
   return apiGet(
-      `${SERVICE_PATH}/gitAnalysis?repoURI=${encodeURIComponent(repoURI)}`,
+      `${PUBLIC_SERVICE_PATH}/gitAnalysis?repoURI=${encodeURIComponent(repoURI)}`,
   );
+}
+
+export async function analyseRepoWithToken(
+    repoURI: string,
+    flag: boolean = false,
+    gitAccountId: number,
+    byShas?: ByShasRequest,
+    byDateRange?: ByDateRangeRequest,
+): Promise<GitAnalysis> {
+    if (flag) {
+        return(
+            await authApiClient.post<GitAnalysis>(`api/${PRIVATE_SERVICE_PATH}/commitAnalysis?gitAccountId=${gitAccountId}`, {
+                repoURI,
+                flag,
+                byShas: byShas ?? null,
+                byDateRange: byDateRange ?? null,
+            })
+        ).data;
+    }
+
+    const params = new URLSearchParams({
+        repoURI: repoURI,
+        gitAccountId: String(gitAccountId),
+    })
+
+    return (
+        await authApiClient.get<GitAnalysis>(`api/${PRIVATE_SERVICE_PATH}/gitAnalysis?${params.toString()}`)
+    ).data;
 }

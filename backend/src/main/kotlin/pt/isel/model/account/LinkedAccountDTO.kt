@@ -1,4 +1,4 @@
-package pt.isel.model
+package pt.isel.model.account
 
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
@@ -49,3 +49,8 @@ data class FormLinkedAccountDTO(
         )
     }
 }
+
+data class GetLinkedAccountByUserAndIdDTO(
+    val id: Int,
+    val userId: Int,
+)

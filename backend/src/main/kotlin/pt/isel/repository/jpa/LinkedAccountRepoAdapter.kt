@@ -39,6 +39,9 @@ class LinkedAccountRepoAdapter(private val jpa: LinkedAccountRepoJpa) : ILinkedA
         jpa.findByUserId(userId).map { it.toDomain() }
             .takeIf { it.isNotEmpty() }
 
+    override fun readByUserIdAndId(id: Int, userId: Int): LinkedAccount? =
+        jpa.findByUserIdAndId(userId, id)?.toDomain()
+
     override fun readByUserAndType(userId: Int, type: String): List<LinkedAccount>? =
         jpa.findByUserIdAndType(userId, type).map { it.toDomain() }
             .takeIf { it.isNotEmpty() }

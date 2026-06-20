@@ -1,4 +1,4 @@
-package pt.isel.model
+package pt.isel.model.account
 
 import pt.isel.entity.User
 

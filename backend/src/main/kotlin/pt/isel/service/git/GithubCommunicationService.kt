@@ -33,17 +33,16 @@ class GithubCommunicationService(
         accept = listOf(MediaType.APPLICATION_JSON)
     }
 
-    private fun getTokenOrNull(userId: Int): String? =
+    private fun getGithubAccountAuthInfo(userId: Int): Pair<Int, String>? =
         linkedAccountRepo.readByUserAndType(userId, AccountType.GITHUB.type)
             ?.filterIsInstance<OAuthLinkedAccount>()
             ?.firstOrNull()
-            ?.accessToken
-            ?.tokenValue
+            ?.let{ it.id to it.accessToken!!.tokenValue }
 
-    private fun <T> callGitHub(userId: Int, block: (String) -> T): Either<GithubCommunicationServiceError, T> {
+    private fun <T> callGitHub(userId: Int, block: (Int, String) -> T): Either<GithubCommunicationServiceError, T> {
         return try {
-            val token = getTokenOrNull(userId) ?: return failure(InvalidTokenError)
-            val result = block(token)
+            val (linkedAccountId, token) = getGithubAccountAuthInfo(userId) ?: return failure(InvalidTokenError)
+            val result = block(linkedAccountId, token)
             success(result)
         } catch (e: RestClientException) {
             when {
@@ -82,13 +81,13 @@ class GithubCommunicationService(
         page: Int = 1,
         perPage: Int = 30
     ): Either<GithubCommunicationServiceError, List<RepositorySummary>> =
-        callGitHub(userId) { token ->
+        callGitHub(userId) { id, token ->
             val restTemplate = RestTemplate()
             val headers = createHeaders(token)
             val entity = HttpEntity<Unit>(headers)
             val url = "https://api.github.com/user/repos?page=$page&per_page=$perPage&sort=updated&direction=desc"
             val response = restTemplate.exchange(url, HttpMethod.GET, entity, Array<GitHubRepositoryDTO>::class.java)
-            response.body?.map { it.toSummary() } ?: emptyList()
+            response.body?.map { it.toSummary(id) } ?: emptyList()
         }
 
     /*fun getRepository(

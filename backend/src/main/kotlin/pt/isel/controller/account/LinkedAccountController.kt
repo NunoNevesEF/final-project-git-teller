@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import pt.isel.model.LinkedAccountDTO
+import pt.isel.model.account.LinkedAccountDTO
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
 import pt.isel.service.account.LinkedAccountService

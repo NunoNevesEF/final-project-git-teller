@@ -13,7 +13,8 @@ data class RepositorySummary(
     val language: String?,
     val starsCount: Int,
     val forksCount: Int,
-    val updatedAt: Instant
+    val updatedAt: Instant,
+    val gitAccountId: Int
 )
 
 /*data class BranchSummary(

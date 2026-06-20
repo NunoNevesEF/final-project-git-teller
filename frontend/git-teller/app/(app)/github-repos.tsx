@@ -4,7 +4,7 @@ import {useRouter, Redirect} from 'expo-router';
 import {useAuth} from '@/store/AuthProvider';
 import GithubReposList from '@/components/GithubReposList';
 import {getMyGithubRepos, RepositorySummary} from '@/services/GithubService';
-import {analyzeRepo, ByShasRequest, ByDateRangeRequest} from '@/services/GitCommunicationService';
+import {analyzeRepo, ByShasRequest, ByDateRangeRequest, analyseRepoWithToken} from '@/services/GitCommunicationService';
 import {useAnalysisInfoStore} from '@/store/useAnalysisInfoStore';
 import {commonStyles} from '@/constants/commonStyles';
 import LlmAnalysisSettings, {
@@ -72,7 +72,7 @@ export default function GithubReposPage() {
             setAnalyzingId(repo.id);
             setAnalyzingWithLlm(llmAnalysisEnabled);
             setIsLoading(true)
-            const result = await analyzeRepo(repo.htmlUrl, llmAnalysisEnabled, byShas, byDateRange);
+            const result = await analyseRepoWithToken(repo.htmlUrl, llmAnalysisEnabled, repo.gitAccountId, byShas, byDateRange);
 
             setResult(result);
             setProjectName(getProjectName(repo.htmlUrl));

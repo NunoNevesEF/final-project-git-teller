@@ -1,4 +1,4 @@
-package pt.isel.model
+package pt.isel.model.report
 
 data class ModifiedFiles(
     val path: String,
