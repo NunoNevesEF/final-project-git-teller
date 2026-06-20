@@ -3,7 +3,7 @@ package pt.isel.controller.account
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import pt.isel.model.UserDTO
+import pt.isel.model.account.UserDTO
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
 import pt.isel.service.account.AccountService

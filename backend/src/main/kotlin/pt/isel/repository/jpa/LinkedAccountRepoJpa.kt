@@ -7,6 +7,8 @@ interface LinkedAccountRepoJpa : JpaRepository<LinkedAccountEntity, Int> {
 
     fun findByUserId(userId: Int): List<LinkedAccountEntity>
 
+    fun findByUserIdAndId(userId: Int, id: Int): LinkedAccountEntity?
+
     fun findByUserIdAndType(userId: Int, type: String): List<LinkedAccountEntity>
 
     fun findByUserIdAndTypeAndProviderId(

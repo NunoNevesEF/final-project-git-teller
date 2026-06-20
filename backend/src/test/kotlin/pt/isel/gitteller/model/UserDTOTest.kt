@@ -2,7 +2,7 @@ package pt.isel.gitteller.model
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import pt.isel.entity.User
-import pt.isel.model.UserDTO
+import pt.isel.model.account.UserDTO
 import kotlin.test.Test
 
 class UserDTOTest() {

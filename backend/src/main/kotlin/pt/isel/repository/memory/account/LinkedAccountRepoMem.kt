@@ -34,6 +34,8 @@ class LinkedAccountRepoMem : ILinkedAccountRepository {
 
     override fun readByUser(userId: Int) = usersLinkedAccounts[userId]?.values?.flatMap { it.values }
 
+    override fun readByUserIdAndId(id: Int, userId: Int): LinkedAccount? = readByUser(userId)?.firstOrNull { it.id == id }
+
     override fun readByUserAndType(userId: Int, type: String) =
         usersLinkedAccounts[userId]?.get(type)?.values?.toList()
 

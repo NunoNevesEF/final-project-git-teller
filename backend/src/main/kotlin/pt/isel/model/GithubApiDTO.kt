@@ -24,7 +24,7 @@ internal data class GitHubRepositoryDTO(
     @JsonProperty("forks_count") val forksCount: Int,
     @JsonProperty("updated_at") val updatedAt: String
 ) {
-    fun toSummary(): RepositorySummary = RepositorySummary(
+    fun toSummary(gitAccountId: Int): RepositorySummary = RepositorySummary(
         id = id,
         name = name,
         fullName = fullName,
@@ -34,7 +34,8 @@ internal data class GitHubRepositoryDTO(
         language = language,
         starsCount = stargazersCount,
         forksCount = forksCount,
-        updatedAt = Instant.parse(updatedAt)
+        updatedAt = Instant.parse(updatedAt),
+        gitAccountId = gitAccountId
     )
 }
 

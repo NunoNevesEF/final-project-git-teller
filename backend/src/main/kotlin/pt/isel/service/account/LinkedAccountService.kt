@@ -11,6 +11,8 @@ import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.repository.interfaces.account.ILinkedAccountRepository
 import pt.isel.service.ServiceError
 import pt.isel.utils.Either
+import pt.isel.utils.Failure
+import pt.isel.utils.Success
 import pt.isel.utils.failure
 import pt.isel.utils.success
 import pt.isel.utils.toEither
@@ -21,6 +23,7 @@ object AccountTypeMaxedError : LinkedAccountServiceError()
 object AccountNotFoundError : LinkedAccountServiceError()
 object UserAccountsNotFoundError : LinkedAccountServiceError()
 object LinkedAccountDomainError : LinkedAccountServiceError()
+object InvalidAccountTypeError: LinkedAccountServiceError()
 
 @Service
 class LinkedAccountService(
@@ -46,6 +49,9 @@ class LinkedAccountService(
     fun readByUser(userId: Int): Either<UserAccountsNotFoundError, List<LinkedAccount>> =
         linkedAccountRepo.readByUser(userId).toEither { UserAccountsNotFoundError }
 
+    fun readByUserAndId(id: Int, userId: Int): Either<AccountNotFoundError, LinkedAccount> =
+        linkedAccountRepo.readByUserIdAndId(id, userId).toEither { AccountNotFoundError }
+
     fun readByUserAndType(userId: Int, type: String): Either<LinkedAccountServiceError, List<LinkedAccount>> {
         val account = findByUserAndType(userId, type) ?: return identifyMissingAccountError(userId)
         return success(account)
@@ -56,6 +62,18 @@ class LinkedAccountService(
             ?: return identifyMissingAccountError(userId)
 
         return success(account)
+    }
+
+    fun readAccessToken(id: Int, userId: Int): Either<LinkedAccountServiceError, String> {
+        return when(val res = readByUserAndId(id, userId)){
+            is Success -> {
+                when(val linkedAccount = res.right){
+                    is FormLinkedAccount -> failure(InvalidAccountTypeError)
+                    is OAuthLinkedAccount -> success(linkedAccount.accessToken!!.tokenValue)
+                }
+            }
+            is Failure -> res
+        }
     }
 
     fun update(
