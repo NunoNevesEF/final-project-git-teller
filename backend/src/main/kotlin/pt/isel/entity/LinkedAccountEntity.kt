@@ -22,9 +22,12 @@ data class LinkedAccountEntity(
 
     val providerId: String? = null,
 
+    @Column(columnDefinition = "TEXT")
     val passwordHash: String? = null,
 
+    @Column(columnDefinition = "TEXT")
     val accessToken: String? = null,
 
+    @Column(columnDefinition = "TEXT")
     val refreshToken: String? = null
 )

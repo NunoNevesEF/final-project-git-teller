@@ -30,7 +30,6 @@ class AuthorizationSecurityConfig(
             .securityMatcher("/api/**")
             .authorizeHttpRequests { auth ->
                 auth
-                    //.requestMatchers("/api/**").permitAll()   //   TODO: Remove this line when all endpoints are protected
                     .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()

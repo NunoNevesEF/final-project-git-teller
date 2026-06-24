@@ -1,8 +1,8 @@
-import CustomTextInput from '@/components/textInput';
-import OptionButton from '@/components/OptionButton';
+import CustomTextInput from '@/components/utils/textInput';
+import OptionButton from '@/components/utils/OptionButton';
 import LlmAnalysisSettings, {
     LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType,
-} from '@/components/LlmAnalysisSettings';
+} from '@/components/analysis/LlmAnalysisSettings';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import { useState } from 'react';
 import { View, Button, Text, Pressable, ScrollView } from 'react-native';

@@ -1,3 +1,33 @@
+CREATE TABLE users
+(
+    id         SERIAL PRIMARY KEY,
+
+    email      VARCHAR(255) NOT NULL UNIQUE,
+
+    user_name  VARCHAR(255),
+
+    role       VARCHAR(50) NOT NULL DEFAULT 'USER'
+);
+
+CREATE TABLE linked_accounts
+(
+    id             SERIAL PRIMARY KEY,
+
+    user_id        INTEGER      NOT NULL
+        REFERENCES users (id)
+            ON DELETE CASCADE,
+
+    type           VARCHAR(100) NOT NULL,
+
+    provider_id    VARCHAR(255),
+
+    password_hash  TEXT,
+
+    access_token   TEXT,
+
+    refresh_token  TEXT
+);
+
 CREATE TABLE scheduled_reports
 (
     id                  SERIAL PRIMARY KEY,

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
 import { useTheme } from '@/constants/themeProvider';
 import { useCommonStyles } from '@/constants/useCommonStyles';
+import {linkGitAccount} from "@/services/AccountService";
 
 export default function AuthMenuButton() {
     const [visible, setVisible] = useState(false);
@@ -28,6 +29,17 @@ export default function AuthMenuButton() {
         closeMenu();
         await signOut();
         router.replace('/');
+    };
+
+    const handleLinkGithub = async () => {
+        closeMenu();
+
+        try {
+            await linkGitAccount('github');
+            console.log('Link request sent');
+        } catch (error) {
+            console.error('Failed to link account:', error);
+        }
     };
 
     if (loading) return null;
@@ -86,12 +98,21 @@ export default function AuthMenuButton() {
                                 </Pressable>
                             </>
                         ) : (
-                            <Pressable
-                                style={commonStyles.primaryButton }
-                                onPress={handleLogout}
-                            >
-                                <Text style={commonStyles.primaryButtonText}>Log out</Text>
-                            </Pressable>
+                            <>
+                                <Pressable
+                                    style={commonStyles.primaryButton }
+                                    onPress={handleLinkGithub}
+                                >
+                                    <Text style={commonStyles.primaryButtonText}>Link Github Account</Text>
+                                </Pressable>
+
+                                <Pressable
+                                    style={commonStyles.primaryButton }
+                                    onPress={handleLogout}
+                                >
+                                    <Text style={commonStyles.primaryButtonText}>Log out</Text>
+                                </Pressable>
+                            </>
                         )}
                                                 <Pressable
     style={[commonStyles.primaryButton, { marginBottom: 10 }]}

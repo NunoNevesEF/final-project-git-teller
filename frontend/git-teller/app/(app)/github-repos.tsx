@@ -9,8 +9,8 @@ import {useAnalysisInfoStore} from '@/store/useAnalysisInfoStore';
 import {commonStyles} from '@/constants/commonStyles';
 import LlmAnalysisSettings, {
     LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType,
-} from '@/components/LlmAnalysisSettings';
-import LoadingComponent from '@/components/LoadingComponent';
+} from '@/components/analysis/LlmAnalysisSettings';
+import LoadingComponent from '@/components/utils/LoadingComponent';
 
 export default function GithubReposPage() {
     const {isAuthenticated, loading} = useAuth();

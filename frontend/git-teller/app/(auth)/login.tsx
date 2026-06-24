@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "reac
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
-import OAuthRedirectButton from "@/components/OAuthButton";
+import OAuthRedirectButton from "@/components/login/OAuthButton";
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 const LOGIN_PATH = "/api/public/auth/login";
