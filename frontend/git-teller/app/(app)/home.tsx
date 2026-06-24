@@ -1,7 +1,7 @@
 import { View, Text } from 'react-native';
 import { useAuth } from '@/store/AuthProvider';
 import { useCommonStyles } from '@/constants/useCommonStyles';
-import RepositorySearch from '@/components/RepositorySearch';
+import RepositorySearch from '@/components/analysis/RepositorySearch';
 
 export default function HomePage() {
   const commonStyles = useCommonStyles();

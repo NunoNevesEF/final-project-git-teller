@@ -1,5 +1,5 @@
 import {DayOfWeek} from "@/models/scheduledReport/CreateScheduledReportDTO";
-import OptionButton from "@/components/OptionButton";
+import OptionButton from "@/components/utils/OptionButton";
 import {commonStyles} from "@/constants/commonStyles";
 import {View} from "react-native";
 import {useCommonStyles} from "@/constants/useCommonStyles";

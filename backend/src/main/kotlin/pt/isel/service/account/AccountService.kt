@@ -5,6 +5,7 @@ import pt.isel.domain.account.AccountType
 import pt.isel.entity.User
 import pt.isel.service.ServiceError
 import pt.isel.utils.Either
+import pt.isel.utils.Success
 import pt.isel.utils.flatMap
 import pt.isel.utils.isSuccess
 import pt.isel.utils.map
@@ -73,8 +74,15 @@ class AccountService(
 
     fun oAuthAccountLink(
         userId: Int, provider: String, providerId: String
-    ): Either<ServiceError, LinkedNewProvider> {
+    ): Either<ServiceError, SignUpResult> {
         val userEither = userService.findById(userId)
+
+        require(userEither is Success)
+
+        val account = linkedAccountService.findByUserTypeAndKey(userId, provider, providerId)
+
+        if(account != null) { return success(LoggedIntoAccount(userEither.right)) }
+
         return userEither.flatMap { user ->
             linkedAccountService.createOAuthAccount(user.id, provider, providerId).map { LinkedNewProvider(user) }
         }

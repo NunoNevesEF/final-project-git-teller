@@ -1,5 +1,5 @@
 import { Drawer } from "expo-router/drawer";
-import AuthMenuButton from "@/components/AuthMenuButton";
+import AuthMenuButton from "@/components/login/AuthMenuButton";
 import { useTheme } from "@/constants/themeProvider";
 
 export default function InnerLayout() {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useCommonStyles } from "@/constants/useCommonStyles";
-import OAuthRedirectButton from "@/components/OAuthButton";
+import OAuthRedirectButton from "@/components/login/OAuthButton";
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 const SIGNUP_PATH = "/api/public/accounts/signup";

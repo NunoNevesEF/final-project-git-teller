@@ -1,5 +1,5 @@
-import AuthMenuButton from "@/components/AuthMenuButton";
-import RepositorySearch from "@/components/RepositorySearch";
+import AuthMenuButton from "@/components/login/AuthMenuButton";
+import RepositorySearch from "@/components/analysis/RepositorySearch";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import { View } from "react-native";
 

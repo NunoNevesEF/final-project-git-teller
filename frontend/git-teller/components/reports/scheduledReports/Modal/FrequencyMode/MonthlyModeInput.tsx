@@ -2,7 +2,7 @@ import {FrequencyMode} from "@/models/scheduledReport/CreateScheduledReportDTO";
 import {DayOfWeekInput} from "@/components/reports/scheduledReports/Modal/FrequencyMode/DaysOfWeekInput";
 import {WeekOrdinalInput} from "@/components/reports/scheduledReports/Modal/FrequencyMode/WeekOrdinalInput";
 import {DayOfMonthInput} from "@/components/reports/scheduledReports/Modal/FrequencyMode/DayOfMonthInput";
-import OptionButton from "@/components/OptionButton";
+import OptionButton from "@/components/utils/OptionButton";
 import {commonStyles} from "@/constants/commonStyles";
 import {View, Text} from "react-native";
 import {useCommonStyles} from "@/constants/useCommonStyles";

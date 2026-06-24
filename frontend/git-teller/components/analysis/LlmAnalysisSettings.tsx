@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import CustomTextInput from '@/components/textInput';
-import OptionButton from '@/components/OptionButton';
+import CustomTextInput from '@/components/utils/textInput';
+import OptionButton from '@/components/utils/OptionButton';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 
 export type LlmFilterType = 'shas' | 'dateRange' | 'overview';

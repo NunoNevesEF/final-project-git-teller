@@ -1,6 +1,6 @@
 import {daysOfWeekMode, FrequencyMode, weeklyMode} from "@/models/scheduledReport/CreateScheduledReportDTO";
 import {DayOfWeekInput, DaysOfWeekInput} from "@/components/reports/scheduledReports/Modal/FrequencyMode/DaysOfWeekInput";
-import OptionButton from "@/components/OptionButton";
+import OptionButton from "@/components/utils/OptionButton";
 import {commonStyles} from "@/constants/commonStyles";
 import {useCommonStyles} from "@/constants/useCommonStyles";
 import {View, Text} from "react-native";

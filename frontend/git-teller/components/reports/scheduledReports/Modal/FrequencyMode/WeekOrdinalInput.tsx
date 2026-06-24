@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import { WeekOrdinal } from '@/models/scheduledReport/CreateScheduledReportDTO';
-import OptionButton from "@/components/OptionButton";
+import OptionButton from "@/components/utils/OptionButton";
 import {commonStyles} from "@/constants/commonStyles";
 import {useCommonStyles} from "@/constants/useCommonStyles";
 

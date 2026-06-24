@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import RepositorySearchForm, { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType } from '@/components/RepositorySearchForm';
+import RepositorySearchForm, { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType } from '@/components/analysis/RepositorySearchForm';
 import { analyzeRepo } from '@/services/GitCommunicationService';
 import { useAnalysisInfoStore } from '@/store/useAnalysisInfoStore';
-import LoadingComponent from './LoadingComponent';
+import LoadingComponent from '../utils/LoadingComponent';
 
 
 export default function RepositorySearch() {

@@ -21,7 +21,7 @@ import { useTheme } from '@/constants/themeProvider';
 import { useEffect, useState } from 'react';
 import '@/constants/stylesPrint.css';
 import HeatMapCommits from '@/components/charts/HeatMapCommits';
-import LoadingComponent from '@/components/LoadingComponent';
+import LoadingComponent from '@/components/utils/LoadingComponent';
 import {CreateUserReportDTO} from "@/models/UserReportDTO";
 
 export default function Info() {
