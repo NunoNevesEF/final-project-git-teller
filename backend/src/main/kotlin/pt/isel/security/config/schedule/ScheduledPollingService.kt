@@ -4,7 +4,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import pt.isel.service.ScheduledReportNotFoundException
 import pt.isel.service.ScheduledReportService
-import pt.isel.utils.rightOrNull
 
 @Service
 class ScheduledPollingService(
@@ -21,7 +20,7 @@ class ScheduledPollingService(
                 val job = scheduledReportService.createScheduledReportJob(scheduleId)
                 scheduledReportService.calculateNextReport(scheduleId)
                 scheduledJobExecutor.schedule(job, repoUri, userId)
-            } catch(e: ScheduledReportNotFoundException){
+            } catch(_: ScheduledReportNotFoundException){
                 println("Scheduled report has been deleted") //TODO: THINK IF SOMETHING ELSE HAS TO BE DONE.
             }
 

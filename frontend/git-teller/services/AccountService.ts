@@ -1,4 +1,3 @@
-import authApiClient from "@/services/authApiClient";
 import {Linking, Platform} from "react-native";
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
@@ -12,6 +11,6 @@ export async function linkGitAccount(provider: string): Promise<void> {
             await Linking.openURL(url);
         }
     } catch (err: any) {
-        onError?.(err?.message || `Unable to start ${provider} link.`);
+        console.log(err?.message)
     }
 }

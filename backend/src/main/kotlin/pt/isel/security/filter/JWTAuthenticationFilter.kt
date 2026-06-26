@@ -47,7 +47,7 @@ class JWTAuthenticationFilter(
                 SecurityContextHolder.getContext().authentication = authToken
             }
 
-        } catch (ex: Exception) {
+        } catch (_: Exception) {
             SecurityContextHolder.clearContext()
         }
 

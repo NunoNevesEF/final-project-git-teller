@@ -12,7 +12,7 @@ object EnumParser {
             complexity.isNullOrBlank() -> PromptComplexityLevel.MEDIUM
             else -> PromptComplexityLevel.valueOf(complexity.uppercase())
         }
-    } catch (e: IllegalArgumentException) {
+    } catch (_: IllegalArgumentException) {
         logger.warn("Complexidade inválida: $complexity. Usando MEDIUM por defeito.")
         PromptComplexityLevel.MEDIUM
     }
@@ -22,7 +22,7 @@ object EnumParser {
             mode.isNullOrBlank() -> AnalysisMode.DIFF
             else -> AnalysisMode.valueOf(mode.uppercase())
         }
-    } catch (e: IllegalArgumentException) {
+    } catch (_: IllegalArgumentException) {
         logger.warn("AnalysisMode inválido: $mode. Usando DIFF por defeito.")
         AnalysisMode.DIFF
     }

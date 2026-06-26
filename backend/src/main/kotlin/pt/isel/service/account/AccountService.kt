@@ -1,15 +1,13 @@
 package pt.isel.service.account
 
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.AccountType
+import pt.isel.domain.account.OAuthAccountProvider
 import pt.isel.entity.User
 import pt.isel.service.ServiceError
 import pt.isel.utils.Either
 import pt.isel.utils.Success
 import pt.isel.utils.flatMap
-import pt.isel.utils.isSuccess
 import pt.isel.utils.map
-import pt.isel.utils.rightOrNull
 import pt.isel.utils.success
 
 sealed interface SignUpResult {
@@ -28,22 +26,17 @@ class AccountService(
         email: String, userName: String?, password: String
     ): Either<ServiceError, SignUpResult> {
 
-        val existing = userService.findByEmail(email)
+        val userResult = userService.findByEmail(email)
 
-        return if (existing.isSuccess()) {
+        return if (userResult is Success) {
+            val user = userResult.right
+            val account = linkedAccountService.findUserFormAccount(user.id)
 
-            val user = existing.rightOrNull()!!
-
-            val account = linkedAccountService.findByUserAndType(user.id, AccountType.FORM.type)
-
-            if (account != null) {
-                success(LoggedIntoAccount(user))
-            } else {
-                linkedAccountService.createFormAccount(user.id, password).map { LinkedNewProvider(user) }
-            }
+            if (account is Success) { success(LoggedIntoAccount(user)) }
+            else { linkedAccountService.createFormAccount(user, password).map { LinkedNewProvider(user) } }
         } else {
             userService.create(email, userName).flatMap { createdUser ->
-                    linkedAccountService.createFormAccount(createdUser.id, password)
+                    linkedAccountService.createFormAccount(createdUser, password)
                         .map { CreatedNewAccount(createdUser) }
                 }
         }
@@ -52,21 +45,24 @@ class AccountService(
     fun oAuthSignUp(
         email: String, provider: String, providerId: String
     ): Either<ServiceError, SignUpResult> {
-        val existing = userService.findByEmail(email)
-        return if (existing.isSuccess()) {
+        val userResult = userService.findByEmail(email)
+        return if (userResult is Success) {
 
-            val user = existing.rightOrNull()!!
-            val account = linkedAccountService.findByUserTypeAndKey(user.id, provider, providerId)
+            val user = userResult.right
 
-            if (account != null) {
+            val accountResult = linkedAccountService.findUserOAuthAccount(
+                user.id, OAuthAccountProvider.fromString(provider), providerId
+            )
+
+            if (accountResult is Success) {
                 success(LoggedIntoAccount(user))
             } else {
-                linkedAccountService.createOAuthAccount(user.id, provider, providerId).map { LinkedNewProvider(user) }
+                linkedAccountService.createOAuthAccount(user, provider, providerId).map { LinkedNewProvider(user) }
             }
 
         } else {
             userService.create(email).flatMap { createdUser ->
-                    linkedAccountService.createOAuthAccount(createdUser.id, provider, providerId)
+                    linkedAccountService.createOAuthAccount(createdUser, provider, providerId)
                         .map { CreatedNewAccount(createdUser) }
                 }
         }
@@ -79,12 +75,14 @@ class AccountService(
 
         require(userEither is Success)
 
-        val account = linkedAccountService.findByUserTypeAndKey(userId, provider, providerId)
+        val accountResult = linkedAccountService.findUserOAuthAccount(
+            userId, OAuthAccountProvider.fromString(provider), providerId
+        )
 
-        if(account != null) { return success(LoggedIntoAccount(userEither.right)) }
+        if(accountResult is Success) { return success(LoggedIntoAccount(userEither.right)) }
 
         return userEither.flatMap { user ->
-            linkedAccountService.createOAuthAccount(user.id, provider, providerId).map { LinkedNewProvider(user) }
+            linkedAccountService.createOAuthAccount(user, provider, providerId).map { LinkedNewProvider(user) }
         }
     }
 }

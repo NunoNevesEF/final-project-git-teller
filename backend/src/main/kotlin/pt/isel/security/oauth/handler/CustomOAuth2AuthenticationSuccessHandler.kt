@@ -2,10 +2,7 @@ package pt.isel.security.oauth.handler
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
-import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
@@ -13,11 +10,10 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.util.UriComponentsBuilder
-import pt.isel.domain.account.AccountType
+import pt.isel.domain.account.OAuthAccountProvider
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.auth.JwtService
-import tools.jackson.databind.ObjectMapper
 
 @Component
 class CustomOAuth2AuthenticationSuccessHandler(
@@ -42,12 +38,12 @@ class CustomOAuth2AuthenticationSuccessHandler(
             registrationId, principalName
         )
 
-        linkedAccountService.update(
+        linkedAccountService.updateOAuthAccount(
             userId = principal.getUserId(),
-            type = registrationId, //provider
-            key = principal.getOAuth2Id(), //providerId
-            accessToken = client.accessToken,
-            refreshToken = client.refreshToken
+            provider = OAuthAccountProvider.fromString(registrationId), //provider
+            providerId = principal.getOAuth2Id(), //providerId
+            accessToken = client.accessToken.tokenValue,
+            refreshToken = client.refreshToken?.tokenValue
         )
 
         val tokenPair = jwtService.generateTokenPair(authentication)

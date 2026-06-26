@@ -8,7 +8,6 @@ import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.SuccessfulJob
 import pt.isel.service.ScheduledReportService
-import pt.isel.service.account.UserNotFound
 import pt.isel.service.git.FailureDoNotRetry
 import pt.isel.service.git.GitAnalysisService
 import pt.isel.service.report.UserReportService
@@ -59,7 +58,7 @@ class ScheduledJobExecutor(
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
 
         }
         //TODO: IMPROVE CODE. WE KNOW WHEN TO REPEAT VS NOT SO CONDITIONAL END JOB IS ONLY CAUSING UNECESSARY CASTING

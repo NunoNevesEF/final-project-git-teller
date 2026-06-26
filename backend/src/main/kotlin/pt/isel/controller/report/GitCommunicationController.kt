@@ -13,13 +13,10 @@ import pt.isel.domain.CommitDateRangeAnalysisRequest
 import pt.isel.domain.CommitShasAnalysisRequest
 import pt.isel.model.report.GitAnalysis
 import pt.isel.security.principal.UserPrincipal
-import pt.isel.service.account.AccountNotFoundError
-import pt.isel.service.account.InvalidAccountTypeError
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.git.GitAnalysisService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
-import pt.isel.utils.leftOrNull
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
@@ -61,12 +58,12 @@ class GitCommunicationPrivateController(
         @RequestParam gitAccountId: Int,
         @AuthenticationPrincipal principal: UserPrincipal,
     ): ResponseEntity<GitAnalysis> {
-        val tokenResult = linkedAccountService.readAccessToken(gitAccountId, principal.getUserId())
-        if (tokenResult !is Success) return ResponseEntity.notFound().build()
+        val accountResult = linkedAccountService.findUserOAuthAccount(gitAccountId, principal.getUserId())
+        if (accountResult !is Success) return ResponseEntity.notFound().build()
 
-        return when(val analysisResult = gitAnalysisService.createAnalysis(repoURI, tokenResult.right)){
+        return when(val analysisResult = gitAnalysisService.createAnalysis(repoURI, accountResult.right.accessToken)){
             is Success -> ResponseEntity.ok(analysisResult.right)
-            is Failure -> ResponseEntity.notFound().build()
+            is Failure -> ResponseEntity.notFound().build() //TODO: REPLACE ERROR RESPONSE WITH PROPER STATUS
         }
     }
 
@@ -76,24 +73,17 @@ class GitCommunicationPrivateController(
         @RequestParam gitAccountId: Int,
         @AuthenticationPrincipal principal: UserPrincipal,
     ): ResponseEntity<GitAnalysis> {
-        val tokenResult = linkedAccountService.readAccessToken(gitAccountId, principal.getUserId())
-        if (tokenResult !is Success) return when(tokenResult.leftOrNull()){
-            is AccountNotFoundError -> ResponseEntity.notFound().build()
-            is InvalidAccountTypeError -> ResponseEntity.badRequest().build()
-            else -> ResponseEntity.internalServerError().build()
-        }
+        val accountResult = linkedAccountService.findUserOAuthAccount(gitAccountId, principal.getUserId())
+        if (accountResult !is Success) return ResponseEntity.notFound().build()
 
         return when (
             val result = gitAnalysisService.analyzeCommit(
-                repoURI = request.repoURI,
-                flag = request.flag,
-                byShas= request.byShas,
-                byDateRange= request.byDateRange,
-                token = tokenResult.right
+                repoURI = request.repoURI, token = accountResult.right.accessToken,
+                flag = request.flag, byShas= request.byShas, byDateRange= request.byDateRange,
             )
         ) {
             is Success -> ResponseEntity.ok(result.right)
-            else -> ResponseEntity.notFound().build()
+            else -> ResponseEntity.notFound().build() //TODO: REPLACE ERROR RESPONSE WITH PROPER STATUS
         }
     }
 }

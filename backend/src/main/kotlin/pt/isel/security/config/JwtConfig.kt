@@ -31,7 +31,7 @@ class JwtConfig {
 
     @Bean
     fun rsaKey(): RSAKey {
-        val keyPair = keyPair();
+        val keyPair = keyPair()
         return RSAKey.Builder(keyPair.public as RSAPublicKey)
             .privateKey(keyPair.private as RSAPrivateKey)
             .keyID(UUID.randomUUID().toString())

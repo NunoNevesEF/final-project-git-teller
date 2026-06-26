@@ -1,19 +1,17 @@
 package pt.isel.service.account
 
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.security.oauth2.core.OAuth2AccessToken
-import org.springframework.security.oauth2.core.OAuth2RefreshToken
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.AccountType
+import pt.isel.domain.account.OAuthAccountProvider
 import pt.isel.domain.account.FormLinkedAccount
-import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
-import pt.isel.repository.interfaces.account.ILinkedAccountRepository
+import pt.isel.entity.User
+import pt.isel.repository.interfaces.account.IFormLinkedAccountRepository
+import pt.isel.repository.interfaces.account.IOAuthLinkedAccountRepository
 import pt.isel.service.ServiceError
 import pt.isel.utils.Either
-import pt.isel.utils.Failure
-import pt.isel.utils.Success
 import pt.isel.utils.failure
+import pt.isel.utils.map
 import pt.isel.utils.success
 import pt.isel.utils.toEither
 
@@ -21,147 +19,79 @@ sealed class LinkedAccountServiceError : ServiceError
 object PasswordEncodingError : LinkedAccountServiceError()
 object AccountTypeMaxedError : LinkedAccountServiceError()
 object AccountNotFoundError : LinkedAccountServiceError()
-object UserAccountsNotFoundError : LinkedAccountServiceError()
 object LinkedAccountDomainError : LinkedAccountServiceError()
-object InvalidAccountTypeError: LinkedAccountServiceError()
 
 @Service
 class LinkedAccountService(
-    private val linkedAccountRepo: ILinkedAccountRepository,
+    private val formLinkedAccountRepo: IFormLinkedAccountRepository,
+    private val oauthLinkedAccountRepo: IOAuthLinkedAccountRepository,
     private val passwordEncoder: PasswordEncoder,
 ) {
-    fun createFormAccount(userId: Int, password: String): Either<LinkedAccountServiceError, FormLinkedAccount> {
+    fun createFormAccount(user: User, password: String): Either<LinkedAccountServiceError, FormLinkedAccount> {
         val passwordHash = passwordEncoder.encode(password) ?: return failure(PasswordEncodingError)
-        val account = FormLinkedAccount.create(userId = userId, passwordHash = passwordHash)
-        return createLinkedAccount(account)
+        val account = FormLinkedAccount.create(userId = user.id, passwordHash = passwordHash)
+
+        if(isFormAccountMaxed(user.id)) return failure(AccountTypeMaxedError)
+        return success(formLinkedAccountRepo.create(account.toEntity(user)).toDomain())
     }
 
     fun createOAuthAccount(
-        userId: Int, provider: String, providerId : String
-    ): Either<AccountTypeMaxedError, OAuthLinkedAccount> {
-        val account = OAuthLinkedAccount.create(userId = userId, provider = provider, providerId = providerId)
-        return createLinkedAccount(account)
-    }
-
-    fun read(id: Int): Either<AccountNotFoundError, LinkedAccount> =
-        linkedAccountRepo.findById(id).toEither { AccountNotFoundError }
-
-    fun readByUser(userId: Int): Either<UserAccountsNotFoundError, List<LinkedAccount>> =
-        linkedAccountRepo.readByUser(userId).toEither { UserAccountsNotFoundError }
-
-    fun readByUserAndId(id: Int, userId: Int): Either<AccountNotFoundError, LinkedAccount> =
-        linkedAccountRepo.readByUserIdAndId(id, userId).toEither { AccountNotFoundError }
-
-    fun readByUserAndType(userId: Int, type: String): Either<LinkedAccountServiceError, List<LinkedAccount>> {
-        val account = findByUserAndType(userId, type) ?: return identifyMissingAccountError(userId)
-        return success(account)
-    }
-
-    fun readByUserTypeAndKey(userId: Int, type: String, key: String): Either<LinkedAccountServiceError, LinkedAccount> {
-        val account = findByUserTypeAndKey(userId, type, key)
-            ?: return identifyMissingAccountError(userId)
-
-        return success(account)
-    }
-
-    fun readAccessToken(id: Int, userId: Int): Either<LinkedAccountServiceError, String> {
-        return when(val res = readByUserAndId(id, userId)){
-            is Success -> {
-                when(val linkedAccount = res.right){
-                    is FormLinkedAccount -> failure(InvalidAccountTypeError)
-                    is OAuthLinkedAccount -> success(linkedAccount.accessToken!!.tokenValue)
-                }
-            }
-            is Failure -> res
+        user: User, provider: String, providerId : String
+    ): Either<LinkedAccountServiceError, OAuthLinkedAccount> {
+        try{
+            val account = OAuthLinkedAccount.create(userId = user.id, provider = provider, providerId = providerId)
+            if(isOAuthAccountTypeMaxed(user.id, OAuthAccountProvider.fromString(provider))) return failure(AccountTypeMaxedError)
+            return success(oauthLinkedAccountRepo.create(account.toEntity(user)).toDomain())
+        } catch (_: Exception) {
+            return failure(LinkedAccountDomainError)
         }
     }
 
-    fun update(
+    fun findUserFormAccount(userId: Int) : Either<AccountNotFoundError, FormLinkedAccount> =
+        formLinkedAccountRepo.findByUserId(userId)
+            .toEither { AccountNotFoundError }
+            .map{ it.toDomain() }
+
+    fun findUserOAuthAccount(id: Int, userId: Int) =
+        oauthLinkedAccountRepo.findByIdAndUserId(id, userId)
+            .toEither { AccountNotFoundError }
+            .map{ it.toDomain() }
+
+    fun findUserOAuthAccount(userId: Int, provider: OAuthAccountProvider, providerId: String) =
+        oauthLinkedAccountRepo.findByUserAndProviderAndProviderId(userId, provider, providerId)
+            .toEither { AccountNotFoundError }
+            .map{ it.toDomain() }
+
+    fun findUserGithubAccounts(userId: Int): Either<AccountNotFoundError, List<OAuthLinkedAccount>>{
+        val accounts = oauthLinkedAccountRepo.findByUserAndProvider(userId, OAuthAccountProvider.GITHUB)
+        return if(accounts.isEmpty()) return failure(AccountNotFoundError)
+        else success(accounts.map{ it.toDomain() })
+    }
+
+    fun updateOAuthAccount(
         userId: Int,
-        type: String,
-        key: String = "",
-        passwordHash: String? = null,
-        accessToken: OAuth2AccessToken? = null,
-        refreshToken: OAuth2RefreshToken? = null,
-    ): Either<LinkedAccountServiceError, LinkedAccount> {
-        return when(type){
-            AccountType.FORM.type -> updateFormAccount(userId, passwordHash)
-            else -> updateOAuthAccount(userId, type, key, accessToken, refreshToken)
-        }
+        provider: OAuthAccountProvider, providerId: String,
+        accessToken: String?, refreshToken: String?
+    ): Either<LinkedAccountServiceError, OAuthLinkedAccount> {
+        val account = oauthLinkedAccountRepo.findByUserAndProviderAndProviderId(userId, provider, providerId)
+            ?: return failure(AccountNotFoundError)
+
+        val updated = account.toDomain().copy(
+            accessToken = accessToken ?: account.accessToken,
+            refreshToken = refreshToken ?: account.refreshToken
+        )
+
+        return oauthLinkedAccountRepo.update(updated.toEntity(account.user))
+            .toEither{ AccountNotFoundError }
+            .map{ it.toDomain() }
     }
 
-    fun delete(id: Int): Either<AccountNotFoundError, LinkedAccount> =
-        linkedAccountRepo.delete(id).toEither { AccountNotFoundError }
+    private fun isFormAccountMaxed(userId: Int): Boolean =
+        formLinkedAccountRepo.findByUserId(userId) != null
 
-    fun deleteByUserTypeAndKey(
-        userId: Int, type: String, key: String
-    ): Either<LinkedAccountServiceError, LinkedAccount> {
-        val removedAccount = linkedAccountRepo.deleteByUserTypeAndKey(userId, type, key)
-            ?: return identifyMissingAccountError(userId)
-
-        return success(removedAccount)
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T : LinkedAccount> createLinkedAccount(
-        linkedAccount: T,
-    ): Either<AccountTypeMaxedError, T> {
-        return if (isAccountTypeMaxed(linkedAccount.userId, linkedAccount.getType())) {
-            failure(AccountTypeMaxedError)
-        } else success(linkedAccountRepo.create(linkedAccount) as T)
-    }
-
-    fun findByUserAndType(userId: Int, type: String) =
-        linkedAccountRepo.readByUserAndType(userId, type)
-
-    fun findByUserTypeAndKey(userId: Int, type: String, key: String) =
-        linkedAccountRepo.readByUserTypeAndKey(userId, type, key)
-
-
-    private fun updateFormAccount(
-        userId: Int, passwordHash: String?,
-    ): Either<LinkedAccountServiceError, LinkedAccount> {
-        val account = linkedAccountRepo.readByUserTypeAndKey(userId, AccountType.FORM.type, null)
-                as? FormLinkedAccount? ?: return identifyMissingAccountError(userId)
-
-        val updated = try{
-            account.copy(passwordHash = passwordHash ?: account.passwordHash)
-        } catch(e: IllegalArgumentException){ return failure(LinkedAccountDomainError) }
-
-        return persistUpdate(updated)
-    }
-
-    private fun updateOAuthAccount(
-        userId: Int,
-        provider: String,
-        key: String,
-        accessToken: OAuth2AccessToken?,
-        refreshToken: OAuth2RefreshToken?
-    ): Either<LinkedAccountServiceError, LinkedAccount> {
-        val account = linkedAccountRepo.readByUserTypeAndKey(userId, provider, key)
-                as? OAuthLinkedAccount? ?: return identifyMissingAccountError(userId)
-
-        val updated = try{
-            account.copy(
-                accessToken = accessToken ?: account.accessToken,
-                refreshToken = refreshToken ?: account.refreshToken
-            )
-        } catch(e: IllegalArgumentException){ return failure(LinkedAccountDomainError) }
-
-        return persistUpdate(updated)
-    }
-
-    private fun persistUpdate(updated: LinkedAccount): Either<AccountNotFoundError, LinkedAccount> {
-        return linkedAccountRepo.update(updated).toEither{ AccountNotFoundError }
-    }
-
-    private fun isAccountTypeMaxed(userId: Int, type: AccountType): Boolean{
+    private fun isOAuthAccountTypeMaxed(userId: Int, type: OAuthAccountProvider): Boolean{
         if(type.max == null) return false
-        val accountQuantity = linkedAccountRepo.readByUserAndType(userId, type.type)?.size ?: return false
+        val accountQuantity = oauthLinkedAccountRepo.findByUserAndProvider(userId, type).size
         return accountQuantity >= type.max
     }
-
-    private fun identifyMissingAccountError(userId: Int) =
-        if (linkedAccountRepo.readByUser(userId) == null) failure(UserAccountsNotFoundError)
-        else failure(AccountNotFoundError)
 }

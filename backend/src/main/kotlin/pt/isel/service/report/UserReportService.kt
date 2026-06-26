@@ -12,7 +12,6 @@ import pt.isel.utils.*
 
 sealed class GitCommunicationServiceError : ServiceError
 object UserReportNotFound : GitCommunicationServiceError()
-object UserReportPDFNotGenerated : GitCommunicationServiceError()
 
 @Service
 class UserReportService(

@@ -1,12 +1,16 @@
 package pt.isel.repository.interfaces.account
 
-import pt.isel.domain.account.LinkedAccount
+import pt.isel.domain.account.OAuthAccountProvider
+import pt.isel.entity.FormLinkedAccountEntity
+import pt.isel.entity.OAuthLinkedAccountEntity
 import pt.isel.repository.interfaces.IRepository
 
-interface ILinkedAccountRepository : IRepository<LinkedAccount> {
-    fun readByUser(userId: Int): List<LinkedAccount>?
-    fun readByUserAndType(userId: Int, type: String): List<LinkedAccount>?
-    fun readByUserTypeAndKey(userId: Int, type: String, key: String?): LinkedAccount?
-    fun deleteByUserTypeAndKey(userId: Int, type: String, key: String?): LinkedAccount?
-    fun readByUserIdAndId(id: Int, userId: Int): LinkedAccount?
+interface IFormLinkedAccountRepository: IRepository<FormLinkedAccountEntity>{
+    fun findByUserId(userId: Int): FormLinkedAccountEntity?
+}
+
+interface IOAuthLinkedAccountRepository : IRepository<OAuthLinkedAccountEntity>{
+    fun findByIdAndUserId(id: Int, userId: Int): OAuthLinkedAccountEntity?
+    fun findByUserAndProvider(userId: Int, provider: OAuthAccountProvider): List<OAuthLinkedAccountEntity>
+    fun findByUserAndProviderAndProviderId(userId: Int, provider: OAuthAccountProvider, providerId: String): OAuthLinkedAccountEntity?
 }

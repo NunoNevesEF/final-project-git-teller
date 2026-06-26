@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.security.oauth2.core.OAuth2Token
 import org.springframework.security.oauth2.jwt.JwtClaimsSet
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.jwt.JwtEncoder
@@ -56,7 +55,7 @@ class JwtService(
         try{
             jwtDecoder.decode(token)
             return true
-        } catch (e: Exception){
+        } catch (_: Exception){
             return false
         }
     }
@@ -113,7 +112,7 @@ class JwtService(
 
             jwt.getClaim<Boolean>("link") == true &&
                     jwt.getClaim<String>("provider") == provider
-        } catch(e: Exception){
+        } catch(_: Exception){
             false
         }
     }

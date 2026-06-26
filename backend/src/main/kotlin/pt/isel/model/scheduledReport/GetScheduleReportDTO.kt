@@ -2,9 +2,6 @@ package pt.isel.model.scheduledReport
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import pt.isel.domain.schedule.OneTimeScheduledReport
-import pt.isel.entity.schedule.OneTimeScheduledReportEntity
-import pt.isel.entity.schedule.PeriodicScheduledReportEntity
 import java.time.Instant
 
 @JsonTypeInfo(

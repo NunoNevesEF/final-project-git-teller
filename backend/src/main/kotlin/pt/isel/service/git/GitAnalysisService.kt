@@ -4,20 +4,14 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException
 import org.eclipse.jgit.api.errors.TransportException
 import org.eclipse.jgit.errors.NoRemoteRepositoryException
 import org.eclipse.jgit.internal.JGitText
-import org.springframework.security.oauth2.core.OAuth2AccessToken
 import org.springframework.stereotype.Service
 import pt.isel.domain.CommitDateRangeAnalysisRequest
 import pt.isel.domain.CommitShasAnalysisRequest
-import pt.isel.domain.account.OAuthLinkedAccount
 import pt.isel.domain.report.GitCommunication
 import pt.isel.model.report.GitAnalysis
 import pt.isel.service.ServiceError
-import pt.isel.service.account.LinkedAccountService
-import pt.isel.service.account.LinkedAccountServiceError
 import pt.isel.service.llmanalysis.CommitAnalysisService
 import pt.isel.utils.Either
-import pt.isel.utils.Failure
-import pt.isel.utils.Success
 import pt.isel.utils.failure
 import pt.isel.utils.success
 

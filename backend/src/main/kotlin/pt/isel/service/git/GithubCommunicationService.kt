@@ -7,16 +7,14 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
-import pt.isel.domain.account.AccountType
-import pt.isel.domain.account.OAuthLinkedAccount
-import pt.isel.repository.interfaces.account.ILinkedAccountRepository
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
 import pt.isel.model.*
+import pt.isel.service.account.LinkedAccountService
+import pt.isel.utils.Success
 
 sealed class GithubCommunicationServiceError
-object PrimaryEmailNotFoundError : GithubCommunicationServiceError()
 object RepositoryNotFoundError : GithubCommunicationServiceError()
 object InvalidTokenError : GithubCommunicationServiceError()
 object RateLimitError : GithubCommunicationServiceError()
@@ -26,18 +24,19 @@ object NetworkError : GithubCommunicationServiceError()
 // SUGESTãO Para o Futuro -> reduzir a quantidade de restTemplate, headers e entity repetidos, criando funções auxiliares para isso
 @Service
 class GithubCommunicationService(
-    private val linkedAccountRepo: ILinkedAccountRepository
+    private val linkedAccountService: LinkedAccountService,
 ) {
     private fun createHeaders(accessToken: String): HttpHeaders = HttpHeaders().apply {
         setBearerAuth(accessToken)
         accept = listOf(MediaType.APPLICATION_JSON)
     }
 
-    private fun getGithubAccountAuthInfo(userId: Int): Pair<Int, String>? =
-        linkedAccountRepo.readByUserAndType(userId, AccountType.GITHUB.type)
-            ?.filterIsInstance<OAuthLinkedAccount>()
-            ?.firstOrNull()
-            ?.let{ it.id to it.accessToken!!.tokenValue }
+    private fun getGithubAccountAuthInfo(userId: Int): Pair<Int, String>? {
+        val accountResult = linkedAccountService.findUserGithubAccounts(userId)
+        return if(accountResult !is Success) null
+        else accountResult.right.firstOrNull()?.let{ it.id to it.accessToken }
+    }
+
 
     private fun <T> callGitHub(userId: Int, block: (Int, String) -> T): Either<GithubCommunicationServiceError, T> {
         return try {
@@ -54,9 +53,6 @@ class GithubCommunicationService(
         }
     }
 
-    fun getPrimaryEmail(accessToken: String) =
-        getPrimaryEmailOrNull(accessToken)?.let { success(it) } ?: failure(PrimaryEmailNotFoundError)
-
     fun getPrimaryEmailOrNull(accessToken: String): String? {
         val restTemplate = RestTemplate()
         return try {
@@ -71,7 +67,7 @@ class GithubCommunicationService(
             )
             val emails = response.body ?: return null
             emails.firstOrNull { it.primary }?.email
-        } catch (e: RestClientException) {
+        } catch (_: RestClientException) {
             null
         }
     }

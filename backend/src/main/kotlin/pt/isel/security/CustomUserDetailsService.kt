@@ -4,12 +4,10 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.AccountType
-import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.account.UserService
-import pt.isel.utils.isFailure
+import pt.isel.utils.Success
 import pt.isel.utils.rightOrNull
 
 @Service
@@ -19,10 +17,9 @@ class CustomUserDetailsService(
 ) : UserDetailsService {
     override fun loadUserByUsername(email: String): UserDetails {
         val user = userService.findByEmail(email).rightOrNull() ?: throw UsernameNotFoundException("User not found")
-        val account = linkedAccountService.readByUserAndType(user.id, AccountType.FORM.type)
-        if(account.isFailure()) throw UsernameNotFoundException("User not found")
+        val account = linkedAccountService.findUserFormAccount(user.id)
+        if(account !is Success) throw UsernameNotFoundException("User not found")
 
-        val passwordHash = (account.rightOrNull()!!.first() as FormLinkedAccount).passwordHash
-        return UserPrincipal(user, passwordHash)
+        return UserPrincipal(user, account.right.passwordHash)
     }
 }

@@ -11,21 +11,32 @@ CREATE TABLE users
 
 CREATE TABLE linked_accounts
 (
-    id             SERIAL PRIMARY KEY,
-
-    user_id        INTEGER      NOT NULL
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL
         REFERENCES users (id)
+            ON DELETE CASCADE
+);
+
+CREATE TABLE form_accounts
+(
+    id             INTEGER PRIMARY KEY
+        REFERENCES linked_accounts (id)
             ON DELETE CASCADE,
 
-    type           VARCHAR(100) NOT NULL,
+    password_hash  TEXT NOT NULL
+);
 
-    provider_id    VARCHAR(255),
-
-    password_hash  TEXT,
+CREATE TABLE oauth_accounts
+(
+    id             INTEGER PRIMARY KEY
+        REFERENCES linked_accounts (id)
+            ON DELETE CASCADE,
 
     access_token   TEXT,
+    refresh_token  TEXT,
 
-    refresh_token  TEXT
+    provider       VARCHAR(100) NOT NULL,
+    provider_id    VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE scheduled_reports
@@ -35,7 +46,8 @@ CREATE TABLE scheduled_reports
     report_type         VARCHAR(31) NOT NULL,
 
     user_id             INTEGER     NOT NULL
-        REFERENCES users (id) ON DELETE CASCADE,
+        REFERENCES users (id)
+            ON DELETE CASCADE,
 
     repo_uri            TEXT        NOT NULL,
 

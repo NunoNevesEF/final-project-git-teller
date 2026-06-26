@@ -3,7 +3,6 @@ package pt.isel.model.report
 import org.eclipse.jgit.revwalk.RevCommit
 import pt.isel.domain.SearchInfo
 import pt.isel.domain.report.GitCommunication
-import pt.isel.model.report.ModifiedFiles
 import java.time.Instant
 
 

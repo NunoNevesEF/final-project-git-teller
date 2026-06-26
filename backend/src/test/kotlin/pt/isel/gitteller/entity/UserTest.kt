@@ -1,6 +1,6 @@
-package pt.isel.gitteller.domain.account
+package pt.isel.gitteller.entity
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.assertDoesNotThrow
 import pt.isel.entity.User
 import kotlin.test.Test
@@ -48,6 +48,6 @@ class UserTest {
     fun `User companion method create defaults id to 0 if not passed`(){
         val actual = User(email = validEmail, userName = validUserName)
         val expected = User(0, validEmail, validUserName)
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 }

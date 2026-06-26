@@ -1,26 +1,39 @@
 package pt.isel.gitteller.domain.account
 
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import org.springframework.data.jpa.domain.AbstractPersistable_.id
 import org.springframework.security.oauth2.core.OAuth2AccessToken
 import org.springframework.security.oauth2.core.OAuth2RefreshToken
-import pt.isel.domain.account.AccountType
+import pt.isel.domain.account.OAuthAccountProvider
 import pt.isel.domain.account.FormLinkedAccount
 import pt.isel.domain.account.LinkedAccount
 import pt.isel.domain.account.OAuthLinkedAccount
+import pt.isel.entity.FormLinkedAccountEntity
+import pt.isel.entity.LinkedAccountEntity
+import pt.isel.entity.OAuthLinkedAccountEntity
+import pt.isel.entity.User
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-abstract class LinkedAccountTest<T: LinkedAccount>{
+abstract class LinkedAccountTest<
+        DOMAIN: LinkedAccount<DOMAIN, ENTITY>,
+        ENTITY: LinkedAccountEntity<ENTITY, DOMAIN>
+>{
     val validId = 0
     val validUserId = 0
 
-    abstract fun createLinkedAccount(id: Int = validId, userId: Int = validUserId): T
+    val validEmail = "test@email.com"
+    val validUserName = "test"
+    val validUser = User(validId, validEmail, validUserName)
+
+    abstract fun createLinkedAccount(id: Int = validId, userId: Int = validUserId): DOMAIN
+    abstract fun assertToEntity(original: DOMAIN, result: ENTITY)
 
     @Test
     fun `creation fails if id less than 0`(){
@@ -41,22 +54,27 @@ abstract class LinkedAccountTest<T: LinkedAccount>{
     }
 
     @Test
-    fun `method accountCopy returns LinkedAccount with updated id`(){
-        val testLinkedAccount = createLinkedAccount()
-        val updatedId = testLinkedAccount.id + 1
-        val actual = testLinkedAccount.accountCopy(id = updatedId)
-
-        assertNotEquals(testLinkedAccount, actual)
-        assertEquals(updatedId, actual.id)
-        assertEquals(testLinkedAccount.userId, actual.userId)
+    fun `method toEntity properly creates Entity`(){
+        val original = createLinkedAccount()
+        val result = original.toEntity(validUser)
+        assertToEntity(original, result)
     }
 }
 
-class FormLinkedAccountTest: LinkedAccountTest<FormLinkedAccount>(){
+class FormLinkedAccountTest: LinkedAccountTest<FormLinkedAccount, FormLinkedAccountEntity>(){
     val validPasswordHash = "testPasswordHash"
 
     override fun createLinkedAccount(id: Int, userId: Int) =
         FormLinkedAccount(id, userId, validPasswordHash)
+
+    override fun assertToEntity(
+        original: FormLinkedAccount,
+        result: FormLinkedAccountEntity
+    ) {
+        assertEquals(original.id, result.id)
+        assertEquals(original.userId, result.id)
+        assertEquals(original.passwordHash, result.passwordHash)
+    }
 
     @Test
     fun `companion method create defaults id to 0 if not passed`(){
@@ -64,53 +82,26 @@ class FormLinkedAccountTest: LinkedAccountTest<FormLinkedAccount>(){
         val expected = FormLinkedAccount(0, validUserId, validPasswordHash)
         assertEquals(expected, actual)
     }
-
-    @ParameterizedTest
-    @ValueSource(strings = ["", " "])
-    fun `creation fails if passwordHash is blank`(passwordHash: String) {
-        assertFailsWith<IllegalArgumentException>{
-            FormLinkedAccount.create(validId, validUserId, passwordHash)
-        }
-    }
-
-    @Test
-    fun `creations succeeds if password is not blank`(){
-        assertDoesNotThrow{ FormLinkedAccount.create(validId, validUserId, validPasswordHash) }
-    }
-
-    @Test
-    fun `method getType returns form`(){
-        val testLinkedAccount = createLinkedAccount()
-
-        val expected = AccountType.FORM
-        val actual = testLinkedAccount.getType()
-
-        assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `method uniqueKey returns null`(){
-        val testLinkedAccount = createLinkedAccount()
-        val actual = testLinkedAccount.uniqueKey()
-        assertNull(actual)
-    }
 }
 
-class OAuthLinkedAccountTest: LinkedAccountTest<OAuthLinkedAccount>() {
-    val validProvider = AccountType.GOOGLE.type
+class OAuthLinkedAccountTest: LinkedAccountTest<OAuthLinkedAccount, OAuthLinkedAccountEntity>() {
+    val validProvider = OAuthAccountProvider.GOOGLE.type
     val validProviderId = "1"
-
-    private fun mockAccessToken(value: String) =
-        OAuth2AccessToken(
-            OAuth2AccessToken.TokenType.BEARER, value,
-            Instant.now(), Instant.now().plusSeconds(3600),
-        )
-
-    private fun mockRefreshToken(value: String) =
-        OAuth2RefreshToken(value, Instant.now())
 
     override fun createLinkedAccount(id: Int, userId: Int): OAuthLinkedAccount =
         OAuthLinkedAccount.create(id, userId, provider = validProvider, providerId = validProviderId)
+
+    override fun assertToEntity(
+        original: OAuthLinkedAccount,
+        result: OAuthLinkedAccountEntity
+    ) {
+        assertEquals(original.id, result.id)
+        assertEquals(original.userId, result.id)
+        assertEquals(original.accessToken, result.accessToken)
+        assertEquals(original.refreshToken, result.refreshToken)
+        assertEquals(original.provider, result.provider)
+        assertEquals(original.providerId, result.providerId)
+    }
 
     @ParameterizedTest
     @ValueSource(strings = ["", " "])
@@ -125,8 +116,8 @@ class OAuthLinkedAccountTest: LinkedAccountTest<OAuthLinkedAccount>() {
         val actual = createLinkedAccount(validId, validUserId)
 
         assertEquals(0, actual.id)
-        assertNull(actual.accessToken)
-        assertNull(actual.refreshToken)
+        assertEquals("", actual.accessToken)
+        assertEquals("", actual.refreshToken)
     }
 
     @Test
@@ -134,26 +125,5 @@ class OAuthLinkedAccountTest: LinkedAccountTest<OAuthLinkedAccount>() {
         assertFailsWith<IllegalArgumentException> {
             OAuthLinkedAccount.create(validId, validUserId, provider = "unknown", providerId = validProviderId)
         }
-    }
-
-
-    @Test
-    fun `method getType returns provider`() {
-        val testLinkedAccount = createLinkedAccount()
-
-        val expected = testLinkedAccount.provider
-        val actual = testLinkedAccount.getType()
-
-        assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `method uniqueKey returns providerId`() {
-        val testLinkedAccount = createLinkedAccount()
-
-        val expected = testLinkedAccount.providerId
-        val actual = testLinkedAccount.uniqueKey()
-
-        assertEquals(expected, actual)
     }
 }

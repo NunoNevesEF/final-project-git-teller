@@ -1,5 +1,6 @@
 package pt.isel.repository.jpa
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import pt.isel.entity.schedule.ScheduledReportEntity
@@ -10,9 +11,13 @@ import java.time.Instant
 @Repository
 interface ScheduledReportRepoJpa : JpaRepository<ScheduledReportEntity<*,*>, Int>{
     fun findByUserId(userId: Int): List<ScheduledReportEntity<*,*>>
-
 }
 
+@Repository
+@ConditionalOnProperty(
+    name = ["app.repository.mode"],
+    havingValue = "jpa"
+)
 class ScheduledReportJpaAdapter(
     jpa: ScheduledReportRepoJpa
 ) : RepoJpaAdapter<ScheduledReportEntity<*,*>, ScheduledReportRepoJpa>(jpa), IScheduledReportRepository {

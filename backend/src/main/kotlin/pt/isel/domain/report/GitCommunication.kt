@@ -14,7 +14,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
 import org.eclipse.jgit.revwalk.RevWalk
-import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import pt.isel.domain.SearchInfo
 

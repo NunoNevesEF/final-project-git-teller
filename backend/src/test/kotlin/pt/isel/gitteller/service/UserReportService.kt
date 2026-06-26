@@ -28,7 +28,6 @@ import pt.isel.service.account.UserNotFound
 import pt.isel.service.account.UserService
 import pt.isel.service.report.ReportPDFGenerationService
 import pt.isel.service.report.UserReportNotFound
-import pt.isel.service.report.UserReportPDFNotGenerated
 import pt.isel.service.report.UserReportService
 import pt.isel.utils.failure
 import pt.isel.utils.isFailure

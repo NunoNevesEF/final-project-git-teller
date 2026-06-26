@@ -7,7 +7,6 @@ import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.entity.schedule.ScheduledReportEntity
 import pt.isel.model.scheduledReport.CreateScheduleReportDTO
 import pt.isel.model.scheduledReport.GetScheduledReportDTO
 import pt.isel.repository.interfaces.IScheduledReportRepository
@@ -35,12 +34,12 @@ class ScheduledReportService(
     fun createScheduledReport(
         dto: CreateScheduleReportDTO<*>, userId: Int
     ): Either<ServiceError, Int> {
-        try {
-            return userService.findById(userId).flatMap { user ->
+        return try {
+            userService.findById(userId).flatMap { user ->
                 success(scheduledReportRepo.create(dto.toDomain(userId).toEntity(user)).id)
             }
         } catch (e: IllegalArgumentException) {
-            return failure(InvalidScheduledReportDomainArguments(e.message ?: ""))
+            failure(InvalidScheduledReportDomainArguments(e.message ?: ""))
         }
     }
 
@@ -62,7 +61,7 @@ class ScheduledReportService(
     fun createScheduledReportJob(scheduleId: Int): PendingJob {
         val schedule = scheduledReportRepo.findById(scheduleId) ?: throw ScheduledReportNotFoundException(scheduleId)
 
-        val pendingJob = schedule.toDomain().createJob() //Note: Check if need to handle illegal argument here. Should not be needed since tested on report but best be safe.
+        val pendingJob = schedule.toDomain().createJob() //Note: Check if it's needed to handle illegal argument here. Should not be needed since tested on report but best be safe.
         schedule.addJob(pendingJob.toEntity())
 
         scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(scheduleId)

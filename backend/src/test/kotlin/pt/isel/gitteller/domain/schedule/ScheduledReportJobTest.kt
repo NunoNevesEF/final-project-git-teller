@@ -9,10 +9,8 @@ import pt.isel.domain.schedule.ScheduledJobReportPolicy
 import pt.isel.domain.schedule.ScheduledReportJob
 import pt.isel.domain.schedule.SuccessfulJob
 import pt.isel.entity.schedule.FailedJobStateEmbeddable
-import pt.isel.entity.schedule.OneTimeScheduledReportEntity
 import pt.isel.entity.schedule.PendingJobStateEmbeddable
 import pt.isel.entity.schedule.RunningJobStateEmbeddable
-import pt.isel.entity.schedule.ScheduledReportEntity
 import pt.isel.entity.schedule.ScheduledReportJobEntity
 import pt.isel.entity.schedule.SuccessfulJobStateEmbeddable
 import java.time.Duration

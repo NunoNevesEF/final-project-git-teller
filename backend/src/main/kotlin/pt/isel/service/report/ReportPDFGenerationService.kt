@@ -18,7 +18,7 @@ class ReportPDFGenerationService {
 
     fun createPdf(gitAnalysis: GitAnalysis): ByteArray {
         val byte = generatePdfFromFrontend(gitAnalysis)
-        return byte;
+        return byte
     }
 
     fun generatePdfFromFrontend(gitAnalysis: GitAnalysis): ByteArray {
@@ -35,7 +35,7 @@ class ReportPDFGenerationService {
             page.addInitScript("window.__GIT_ANALYSIS__ = $json")
             page.navigate("http://localhost:8081/Info")
 
-            page.setViewportSize(1920, 1080);
+            page.setViewportSize(1920, 1080)
 
             page.waitForLoadState(LoadState.LOAD)
             page.waitForFunction(
