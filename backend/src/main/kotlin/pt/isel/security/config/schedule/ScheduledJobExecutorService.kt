@@ -33,7 +33,7 @@ class ScheduledJobExecutor(
                 is Success -> {
                     val successJob = scheduledReportService.endJob(runningJob, true) as? SuccessfulJob
                         ?: throw IllegalStateException("what")
-                    scheduledReportService.updateReportLastRun(successJob)
+                    scheduledReportService.updateReportLastRun(successJob.scheduledReportId, successJob.startedAt)
 
                     reportService.createReport(analysisResult.right, repoUri, userId)
                 }
@@ -47,10 +47,10 @@ class ScheduledJobExecutor(
                             ) as? FailedJob ?: throw IllegalStateException("what")
 
                             scheduledReportService.cancelReport(failedJob.scheduledReportId, error.err.name)
-                            scheduledReportService.updateReportLastRun(failedJob)
+                            scheduledReportService.updateReportLastRun(failedJob.scheduledReportId, failedJob.startedAt)
                         }
                         else -> { when (val failedJob = scheduledReportService.endJob(runningJob, false, allowRetry = true)) {
-                                is FailedJob -> scheduledReportService.updateReportLastRun(failedJob)
+                                is FailedJob -> scheduledReportService.updateReportLastRun(failedJob.scheduledReportId, failedJob.startedAt)
                                 is PendingJob -> schedule(failedJob, repoUri, userId)
                                 else -> throw IllegalStateException("what")
                             }
@@ -58,8 +58,8 @@ class ScheduledJobExecutor(
                     }
                 }
             }
-        } catch (_: Exception) {
-
+        } catch (e: Exception) {
+            println(e.message)
         }
         //TODO: IMPROVE CODE. WE KNOW WHEN TO REPEAT VS NOT SO CONDITIONAL END JOB IS ONLY CAUSING UNECESSARY CASTING
     }
