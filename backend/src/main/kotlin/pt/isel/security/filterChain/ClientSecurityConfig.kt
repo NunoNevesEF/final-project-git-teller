@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import pt.isel.security.oauth.CustomOAuth2AuthorizationRequestResolver
 import pt.isel.security.oauth.handler.CustomOAuth2AuthenticationSuccessHandler
@@ -35,11 +36,8 @@ class ClientSecurityConfig(
                     .anyRequest().authenticated()
             }
             .csrf{ it.disable() }
-            .formLogin { formLogin ->
-                formLogin
-                    .permitAll()
-                    .failureUrl("http://localhost:8081/login?formError=true")
-                    .defaultSuccessUrl("http://localhost:8081/home", true)
+            .sessionManagement { sessionManager ->
+                sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
             .oauth2Login { oauthLogin ->
                 oauthLogin
