@@ -2,7 +2,7 @@ package pt.isel.service
 
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import pt.isel.domain.schedule.CompletedJob
+import pt.isel.domain.report.JobStatus
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledReport
@@ -16,6 +16,7 @@ import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.flatMap
 import pt.isel.utils.success
+import java.time.Instant
 
 
 interface ScheduledReportServiceError: ServiceError
@@ -24,6 +25,7 @@ class InvalidScheduledReportDomainArguments(val msg: String) : ScheduledReportSe
 
 class ScheduledReportNotFoundException(scheduleId: Int) : Exception("Scheduled report $scheduleId not found")
 class ScheduledReportJobNotFoundException(jobId: Int) : Exception("Job $jobId not found")
+class UnexpectedJobTypeException(jobStatus: JobStatus) : Exception("Unexpected job type ${jobStatus.name}")
 
 @Service
 class ScheduledReportService(
@@ -58,28 +60,14 @@ class ScheduledReportService(
     }
 
     @Transactional
-    fun createScheduledReportJob(scheduleId: Int): PendingJob {
-        val schedule = scheduledReportRepo.findById(scheduleId) ?: throw ScheduledReportNotFoundException(scheduleId)
-
-        val pendingJob = schedule.toDomain().createJob() //Note: Check if it's needed to handle illegal argument here. Should not be needed since tested on report but best be safe.
-        schedule.addJob(pendingJob.toEntity())
-
-        scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(scheduleId)
-
-        return pendingJob
-    }
-
-    fun listDueJobs() = scheduledReportRepo.findDue().map { Triple(it.id, it.repoUri, it.user.id) }
-
-    @Transactional
     fun calculateNextReport(scheduleId: Int): ScheduledReport<*, *> = updateReport(scheduleId) { schedule ->
         schedule.advanceSchedule()
     }
 
     @Transactional
-    fun updateReportLastRun(completedJob: CompletedJob): ScheduledReport<*, *> =
-        updateReport(completedJob.scheduledReportId) { schedule ->
-            schedule.recordExecution(completedJob.startedAt)
+    fun updateReportLastRun(scheduledReportId: Int, startedAt: Instant): ScheduledReport<*, *> =
+        updateReport(scheduledReportId) { schedule ->
+            schedule.recordExecution(startedAt)
         }
 
     @Transactional
@@ -88,6 +76,21 @@ class ScheduledReportService(
         schedule.cancel(errorMsg)
         scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(scheduleId)
     }
+
+    @Transactional
+    fun createScheduledReportJob(scheduleId: Int): PendingJob {
+        val schedule = scheduledReportRepo.findById(scheduleId) ?: throw ScheduledReportNotFoundException(scheduleId)
+
+        val pendingJobEntity = schedule.toDomain().createJob().toEntity() //Note: Check if it's needed to handle illegal argument here. Should not be needed since tested on report but best be safe.
+        schedule.addJob(pendingJobEntity)
+
+        scheduledReportRepo.update(schedule) ?: throw ScheduledReportNotFoundException(scheduleId)
+
+        return pendingJobEntity.toDomain() as? PendingJob ?: throw UnexpectedJobTypeException(pendingJobEntity.state.state)
+    }
+
+    @Transactional
+    fun listDueJobs() = scheduledReportRepo.findDue().map { Triple(it.id, it.repoUri, it.user.id) }
 
     @Transactional
     fun runJob(pendingJob: PendingJob): RunningJob = updateJob(pendingJob) { pendingJob.run() }
@@ -116,7 +119,7 @@ class ScheduledReportService(
 
         val updated = update(job)
 
-        schedule.updateJob(job.id) {
+        schedule.updateJob(job.id){
             it.updateState(updated.getStateEmbeddable())
         } ?: throw ScheduledReportJobNotFoundException(job.scheduledReportId)
 
