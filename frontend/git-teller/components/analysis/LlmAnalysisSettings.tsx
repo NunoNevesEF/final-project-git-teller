@@ -1,31 +1,14 @@
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import CustomTextInput from '@/components/utils/textInput';
 import OptionButton from '@/components/utils/OptionButton';
+import TooltipLabel from '@/components/utils/TooltipLabel';
 import { useCommonStyles } from '@/constants/useCommonStyles';
+import { ANALYSIS_TYPES, AnalysisType } from '@/constants/analysisTypes';
 
 export type LlmFilterType = 'shas' | 'dateRange' | 'overview';
 export type PromptComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
 export type AnalysisMode = 'DIFF' | 'META';
-export type AnalysisType =
-    | 'DEFAULT' | 'SECURITY' | 'QUALITY' | 'TESTS' | 'PERFORMANCE'
-    | 'COMMENTS' | 'IMPACT' | 'DEVELOPER_EXPERIENCE' | 'ARCHITECTURE'
-    | 'RISK' | 'DEPENDENCIES' | 'BREAKING_CHANGES' | 'DOCUMENTATION';
-
-const ANALYSIS_TYPES: { value: AnalysisType; label: string }[] = [
-    { value: 'DEFAULT',              label: 'Default' },
-    { value: 'SECURITY',             label: 'Security' },
-    { value: 'QUALITY',              label: 'Quality' },
-    { value: 'TESTS',                label: 'Tests' },
-    { value: 'PERFORMANCE',          label: 'Performance' },
-    { value: 'COMMENTS',             label: 'Comments' },
-    { value: 'IMPACT',               label: 'Impact' },
-    { value: 'DEVELOPER_EXPERIENCE', label: 'Dev Experience' },
-    { value: 'ARCHITECTURE',         label: 'Architecture' },
-    { value: 'RISK',                 label: 'Risk' },
-    { value: 'DEPENDENCIES',         label: 'Dependencies' },
-    { value: 'BREAKING_CHANGES',     label: 'Breaking Changes' },
-    { value: 'DOCUMENTATION',        label: 'Documentation' },
-];
+export type { AnalysisType };
 
 interface LlmAnalysisSettingsProps {
     visible: boolean;
@@ -49,17 +32,16 @@ interface LlmAnalysisSettingsProps {
 }
 
 export default function LlmAnalysisSettings({
-                                                     visible, onClose, onConfirm, confirmLabel = 'Done',
-                                                     llmFilterType, onLlmFilterTypeChange,
-                                                     commitShas, onCommitShasChange,
-                                                     fromDate, onFromDateChange,
-                                                     toDate, onToDateChange,
-                                                     promptComplexity, onPromptComplexityChange,
-                                                     analysisMode, onAnalysisModeChange,
-                                                     requestedAnalyses, onRequestedAnalysesChange,
-                                                 }: LlmAnalysisSettingsProps) {
+    visible, onClose, onConfirm, confirmLabel = 'Done',
+    llmFilterType, onLlmFilterTypeChange,
+    commitShas, onCommitShasChange,
+    fromDate, onFromDateChange,
+    toDate, onToDateChange,
+    promptComplexity, onPromptComplexityChange,
+    analysisMode, onAnalysisModeChange,
+    requestedAnalyses, onRequestedAnalysesChange,
+}: LlmAnalysisSettingsProps) {
     const commonStyles = useCommonStyles();
-    const maxAnalyses = promptComplexity === 'SIMPLE' ? 2 : promptComplexity === 'MEDIUM' ? 3 : 4;
 
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -74,7 +56,11 @@ export default function LlmAnalysisSettings({
                     <ScrollView showsVerticalScrollIndicator={false}>
                         <Text style={[commonStyles.formTitle, { marginBottom: 12 }]}>LLM Analysis Settings</Text>
 
-                        <Text style={commonStyles.toggleLabel}>Filter by</Text>
+                        <TooltipLabel
+                            label="Filter by"
+                            tooltip="Select which commits the LLM will analyse. Overview uses the full repo summary; Date Range and Commit SHAs target specific commits."
+                            style={commonStyles.toggleLabel}
+                        />
                         <View style={commonStyles.optionGroup}>
                             <OptionButton label="Overview" active={llmFilterType === 'overview'} onPress={() => onLlmFilterTypeChange('overview')} commonStyles={commonStyles} />
                             <OptionButton label="Date Range" active={llmFilterType === 'dateRange'} onPress={() => onLlmFilterTypeChange('dateRange')} commonStyles={commonStyles} />
@@ -98,14 +84,22 @@ export default function LlmAnalysisSettings({
 
                         {llmFilterType !== 'overview' && (
                             <>
-                                <Text style={commonStyles.toggleLabel}>Prompt Complexity</Text>
+                                <TooltipLabel
+                                    label="Prompt Complexity"
+                                    tooltip="Simple: short summary (8 lines). Medium: structured with impact and risks. Complex: deep evidence-based review."
+                                    style={commonStyles.toggleLabel}
+                                />
                                 <View style={commonStyles.optionGroup}>
                                     <OptionButton label="Simple" active={promptComplexity === 'SIMPLE'} onPress={() => onPromptComplexityChange('SIMPLE')} commonStyles={commonStyles} />
                                     <OptionButton label="Medium" active={promptComplexity === 'MEDIUM'} onPress={() => onPromptComplexityChange('MEDIUM')} commonStyles={commonStyles} />
                                     <OptionButton label="Complex" active={promptComplexity === 'COMPLEX'} onPress={() => onPromptComplexityChange('COMPLEX')} commonStyles={commonStyles} />
                                 </View>
 
-                                <Text style={commonStyles.toggleLabel}>Analysis Mode</Text>
+                                <TooltipLabel
+                                    label="Analysis Mode"
+                                    tooltip="Diff: sends actual code changes, more accurate but slower. Meta: sends only file names and stats, faster but less detailed."
+                                    style={commonStyles.toggleLabel}
+                                />
                                 <View style={commonStyles.optionGroup}>
                                     <OptionButton label="Diff" active={analysisMode === 'DIFF'} onPress={() => onAnalysisModeChange('DIFF')} commonStyles={commonStyles} />
                                     <OptionButton label="Meta" active={analysisMode === 'META'} onPress={() => onAnalysisModeChange('META')} commonStyles={commonStyles} />
@@ -113,29 +107,26 @@ export default function LlmAnalysisSettings({
 
                                 {analysisMode === 'DIFF' && (
                                     <>
-                                        <Text style={commonStyles.toggleLabel}>
-                                            Requested Analyses ({requestedAnalyses.length}/{maxAnalyses})
-                                        </Text>
+                                        <TooltipLabel
+                                            label="Requested Analysis"
+                                            tooltip={ANALYSIS_TYPES.map(t => (
+                                                <Text key={t.value} style={{ fontSize: 11, color: '#777', fontStyle: 'italic', marginBottom: 2 }}>
+                                                    <Text style={{ fontWeight: 'bold' }}>{t.label}:</Text>{' '}{t.description}
+                                                </Text>
+                                            ))}
+                                            style={commonStyles.toggleLabel}
+                                        />
                                         <View style={[commonStyles.optionGroup, { flexWrap: 'wrap', justifyContent: 'flex-start' }]}>
                                             {ANALYSIS_TYPES.map((type) => {
                                                 const isSelected = requestedAnalyses.includes(type.value);
-                                                const isDisabled = !isSelected && requestedAnalyses.length >= maxAnalyses;
                                                 return (
                                                     <TouchableOpacity
                                                         key={type.value}
                                                         style={[
                                                             commonStyles.optionButton,
                                                             isSelected && commonStyles.optionButtonActive,
-                                                            isDisabled && { opacity: 0.35 },
                                                         ]}
-                                                        onPress={() => {
-                                                            if (isDisabled) return;
-                                                            if (isSelected) {
-                                                                onRequestedAnalysesChange(requestedAnalyses.filter(a => a !== type.value));
-                                                            } else {
-                                                                onRequestedAnalysesChange([...requestedAnalyses, type.value]);
-                                                            }
-                                                        }}
+                                                        onPress={() => onRequestedAnalysesChange([type.value])}
                                                     >
                                                         <Text style={[commonStyles.optionButtonText, isSelected && commonStyles.optionButtonTextActive]}>
                                                             {type.label}

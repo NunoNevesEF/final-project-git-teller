@@ -26,6 +26,7 @@ import pt.isel.model.scheduledReport.GetOneTimeScheduledReportDTO
 import pt.isel.model.scheduledReport.GetPeriodicScheduledReportDTO
 import pt.isel.model.scheduledReport.GetScheduledReportDTO
 import java.time.Instant
+import pt.isel.domain.schedule.LlmScheduleConfig
 
 @Entity
 @Table(name = "scheduled_reports")
@@ -45,6 +46,12 @@ abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>,
     @Column(name = "is_cancelled", nullable = false) var isCancelled: Boolean = false,
 
     @Column(name = "cancellation_reason") var cancellationReason: String? = null,
+
+    @Column(name = "llm_complexity") var llmComplexity: String? = null,
+
+    @Column(name = "llm_mode") var llmMode: String? = null,
+
+    @Column(name = "llm_analyses", length = 500) var llmAnalyses: String? = null
 ) : IsEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
@@ -77,6 +84,15 @@ abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>,
         cancellationReason = errorMsg
     }
 
+    fun getLlmConfig(): LlmScheduleConfig? {
+        if (llmComplexity == null) return null
+        return LlmScheduleConfig(
+            promptComplexity = llmComplexity!!,
+            analysisMode = llmMode ?: "DIFF",
+            requestedAnalyses = llmAnalyses?.split(",") ?: listOf("DEFAULT")
+        )
+    }
+
     private fun isJobScheduled() = jobs.any { it.scheduledFor == nextRunAt }
 
     protected abstract fun isActive(): Boolean
@@ -94,7 +110,7 @@ class OneTimeScheduledReportEntity(
     id, repoUri, nextRunAt, lastRunAt, dataFrom
 ) {
     override fun toDomain() = OneTimeScheduledReport(
-        id, user.id, repoUri, nextRunAt, lastRunAt, dataFrom
+        id, user.id, repoUri, nextRunAt, lastRunAt, dataFrom, getLlmConfig()
     )
 
     override fun toDTO(): GetScheduledReportDTO =
@@ -125,7 +141,7 @@ class PeriodicScheduledReportEntity(
     id, repoUri, nextRunAt, lastRunAt, dataFrom
 ) {
     override fun toDomain() = PeriodicScheduledReport(
-        id, user.id, repoUri, nextRunAt!!, lastRunAt, dataFrom, active, timeZone, cronExpression,
+        id, user.id, repoUri, nextRunAt!!, lastRunAt, dataFrom, active, timeZone, cronExpression, getLlmConfig()
     )
 
     override fun toDTO(): GetScheduledReportDTO =

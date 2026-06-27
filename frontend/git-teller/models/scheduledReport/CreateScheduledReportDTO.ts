@@ -50,19 +50,28 @@ export const monthlyLastDayMode = (): FrequencyMode => ({type: "MONTHLY_LAST_DAY
 
 export const yearlyMode = (dayOfMonth: number, month: number): FrequencyMode => ({type: "YEARLY", dayOfMonth, month})
 
-export interface CreateOneTimeScheduledReportDTO{
-    type: 'ONE_TIME';
-    repoUri: string;
-    dataStart: string;
-    runAt: string;
+export interface LlmScheduleConfig {
+    promptComplexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
+    analysisMode: 'DIFF' | 'META';
+    requestedAnalyses: string[];
+    overviewOnly: boolean;
 }
 
-export interface CreatePeriodicScheduledReportDTO{
+export interface CreateOneTimeScheduledReportDTO {
+    type: 'ONE_TIME';
+    repoUri: string;
+    dataStart: string | null;
+    runAt: string | null;
+    llmConfig?: LlmScheduleConfig;
+}
+
+export interface CreatePeriodicScheduledReportDTO {
     type: 'PERIODIC';
     repoUri: string;
     timeZone: string;
     time: string;
     freqMode: FrequencyMode;
+    llmConfig?: LlmScheduleConfig;
 }
 
 export type CreateScheduledReportDTO =

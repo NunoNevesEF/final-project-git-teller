@@ -58,7 +58,11 @@ CREATE TABLE scheduled_reports
 
     is_cancelled        BOOLEAN     NOT NULL DEFAULT FALSE,
 
-    cancellation_reason VARCHAR(100)
+    cancellation_reason VARCHAR(100),
+
+    llm_complexity      VARCHAR(20),
+    llm_mode            VARCHAR(10),
+    llm_analyses        VARCHAR(500)
 );
 
 ALTER TABLE scheduled_reports

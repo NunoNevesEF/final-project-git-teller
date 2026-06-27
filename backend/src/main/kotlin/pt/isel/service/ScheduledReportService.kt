@@ -3,6 +3,7 @@ package pt.isel.service
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import pt.isel.domain.report.JobStatus
+import pt.isel.domain.schedule.LlmScheduleConfig
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.RunningJob
 import pt.isel.domain.schedule.ScheduledReport
@@ -88,6 +89,9 @@ class ScheduledReportService(
 
         return pendingJobEntity.toDomain() as? PendingJob ?: throw UnexpectedJobTypeException(pendingJobEntity.state.state)
     }
+
+    fun getScheduleLlmConfig(scheduleId: Int): LlmScheduleConfig? =
+        scheduledReportRepo.findById(scheduleId)?.getLlmConfig()
 
     @Transactional
     fun listDueJobs() = scheduledReportRepo.findDue().map { Triple(it.id, it.repoUri, it.user.id) }
