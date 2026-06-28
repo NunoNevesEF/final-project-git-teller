@@ -70,7 +70,6 @@ class ScheduledReportServiceTest(){
     private lateinit var mockPendingJobEntity: ScheduledReportJobEntity
 
 
-
     @Test
     fun `method createScheduledReport returns created ScheduledReport`(){
         whenever(userService.findById(validUserId)).thenReturn(success(mockUser))
@@ -263,7 +262,7 @@ class ScheduledReportServiceTest(){
 
         whenever(scheduledReportRepo.update(updatedEntity)).thenReturn(updatedEntity)
 
-        val result = service.updateReportLastRun(mockCompleteJob)
+        val result = service.updateReportLastRun(mockCompleteJob.scheduledReportId, mockCompleteJob.startedAt)
 
         assertEquals(updated, result)
         assertEquals(originalEntity.jobs, updatedEntity.jobs)
@@ -277,7 +276,7 @@ class ScheduledReportServiceTest(){
         whenever(scheduledReportRepo.findById(validScheduledReportId))
             .thenReturn(null)
 
-        assertThrows<ScheduledReportNotFoundException>{ service.updateReportLastRun(mockCompleteJob) }
+        assertThrows<ScheduledReportNotFoundException>{ service.updateReportLastRun(mockCompleteJob.scheduledReportId, mockCompleteJob.startedAt) }
     }
 
     @Test

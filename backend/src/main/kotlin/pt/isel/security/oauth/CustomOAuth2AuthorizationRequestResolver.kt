@@ -41,17 +41,7 @@ class CustomOAuth2AuthorizationRequestResolver(
     ) : OAuth2AuthorizationRequest? {
         authRequest ?: return null
 
-        val linkMode = request.getParameter("link") == "true"
-
-        if(!linkMode) { return authRequest }
-
-        val authentication = SecurityContextHolder.getContext().authentication ?: return null
-        val principal = authentication.principal as UserPrincipal
-
-        val state = jwtService.generateLinkState(
-            userId = principal.getUserId(),
-            provider = authRequest.getAttribute("registration_id")!!
-        )
+        val state = request.getParameter("state") ?: return authRequest
 
         return OAuth2AuthorizationRequest.from(authRequest)
             .state(state)

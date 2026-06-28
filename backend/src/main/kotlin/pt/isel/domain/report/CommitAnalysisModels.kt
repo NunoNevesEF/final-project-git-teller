@@ -62,7 +62,7 @@ data class CommitShasAnalysisRequest(
     val requestedAnalyses: List<String> = listOf("DEFAULT")
 )
 
-data class CommitDateRangeAnalysisRequest(
+data class CommitDetailedSettingsAnalysisRequest(
     val maxCommits: Int = 20,
     val maxCharsPerFile: Int = 5000,
     val promptComplexity: String = "MEDIUM",

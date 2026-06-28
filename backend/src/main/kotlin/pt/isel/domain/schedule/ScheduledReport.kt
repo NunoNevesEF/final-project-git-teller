@@ -1,5 +1,6 @@
 package pt.isel.domain.schedule
 
+import pt.isel.domain.report.AnalysisRequestWrapper
 import pt.isel.entity.User
 import pt.isel.entity.schedule.OneTimeScheduledReportEntity
 import pt.isel.entity.schedule.PeriodicScheduledReportEntity
@@ -24,6 +25,7 @@ sealed class ScheduledReport<SELF : ScheduledReport<SELF, ENTITY>, ENTITY : Sche
     abstract val nextRunAt: Instant?
     abstract val lastRunAt: Instant?
     abstract val dataFrom: Instant
+    abstract val llmConfig: AnalysisRequestWrapper?
 
     fun createJob(): PendingJob = ScheduledReportJob.create(
         scheduledReportId = id, scheduledFor = nextRunAt!!, dataFrom = dataFrom
@@ -41,12 +43,15 @@ data class OneTimeScheduledReport(
     override val nextRunAt: Instant?,
     override val lastRunAt: Instant? = null,
     override val dataFrom: Instant,
+    override val llmConfig: AnalysisRequestWrapper? = null,
 ) : ScheduledReport<OneTimeScheduledReport, OneTimeScheduledReportEntity>(id, userId, repoUri, nextRunAt, dataFrom) {
     companion object {
         fun create(
-            id: Int = 0, userId: Int, repoURI: String, nextRun: Instant, dataStart: Instant = Instant.now()
+            id: Int = 0, userId: Int, repoURI: String, nextRun: Instant,
+            dataStart: Instant = Instant.now(), llmConfig: AnalysisRequestWrapper? = null
         ): OneTimeScheduledReport = OneTimeScheduledReport(
-            id = id, userId = userId, repoUri = repoURI, nextRunAt = nextRun, dataFrom = dataStart
+            id = id, userId = userId, repoUri = repoURI, nextRunAt = nextRun,
+            dataFrom = dataStart, llmConfig = llmConfig
         )
     }
 
@@ -55,7 +60,14 @@ data class OneTimeScheduledReport(
 
     override fun toEntity(user: User) = OneTimeScheduledReportEntity(
         id = id, repoUri = repoUri, nextRunAt = nextRunAt, lastRunAt = lastRunAt, dataFrom = dataFrom
-    ).apply { this.user = user }
+    ).apply {
+        this.user = user
+        llmConfig?.let {
+            llmComplexity = it.byDetailedSettings?.promptComplexity
+            llmMode = it.byDetailedSettings?.analysisMode
+            llmAnalyses = it.byDetailedSettings?.requestedAnalyses?.joinToString(",")
+        }
+    }
 }
 
 data class PeriodicScheduledReport(
@@ -69,10 +81,12 @@ data class PeriodicScheduledReport(
     val active: Boolean = true,
     val timeZone: String,
     val cronExpression: String,
+    override val llmConfig: AnalysisRequestWrapper? = null,
 ) : ScheduledReport<PeriodicScheduledReport, PeriodicScheduledReportEntity>(id, userId, repoUri, nextRunAt, dataFrom) {
     companion object {
         fun create(
-            id: Int = 0, userId: Int, repoURI: String, timeZone: String, cronInput: CronInput,
+            id: Int = 0, userId: Int, repoURI: String, timeZone: String,
+            cronInput: CronInput, llmConfig: AnalysisRequestWrapper? = null,
         ): PeriodicScheduledReport {
             val cronExpression = CronUtils.build(cronInput)
             val nextRun = CronUtils.calculateNext(cronExpression, timeZone)
@@ -83,7 +97,8 @@ data class PeriodicScheduledReport(
                 nextRunAt = nextRun,
                 timeZone = timeZone,
                 cronExpression = cronExpression,
-                dataFrom = CronUtils.calculatePrev(cronInput.mode, timeZone, nextRun)
+                dataFrom = CronUtils.calculatePrev(cronInput.mode, timeZone, nextRun),
+                llmConfig = llmConfig
             )
         }
     }
@@ -101,7 +116,14 @@ data class PeriodicScheduledReport(
         active = active,
         timeZone = timeZone,
         cronExpression = cronExpression
-    ).also { it.user = user }
+    ).also {
+        it.user = user
+        llmConfig?.let { cfg ->
+            it.llmComplexity = cfg.byDetailedSettings?.promptComplexity
+            it.llmMode = cfg.byDetailedSettings?.analysisMode
+            it.llmAnalyses = cfg.byDetailedSettings?.requestedAnalyses?.joinToString(",")
+        }
+    }
 
     private fun calculateNextRunTime(): Instant = CronUtils.calculateNext(
         cronExpression = cronExpression,
@@ -109,4 +131,3 @@ data class PeriodicScheduledReport(
         from = nextRunAt.plusSeconds(1) //Start checking from after nextRun.
     )
 }
-

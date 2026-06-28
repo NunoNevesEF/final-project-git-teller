@@ -34,25 +34,7 @@ sealed class ScheduledReportJob(
             state = getStateEmbeddable(),
         )
 
-    abstract fun getStateEmbeddable(): ScheduledReportJobStateEmbeddable
-}
-
-sealed class NonPendingJob(
-    id: Int,
-    scheduledReportId: Int,
-    dataFrom: Instant,
-    dataTo: Instant,
-) : ScheduledReportJob(id, scheduledReportId, dataFrom, dataTo) {
-    abstract val startedAt: Instant
-}
-
-sealed class CompletedJob(
-    id: Int,
-    scheduledReportId: Int,
-    dataFrom: Instant,
-    dataTo: Instant,
-) : NonPendingJob(id, scheduledReportId, dataFrom, dataTo) {
-    abstract val endedAt: Instant
+    abstract fun getStateEmbeddable(): JobStateEmbeddable
 }
 
 data class PendingJob(
@@ -64,8 +46,9 @@ data class PendingJob(
     val runAt: Instant = scheduledFor,
 ) : ScheduledReportJob(id, scheduledReportId, dataFrom, scheduledFor) {
     fun run() = RunningJob(id, scheduledReportId, dataFrom, scheduledFor, retryCount)
-    override fun getStateEmbeddable(): ScheduledReportJobStateEmbeddable =
-        PendingJobStateEmbeddable(runAt)
+
+    override fun getStateEmbeddable(): JobStateEmbeddable =
+        JobStateEmbeddable.pending(runAt)
 }
 
 data class RunningJob(
@@ -74,8 +57,9 @@ data class RunningJob(
     override val dataFrom: Instant,
     override val scheduledFor: Instant,
     override val retryCount: Int,
-    override val startedAt: Instant = Instant.now()
-) : NonPendingJob(id, scheduledReportId, dataFrom, scheduledFor) {
+    val startedAt: Instant = Instant.now()
+) : ScheduledReportJob(id, scheduledReportId, dataFrom, scheduledFor) {
+
     fun end(isSuccess: Boolean, errorMsg: String = "", allowRetry: Boolean): ScheduledReportJob {
         return if (isSuccess) success()
         else if (!allowRetry) failure(errorMsg)
@@ -100,8 +84,8 @@ data class RunningJob(
         runAt = Instant.now().plus(ScheduledJobReportPolicy.nextRetry(retryCount))
     )
 
-    override fun getStateEmbeddable(): ScheduledReportJobStateEmbeddable =
-        RunningJobStateEmbeddable(startedAt)
+    override fun getStateEmbeddable(): JobStateEmbeddable =
+        JobStateEmbeddable.running(startedAt)
 }
 
 data class SuccessfulJob(
@@ -110,11 +94,11 @@ data class SuccessfulJob(
     override val dataFrom: Instant,
     override val scheduledFor: Instant,
     override val retryCount: Int,
-    override val startedAt: Instant,
-    override val endedAt: Instant = Instant.now()
-) : CompletedJob(id, scheduledReportId, dataFrom, scheduledFor) {
-    override fun getStateEmbeddable(): ScheduledReportJobStateEmbeddable =
-        SuccessfulJobStateEmbeddable(startedAt, endedAt)
+    val startedAt: Instant,
+    val endedAt: Instant = Instant.now()
+) : ScheduledReportJob(id, scheduledReportId, dataFrom, scheduledFor) {
+    override fun getStateEmbeddable(): JobStateEmbeddable =
+        JobStateEmbeddable.successful(startedAt, endedAt)
 }
 
 data class FailedJob(
@@ -123,12 +107,12 @@ data class FailedJob(
     override val dataFrom: Instant,
     override val scheduledFor: Instant,
     override val retryCount: Int,
-    override val startedAt: Instant,
-    override val endedAt: Instant = Instant.now(),
+    val startedAt: Instant,
+    val endedAt: Instant = Instant.now(),
     val errorMsg: String,
-) : CompletedJob(id, scheduledReportId, dataFrom, scheduledFor) {
-    override fun getStateEmbeddable(): ScheduledReportJobStateEmbeddable =
-        FailedJobStateEmbeddable(startedAt, endedAt, errorMsg)
+) : ScheduledReportJob(id, scheduledReportId, dataFrom, scheduledFor) {
+    override fun getStateEmbeddable(): JobStateEmbeddable =
+        JobStateEmbeddable.failed(startedAt, endedAt, errorMsg)
 }
 
 data object ScheduledJobReportPolicy {

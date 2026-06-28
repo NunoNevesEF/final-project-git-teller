@@ -12,7 +12,7 @@ import pt.isel.domain.report.BatchCommitAnalysisResponse
 import pt.isel.domain.report.CommitAnalysisContext
 import pt.isel.domain.report.CommitAnalysisRequest
 import pt.isel.domain.report.CommitAnalysisResponse
-import pt.isel.domain.report.CommitDateRangeAnalysisRequest
+import pt.isel.domain.report.CommitDetailedSettingsAnalysisRequest
 import pt.isel.domain.report.CommitFileChangeDto
 import pt.isel.domain.report.CommitShasAnalysisRequest
 import pt.isel.domain.report.GitCommunication
@@ -93,7 +93,7 @@ class CommitAnalysisService(
         )
     }
 
-    fun analyzeCommitsDetailedSettings(request: CommitDateRangeAnalysisRequest, repoURI: String, dateFilter: DateInterval?): BatchCommitAnalysisResponse {
+    fun analyzeCommitsDetailedSettings(request: CommitDetailedSettingsAnalysisRequest, repoURI: String, dateFilter: DateInterval?): BatchCommitAnalysisResponse {
         val gitComm = GitCommunication.openExisting(repoURI)
         val commits = commitFetcherService.getCommitsBetweenDatesOrAll(gitComm,
             dateFilter, request.maxCommits)
