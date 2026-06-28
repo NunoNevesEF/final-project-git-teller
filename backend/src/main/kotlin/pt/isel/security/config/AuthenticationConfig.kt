@@ -14,7 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 class AuthenticationConfig{
     @Bean
     fun passwordEncoder(): PasswordEncoder {
-        return NoOpPasswordEncoder.getInstance()
+        return BCryptPasswordEncoder()
     }
 
     @Bean
