@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import RepositorySearchForm, { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType } from '@/components/analysis/RepositorySearchForm';
 import { analyzeRepo } from '@/services/GitCommunicationService';
@@ -8,6 +8,8 @@ import LoadingComponent from '../utils/LoadingComponent';
 
 export default function RepositorySearch() {
   const router = useRouter();
+  const repoURI = useAnalysisInfoStore((s) => s.repoURI);
+  const setRepoURI = useAnalysisInfoStore((s) => s.setRepoURI);
   const setResult = useAnalysisInfoStore((state) => state.setResult);
   const setProjectNameStore = useAnalysisInfoStore((s) => s.setProjectName);
   const setReportId = useAnalysisInfoStore((state) => state.setReportId);
@@ -21,12 +23,18 @@ export default function RepositorySearch() {
   const [llmAnalysisEnabled, setLlmAnalysisEnabled] = useState(false);
   const [requestedAnalyses, setRequestedAnalyses] = useState<AnalysisType[]>(['DEFAULT']);
 
-  const [llmFilterType, setLlmFilterType] = useState<LlmFilterType>('dateRange');
+  const [llmFilterType, setLlmFilterType] = useState<LlmFilterType>('detailedSettings');
   const [commitShas, setCommitShas] = useState('');
-  const [fromDate, setFromDate] = useState('2026-05-15');
-  const [toDate, setToDate] = useState('2026-05-16');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [promptComplexity, setPromptComplexity] = useState<PromptComplexity>('SIMPLE');
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('DIFF');
+
+  useEffect(() => {
+    if (repoURI) {
+      setText(repoURI);
+    }
+  }, [repoURI]);
 
   const buildUrl = () => {
     if (searchType === 'url') return text;
@@ -44,7 +52,6 @@ export default function RepositorySearch() {
         const byShas =
             llmAnalysisEnabled && llmFilterType === 'shas' && commitShas
                 ? {
-                    repoURI: url,
                     commitShas: commitShas.split(',').map((s) => s.trim()).filter(Boolean),
                     promptComplexity,
                     analysisMode,
@@ -52,35 +59,44 @@ export default function RepositorySearch() {
                 }
                 : undefined;
 
-        const byDateRange =
-            llmAnalysisEnabled && llmFilterType === 'dateRange' && fromDate && toDate
+        const byDetailedSettings =
+            llmAnalysisEnabled && llmFilterType === 'detailedSettings'
                 ? {
-                    repoURI: url,
-                    fromDate: `${fromDate}T00:00:00Z`,
-                    toDate: `${toDate}T23:59:59Z`,
                     promptComplexity,
                     analysisMode,
                     requestedAnalyses,
                 }
                 : undefined;
+        
+        const dateFilter =
+          fromDate && toDate
+            ? {
+                beginDate: `${fromDate}T00:00:00Z`,
+                endDate: `${toDate}T23:59:59Z`,
+              }
+            : null;
 
-        const result = await analyzeRepo(url, llmAnalysisEnabled, byShas, byDateRange);
+        const request = {
+          repoURI: url,
+          gitAccountId: null,
+          dateFilter: dateFilter,
+          llmRequest: llmAnalysisEnabled
+            ? {
+                flag: true,
+                byShas: llmFilterType === 'shas' ? byShas : null,
+                byDetailedSettings: llmFilterType === 'detailedSettings' ? byDetailedSettings : null,
+              }
+            : null,
+        };
 
+        setRepoURI("");
+        
+        const result = await analyzeRepo(request);
 
 
         setResult(result);
         setProjectNameStore(projectName);
         setReportId(null);
-        /*
-            setInput({
-      repositoryUrl: url,
-      repositoryName: projectName,
-      repositoryOwner: usernameRepo,
-      platform,
-      llmAnalysisEnabled,
-    });
-         */
-
 
       router.push('/Info');
     } finally {

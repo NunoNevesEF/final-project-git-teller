@@ -1,6 +1,6 @@
 package pt.isel.service.llmanalysis.util
 
-import pt.isel.domain.CommitAnalysisRequest
+import pt.isel.domain.report.CommitAnalysisRequest
 
 
 

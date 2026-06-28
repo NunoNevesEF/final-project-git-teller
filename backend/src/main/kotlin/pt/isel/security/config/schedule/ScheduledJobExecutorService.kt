@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.stereotype.Service
+import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.SuccessfulJob
@@ -28,8 +29,14 @@ class ScheduledJobExecutor(
     private fun execute(pendingJob: PendingJob, repoUri: String, userId: Int) {
         try {
             val runningJob = scheduledReportService.runJob(pendingJob)
+            val request = GitAnalysisRequest(
+                repoURI = repoUri,
+                llmRequest = null,
+                dateFilter = null,
+                gitAccountId = null
+            )
 
-            when (val analysisResult = analysisService.createAnalysis(repoUri)) {
+            when (val analysisResult = analysisService.analyze(request,null)) {
                 is Success -> {
                     val successJob = scheduledReportService.endJob(runningJob, true) as? SuccessfulJob
                         ?: throw IllegalStateException("what")

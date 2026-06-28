@@ -6,6 +6,7 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
+import pt.isel.domain.DateInterval
 import pt.isel.domain.report.GitCommunication
 import java.time.Instant
 
@@ -30,15 +31,12 @@ class CommitFetcherService {
             .sortedBy { it.commitTime }
     }
 
-    fun getCommitsBetweenDates(
+    fun getCommitsBetweenDatesOrAll(
         gitCommunication: GitCommunication,
-        fromDate: Instant,
-        toDate: Instant,
+        dateInterval: DateInterval?,
         maxCommits: Int
     ): List<RevCommit> {
-        return gitCommunication.getCommitsBetween(fromDate, toDate)
-            .take(maxCommits.coerceIn(1, 200))
-            .sortedBy { it.commitTime }
+        return gitCommunication.getCommits(dateInterval).take(maxCommits.coerceIn(1, 200)).sortedBy { it.commitTime }
     }
 
     fun resolveParent(repository: Repository, commit: RevCommit): RevCommit? {

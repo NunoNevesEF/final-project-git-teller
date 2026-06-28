@@ -1,9 +1,9 @@
 package pt.isel.service.llmanalysis.prompt
 
 import org.springframework.stereotype.Service
-import pt.isel.domain.BatchCommitAnalysisContext
-import pt.isel.domain.CommitAnalysisContext
-import pt.isel.domain.CommitFileChangeDto
+import pt.isel.domain.report.BatchCommitAnalysisContext
+import pt.isel.domain.report.CommitAnalysisContext
+import pt.isel.domain.report.CommitFileChangeDto
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
 import pt.isel.model.PromptComplexityLevel
