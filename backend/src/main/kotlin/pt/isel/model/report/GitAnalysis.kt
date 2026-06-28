@@ -1,7 +1,8 @@
 package pt.isel.model.report
 
 import org.eclipse.jgit.revwalk.RevCommit
-import pt.isel.domain.SearchInfo
+import pt.isel.domain.DateInterval
+import pt.isel.domain.report.SearchInfo
 import pt.isel.domain.report.GitCommunication
 import java.time.Instant
 
@@ -17,15 +18,23 @@ data class GitAnalysis(
     val lastCommitTime: Instant
 ){
     companion object{
-        fun create(gitCommunication: GitCommunication, llmAnalysis: String = ""): GitAnalysis {
-            val (firstCommitTime, lastCommitTime) = gitCommunication.getFirstAndLastCommitDate()
+        fun create(
+            gitCommunication: GitCommunication,
+            dateInterval: DateInterval? = null,
+            llmAnalysis: String = ""
+        ): GitAnalysis {
+
+            val commits = gitCommunication.getCommits(dateInterval)
+
+            val (first, last) = commits.first() to commits.last()
+
             return GitAnalysis(
                 searchInfo = gitCommunication.getSearchInfo(),
                 llmAnalysis = llmAnalysis,
-                firstCommitTime = firstCommitTime,
-                lastCommitTime = lastCommitTime,
-                commitsByUser = gitCommunication.commits.toCommitAnalysis(gitCommunication).byUser(),
-                mostModifiedFiles = gitCommunication.getMostModifiedFiles()
+                firstCommitTime = Instant.ofEpochSecond(first.commitTime.toLong()),
+                lastCommitTime = Instant.ofEpochSecond(last.commitTime.toLong()),
+                commitsByUser = commits.toCommitAnalysis(gitCommunication).byUser(),
+                mostModifiedFiles = gitCommunication.getMostModifiedFiles(commits)
             )
         }
         private fun List<RevCommit>.toCommitAnalysis(gitCommunication: GitCommunication) =

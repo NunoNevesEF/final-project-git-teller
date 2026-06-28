@@ -5,15 +5,19 @@ import org.eclipse.jgit.api.errors.TransportException
 import org.eclipse.jgit.errors.NoRemoteRepositoryException
 import org.eclipse.jgit.internal.JGitText
 import org.springframework.stereotype.Service
-import pt.isel.domain.CommitDateRangeAnalysisRequest
-import pt.isel.domain.CommitShasAnalysisRequest
+import pt.isel.domain.DateInterval
+import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.domain.report.GitCommunication
 import pt.isel.model.report.GitAnalysis
+import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.ServiceError
+import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.llmanalysis.CommitAnalysisService
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
+import pt.isel.utils.Success
+
 
 sealed class GitAnalysisServiceError() : ServiceError {
     abstract fun toStatus(): Int
@@ -37,53 +41,43 @@ enum class GitErrors {
 }
 
 @Service
-class GitAnalysisService(
-    private val llmAnalysisService: CommitAnalysisService,  // Add this dependency
-) {
-    fun createAnalysis(repoUri: String, token: String? = null): Either<ServiceError, GitAnalysis> {
-        try {
-            val gitCommunication = GitCommunication.create(repoUri, token)
-            return success(GitAnalysis.create(gitCommunication))
+class GitAnalysisService(private val llmAnalysisService: CommitAnalysisService) {
+
+    fun analyze(
+        request: GitAnalysisRequest,
+        token: String?,
+    ): Either<GitAnalysisServiceError, GitAnalysis> {
+        return try {
+            val git = buildGitAnalysis(request.repoURI,token, request.dateFilter)
+            val enriched = enrichWithLLM(git, request)
+            success(enriched)
         } catch (e: Exception) {
-            return handleGitException(e)
+            handleGitException(e)
         }
     }
 
-    fun analyzeCommit(
-        repoURI: String,
-        flag: Boolean,
-        byShas: CommitShasAnalysisRequest?,
-        byDateRange: CommitDateRangeAnalysisRequest?,
-        token: String? = null,
-    ): Either<GitAnalysisServiceError, GitAnalysis> {
+    fun buildGitAnalysis(repoURI: String, token: String?, dateInterval: DateInterval?): GitAnalysis {
+        val gitComm = GitCommunication.create(repoURI, token)
+        return GitAnalysis.create(gitComm, dateInterval)
+    }
 
-        if (flag && byShas == null && byDateRange == null) {
-            return try {
-                val gitAnalysis = GitAnalysis.create(GitCommunication.create(repoURI, token))
-                val llmAnalysis = llmAnalysisService.analyzeGitOverview(gitAnalysis).llmAnalysis
-                success(gitAnalysis.copy(llmAnalysis = llmAnalysis))
-            } catch (e: Exception) {
-                handleGitException(e)
+    fun enrichWithLLM(gitAnalysis: GitAnalysis, gitAnalysisRequest: GitAnalysisRequest): GitAnalysis {
+        if (gitAnalysisRequest.llmRequest == null) return gitAnalysis
+        val request = gitAnalysisRequest.llmRequest
+
+        val llm = when {
+            request.byShas != null ->
+                llmAnalysisService.analyzeCommitsByShas(request.byShas, gitAnalysisRequest.repoURI)
+
+            request.byDetailedSettings != null -> {
+                llmAnalysisService.analyzeCommitsDetailedSettings(request.byDetailedSettings, gitAnalysisRequest.repoURI,gitAnalysisRequest.dateFilter)
             }
-        } else if (flag && byShas != null && byDateRange == null) { //lista de shas
-            return try {
-                val llmAnalysis = llmAnalysisService.analyzeCommitsByShas(byShas).llmAnalysis
-                success(GitAnalysis.create(GitCommunication.create(repoURI, token), llmAnalysis))
-            } catch (e: Exception) {
-                handleGitException(e)
-            }
-        } else if (flag && byShas == null && byDateRange != null) { //Datas
-            return try {
-                val llmAnalysis = llmAnalysisService.analyzeCommitsBetweenDates(byDateRange).llmAnalysis
-                success(GitAnalysis.create(GitCommunication.create(repoURI, token), llmAnalysis))
-            } catch (e: Exception) {
-                handleGitException(e)
-            }
-        } else {
-            failure(llmAnalysisService)
+
+            else ->
+                llmAnalysisService.analyzeGitOverview(gitAnalysis)
         }
 
-        return failure(FailureDoNotRetry(GitErrors.UNKNOWN_ERROR))
+        return gitAnalysis.copy(llmAnalysis = llm.llmAnalysis)
     }
 
     private fun handleGitException(e: Exception) = when (e) {

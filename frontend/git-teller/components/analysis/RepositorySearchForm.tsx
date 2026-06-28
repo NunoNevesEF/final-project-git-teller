@@ -7,6 +7,7 @@ import { useCommonStyles } from '@/constants/useCommonStyles';
 import { useState } from 'react';
 import { View, Button, Text, Pressable, ScrollView } from 'react-native';
 import { useAuth } from '@/store/AuthProvider';
+import DateRangePicker from '../utils/DateRangePicker';
 
 export type { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType };
 
@@ -87,6 +88,17 @@ export default function RepositorySearchForm({
 
             {(isAuthenticated) && 
             <View style={commonStyles.toggleSection}>
+                <Text style={commonStyles.toggleLabel}>Generic Filters</Text>
+                <View style={commonStyles.optionGroup}>
+                    <DateRangePicker
+                        fromDate={fromDate}
+                        toDate={toDate}
+                        onConfirm={(from, to) => {
+                            onFromDateChange(from);
+                            onToDateChange(to);
+                        }}
+                    />
+                </View>
                 <Text style={commonStyles.toggleLabel}>LLM Analysis</Text>
                 <View style={commonStyles.optionGroup}>
                     <OptionButton

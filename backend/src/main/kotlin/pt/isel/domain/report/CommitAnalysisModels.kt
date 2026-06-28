@@ -1,4 +1,4 @@
-package pt.isel.domain
+package pt.isel.domain.report
 
 import java.time.Instant
 
@@ -55,7 +55,6 @@ data class CommitAnalysisRequest(
 )
 
 data class CommitShasAnalysisRequest(
-    val repoURI: String,
     val commitShas: List<String>,
     val maxCharsPerFile: Int = 5000,
     val promptComplexity: String = "MEDIUM",
@@ -63,10 +62,7 @@ data class CommitShasAnalysisRequest(
     val requestedAnalyses: List<String> = listOf("DEFAULT")
 )
 
-data class CommitDateRangeAnalysisRequest(
-    val repoURI: String,
-    val fromDate: Instant,
-    val toDate: Instant,
+data class CommitDetailedSettingsAnalysisRequest(
     val maxCommits: Int = 20,
     val maxCharsPerFile: Int = 5000,
     val promptComplexity: String = "MEDIUM",

@@ -1,5 +1,6 @@
 package pt.isel.domain.schedule
 
+import pt.isel.domain.report.AnalysisRequestWrapper
 import pt.isel.entity.User
 import pt.isel.entity.schedule.OneTimeScheduledReportEntity
 import pt.isel.entity.schedule.PeriodicScheduledReportEntity
@@ -24,7 +25,7 @@ sealed class ScheduledReport<SELF : ScheduledReport<SELF, ENTITY>, ENTITY : Sche
     abstract val nextRunAt: Instant?
     abstract val lastRunAt: Instant?
     abstract val dataFrom: Instant
-    abstract val llmConfig: LlmScheduleConfig?
+    abstract val llmConfig: AnalysisRequestWrapper?
 
     fun createJob(): PendingJob = ScheduledReportJob.create(
         scheduledReportId = id, scheduledFor = nextRunAt!!, dataFrom = dataFrom
@@ -42,12 +43,12 @@ data class OneTimeScheduledReport(
     override val nextRunAt: Instant?,
     override val lastRunAt: Instant? = null,
     override val dataFrom: Instant,
-    override val llmConfig: LlmScheduleConfig? = null,
+    override val llmConfig: AnalysisRequestWrapper? = null,
 ) : ScheduledReport<OneTimeScheduledReport, OneTimeScheduledReportEntity>(id, userId, repoUri, nextRunAt, dataFrom) {
     companion object {
         fun create(
             id: Int = 0, userId: Int, repoURI: String, nextRun: Instant,
-            dataStart: Instant = Instant.now(), llmConfig: LlmScheduleConfig? = null
+            dataStart: Instant = Instant.now(), llmConfig: AnalysisRequestWrapper? = null
         ): OneTimeScheduledReport = OneTimeScheduledReport(
             id = id, userId = userId, repoUri = repoURI, nextRunAt = nextRun,
             dataFrom = dataStart, llmConfig = llmConfig
@@ -62,9 +63,9 @@ data class OneTimeScheduledReport(
     ).apply {
         this.user = user
         llmConfig?.let {
-            llmComplexity = it.promptComplexity
-            llmMode = it.analysisMode
-            llmAnalyses = it.requestedAnalyses.joinToString(",")
+            llmComplexity = it.byDetailedSettings?.promptComplexity
+            llmMode = it.byDetailedSettings?.analysisMode
+            llmAnalyses = it.byDetailedSettings?.requestedAnalyses?.joinToString(",")
         }
     }
 }
@@ -80,12 +81,12 @@ data class PeriodicScheduledReport(
     val active: Boolean = true,
     val timeZone: String,
     val cronExpression: String,
-    override val llmConfig: LlmScheduleConfig? = null,
+    override val llmConfig: AnalysisRequestWrapper? = null,
 ) : ScheduledReport<PeriodicScheduledReport, PeriodicScheduledReportEntity>(id, userId, repoUri, nextRunAt, dataFrom) {
     companion object {
         fun create(
             id: Int = 0, userId: Int, repoURI: String, timeZone: String,
-            cronInput: CronInput, llmConfig: LlmScheduleConfig? = null,
+            cronInput: CronInput, llmConfig: AnalysisRequestWrapper? = null,
         ): PeriodicScheduledReport {
             val cronExpression = CronUtils.build(cronInput)
             val nextRun = CronUtils.calculateNext(cronExpression, timeZone)
@@ -118,9 +119,9 @@ data class PeriodicScheduledReport(
     ).also {
         it.user = user
         llmConfig?.let { cfg ->
-            it.llmComplexity = cfg.promptComplexity
-            it.llmMode = cfg.analysisMode
-            it.llmAnalyses = cfg.requestedAnalyses.joinToString(",")
+            it.llmComplexity = cfg.byDetailedSettings?.promptComplexity
+            it.llmMode = cfg.byDetailedSettings?.analysisMode
+            it.llmAnalyses = cfg.byDetailedSettings?.requestedAnalyses?.joinToString(",")
         }
     }
 

@@ -1,4 +1,4 @@
-package pt.isel.domain
+package pt.isel.domain.report
 
 data class SearchInfo(
     val repositoryUrl: String,

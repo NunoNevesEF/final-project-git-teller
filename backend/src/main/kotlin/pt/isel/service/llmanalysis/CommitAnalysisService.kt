@@ -6,7 +6,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
-import pt.isel.domain.*
+import pt.isel.domain.DateInterval
+import pt.isel.domain.report.BatchCommitAnalysisContext
+import pt.isel.domain.report.BatchCommitAnalysisResponse
+import pt.isel.domain.report.CommitAnalysisContext
+import pt.isel.domain.report.CommitAnalysisRequest
+import pt.isel.domain.report.CommitAnalysisResponse
+import pt.isel.domain.report.CommitDetailedSettingsAnalysisRequest
+import pt.isel.domain.report.CommitFileChangeDto
+import pt.isel.domain.report.CommitShasAnalysisRequest
 import pt.isel.domain.report.GitCommunication
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
@@ -66,16 +74,16 @@ class CommitAnalysisService(
         return CommitAnalysisResponse(context, llmService.askText(prompt))
     }
 
-    fun analyzeCommitsByShas(request: CommitShasAnalysisRequest): BatchCommitAnalysisResponse {
+    fun analyzeCommitsByShas(request: CommitShasAnalysisRequest, repoURI: String): BatchCommitAnalysisResponse {
         require(request.commitShas.isNotEmpty()) { "Commit SHAs list cannot be empty." }
-        val gitComm = GitCommunication.openExisting(request.repoURI)
+        val gitComm = GitCommunication.openExisting(repoURI)
 
         val missing = gitComm.getMissingCommitShas(request.commitShas)
         if (missing.isNotEmpty())
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Commits not found: ${missing.joinToString(", ")}")
 
         return runBatchAnalysis(
-            repoURI = request.repoURI,
+            repoURI = repoURI,
             gitComm = gitComm,
             commits = commitFetcherService.getCommitsByShas(gitComm, request.commitShas),
             limits = AnalysisLimits.fromBatch( request.maxCharsPerFile),
@@ -85,26 +93,24 @@ class CommitAnalysisService(
         )
     }
 
-    fun analyzeCommitsBetweenDates(request: CommitDateRangeAnalysisRequest): BatchCommitAnalysisResponse {
-        if (request.fromDate.isAfter(request.toDate))
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate cannot be after toDate.")
-
-        val gitComm = GitCommunication.openExisting(request.repoURI)
-        val commits = commitFetcherService.getCommitsBetweenDates(gitComm, request.fromDate, request.toDate, request.maxCommits)
+    fun analyzeCommitsDetailedSettings(request: CommitDetailedSettingsAnalysisRequest, repoURI: String, dateFilter: DateInterval?): BatchCommitAnalysisResponse {
+        val gitComm = GitCommunication.openExisting(repoURI)
+        val commits = commitFetcherService.getCommitsBetweenDatesOrAll(gitComm,
+            dateFilter, request.maxCommits)
 
         if (commits.isEmpty())
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "No commits found between ${request.fromDate} and ${request.toDate}.")
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "No commits found between ${dateFilter?.beginDate} and ${dateFilter?.endDate}.")
 
         return runBatchAnalysis(
-            repoURI = request.repoURI,
+            repoURI = repoURI,
             gitComm = gitComm,
             commits = commits,
             limits = AnalysisLimits.fromBatch(request.maxCharsPerFile),
             complexity = EnumParser.parseComplexityLevel(request.promptComplexity),
             mode = EnumParser.parseAnalysisMode(request.analysisMode),
             requestedAnalyses = request.requestedAnalyses,
-            fromDate = request.fromDate,
-            toDate = request.toDate
+            fromDate = dateFilter?.beginDate,
+            toDate = dateFilter?.endDate,
         )
     }
 
@@ -171,8 +177,12 @@ class CommitAnalysisService(
         Instant.ofEpochSecond(commitTime.toLong()).toString()
 
     private fun List<FileCandidate>.toDiffDtos(repo: Repository, limits: AnalysisLimits): List<CommitFileChangeDto> =
-        map { CommitFileChangeDto(it.oldPath, it.newPath, it.changeType, it.insertions, it.deletions,
-            diffExtractionService.extractPatch(repo, it.entry, limits.maxCharsPerFile)) }
+        map {
+            CommitFileChangeDto(
+                it.oldPath, it.newPath, it.changeType, it.insertions, it.deletions,
+                diffExtractionService.extractPatch(repo, it.entry, limits.maxCharsPerFile)
+            )
+        }
 
     private fun List<FileCandidate>.toSummaries(): List<CommitFileSummary> =
         map { CommitFileSummary(

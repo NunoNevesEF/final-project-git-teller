@@ -2,7 +2,7 @@ package pt.isel.model.scheduledReport
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import pt.isel.domain.schedule.LlmScheduleConfig
+import pt.isel.domain.report.AnalysisRequestWrapper
 import pt.isel.domain.schedule.OneTimeScheduledReport
 import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
@@ -35,7 +35,7 @@ data class CreateOneTimeScheduledReportDTO(
     override val repoUri: String,
     val dataStart: Instant,
     val runAt: Instant,
-    val llmConfig: LlmScheduleConfig? = null,
+    val llmConfig: AnalysisRequestWrapper? = null,
 ): CreateScheduleReportDTO<OneTimeScheduledReport>{
     override fun toDomain(userId: Int) =
         OneTimeScheduledReport.create(
@@ -49,7 +49,7 @@ data class CreatePeriodicScheduledReportDTO(
     val timeZone: String,
     val time: LocalTime,
     val freqMode: FrequencyMode,
-    val llmConfig: LlmScheduleConfig? = null,
+    val llmConfig: AnalysisRequestWrapper? = null,
 ): CreateScheduleReportDTO<PeriodicScheduledReport>{
     override fun toDomain(userId: Int) =
         PeriodicScheduledReport.create(

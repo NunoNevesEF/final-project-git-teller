@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {
-    CreateScheduledReportDTO, dailyMode, FrequencyMode, LlmScheduleConfig
+    CreateScheduledReportDTO, dailyMode, FrequencyMode,
 } from "@/models/scheduledReport/CreateScheduledReportDTO";
 import {createScheduledReport} from "@/services/ScheduledReportService";
 import {Modal, Pressable, ScrollView, TextInput, TouchableOpacity, View, Text} from "react-native";
@@ -40,12 +40,17 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
 
     const handleCreate = async () => {
         try {
-            const llmConfig: LlmScheduleConfig | undefined = enableLlm ? {
+            const byDetailedSettings = {
                 promptComplexity: llmComplexity,
                 analysisMode: llmMode,
                 requestedAnalyses: llmAnalyses,
-                overviewOnly: llmStrategy === 'overview',
-            } : undefined;
+            };
+            
+            const llmConfig = {
+                flag: llmStrategy === 'overview',
+                byShas: null,
+                byDetailedSettings: byDetailedSettings
+            };
 
             let dto: CreateScheduledReportDTO;
 
