@@ -232,6 +232,15 @@ export const useCommonStyles  = () => {
     breakInside: "avoid",
     pageBreakInside: "avoid",
   } as any )
+    },
+    dateInterval: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      padding: 12,
+      borderWidth: 1,
+      borderColor: c.text,
+      borderRadius: 6,
+      marginBottom: 8,
     }
   });
 };

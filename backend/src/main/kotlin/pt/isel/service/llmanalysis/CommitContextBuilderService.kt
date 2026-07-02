@@ -2,8 +2,8 @@ package pt.isel.service.llmanalysis
 
 import org.eclipse.jgit.revwalk.RevCommit
 import org.springframework.stereotype.Service
-import pt.isel.domain.CommitAnalysisContext
-import pt.isel.domain.CommitFileChangeDto
+import pt.isel.domain.report.CommitAnalysisContext
+import pt.isel.domain.report.CommitFileChangeDto
 import java.time.Instant
 
 @Service

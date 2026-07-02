@@ -3,44 +3,32 @@ package pt.isel.controller.report
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.CrossOrigin
-import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import pt.isel.domain.CommitDateRangeAnalysisRequest
-import pt.isel.domain.CommitShasAnalysisRequest
+import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.model.report.GitAnalysis
 import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.git.GitAnalysisService
-import pt.isel.utils.Failure
 import pt.isel.utils.Success
+import pt.isel.utils.leftOrNull
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
 @RequestMapping("/api/public/gitCommunication")
-class GitCommunicationPublicController(
+class GitCommunicationController(
     private val gitAnalysisService: GitAnalysisService,
 ){
-    @GetMapping("/gitAnalysis")
-    fun generateAnalysis(@RequestParam repoURI: String): ResponseEntity<GitAnalysis> {
-        return when (val gitAnalysis = gitAnalysisService.createAnalysis(repoURI)){
-            is Success -> ResponseEntity.ok(gitAnalysis.right)
-            else -> ResponseEntity.notFound().build()
-        }
-    }
-    @PostMapping("/commitAnalysis")
-    fun analyzeCommitWithLLM(@RequestBody request: AnalysisRequestWrapper): ResponseEntity<GitAnalysis> {
-        return when (val result = gitAnalysisService.analyzeCommit(
-            repoURI = request.repoURI,
-            flag = request.flag,
-            byShas= request.byShas,
-            byDateRange= request.byDateRange,
-        )) {
+
+    @PostMapping("/gitAnalysis")
+    fun generateAnalysis(
+        @RequestBody request: GitAnalysisRequest,
+    ): ResponseEntity<GitAnalysis> {
+        return when (val result = gitAnalysisService.analyze(request, token = null)) {
             is Success -> ResponseEntity.ok(result.right)
-            else -> ResponseEntity.notFound().build()
+            else -> ResponseEntity.status(result.leftOrNull()!!.toStatus()).build()
         }
     }
 }
@@ -51,46 +39,32 @@ class GitCommunicationPublicController(
 class GitCommunicationPrivateController(
     private val gitAnalysisService: GitAnalysisService,
     private val linkedAccountService: LinkedAccountService
-){
-    @GetMapping("/gitAnalysis")
+) {
+
+    @PostMapping("/gitAnalysis")
     fun generateAnalysis(
-        @RequestParam repoURI: String,
-        @RequestParam gitAccountId: Int,
+        @RequestBody request: GitAnalysisRequest,
         @AuthenticationPrincipal principal: UserPrincipal,
     ): ResponseEntity<GitAnalysis> {
-        val accountResult = linkedAccountService.findUserOAuthAccount(gitAccountId, principal.getUserId())
-        if (accountResult !is Success) return ResponseEntity.notFound().build()
 
-        return when(val analysisResult = gitAnalysisService.createAnalysis(repoURI, accountResult.right.accessToken)){
-            is Success -> ResponseEntity.ok(analysisResult.right)
-            is Failure -> ResponseEntity.notFound().build() //TODO: REPLACE ERROR RESPONSE WITH PROPER STATUS
-        }
-    }
-
-    @PostMapping("/commitAnalysis")
-    fun analyseCommitWithLLM(
-        @RequestBody request: AnalysisRequestWrapper,
-        @RequestParam gitAccountId: Int,
-        @AuthenticationPrincipal principal: UserPrincipal,
-    ): ResponseEntity<GitAnalysis> {
-        val accountResult = linkedAccountService.findUserOAuthAccount(gitAccountId, principal.getUserId())
-        if (accountResult !is Success) return ResponseEntity.notFound().build()
-
-        return when (
-            val result = gitAnalysisService.analyzeCommit(
-                repoURI = request.repoURI, token = accountResult.right.accessToken,
-                flag = request.flag, byShas= request.byShas, byDateRange= request.byDateRange,
+        val accountResult =
+            linkedAccountService.findUserOAuthAccount(
+                request.gitAccountId ?: return ResponseEntity.badRequest().build(),
+                principal.getUserId()
             )
-        ) {
+
+        if (accountResult !is Success)
+            return ResponseEntity.notFound().build()
+
+        val result = gitAnalysisService.analyze(
+            request,
+            token = accountResult.right.accessToken
+        )
+
+        return when (result) {
             is Success -> ResponseEntity.ok(result.right)
-            else -> ResponseEntity.notFound().build() //TODO: REPLACE ERROR RESPONSE WITH PROPER STATUS
+            else -> ResponseEntity.notFound().build()
         }
     }
 }
 
-data class AnalysisRequestWrapper(
-    val repoURI: String,
-    val flag: Boolean,
-    val byShas: CommitShasAnalysisRequest?,
-    val byDateRange: CommitDateRangeAnalysisRequest?
-)

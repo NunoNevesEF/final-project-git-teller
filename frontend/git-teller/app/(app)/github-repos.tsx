@@ -4,12 +4,9 @@ import {useRouter, Redirect} from 'expo-router';
 import {useAuth} from '@/store/AuthProvider';
 import GithubReposList from '@/components/gitRepos/GithubReposList';
 import {getMyGithubRepos, RepositorySummary, UserRepositoriesDto} from '@/services/GithubService';
-import {analyzeRepo, ByShasRequest, ByDateRangeRequest, analyseRepoWithToken} from '@/services/GitCommunicationService';
+import {analyzeRepo} from '@/services/GitCommunicationService';
 import {useAnalysisInfoStore} from '@/store/useAnalysisInfoStore';
 import {commonStyles} from '@/constants/commonStyles';
-import LlmAnalysisSettings, {
-    LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType,
-} from '@/components/analysis/LlmAnalysisSettings';
 import LoadingComponent from '@/components/utils/LoadingComponent';
 import {OAuthLinkedAccountListItemDTO} from "@/models/account/OAuthLinkedAccountListItemDTO";
 import {listGitAccounts} from "@/services/AccountService";
@@ -19,6 +16,7 @@ import PaginationButton from "@/components/utils/PaginationButton";
 export default function GithubReposPage() {
     const {isAuthenticated, loading} = useAuth();
     const router = useRouter();
+    const setRepoURI = useAnalysisInfoStore((s) => s.setRepoURI);
     const setResult = useAnalysisInfoStore((state) => state.setResult);
     const setProjectName = useAnalysisInfoStore((state) => state.setProjectName);
     const setReportId = useAnalysisInfoStore((state) => state.setReportId)
@@ -36,15 +34,6 @@ export default function GithubReposPage() {
 
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-    const [llmFilterType, setLlmFilterType] = useState<LlmFilterType>('overview');
-    const [commitShas, setCommitShas] = useState('');
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
-    const [promptComplexity, setPromptComplexity] = useState<PromptComplexity>('SIMPLE');
-    const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('DIFF');
-    const [requestedAnalyses, setRequestedAnalyses] = useState<AnalysisType[]>(['DEFAULT']);
 
     const getProjectName = (url: string) =>
         url.split("/").filter(Boolean).pop() ?? "";
@@ -90,15 +79,20 @@ export default function GithubReposPage() {
 
     const handleAnalyze = async (
         repo: RepositorySummary,
-        llmAnalysisEnabled: boolean,
-        byShas?: ByShasRequest,
-        byDateRange?: ByDateRangeRequest,
     ) => {
         try {
             if(selectedAccountId == null){ console.error('No git account selected'); return; }
 
             setIsLoading(true)
-            const result = await analyseRepoWithToken(repo.htmlUrl, llmAnalysisEnabled, selectedAccountId, byShas, byDateRange);
+
+            const request = {
+                repoURI: repo.htmlUrl,
+                gitAccountId: selectedAccountId,
+                dateFilter: null,
+                llmRequest: null
+            }
+
+            const result = await analyzeRepo(request);
 
             setResult(result);
             setProjectName(getProjectName(repo.htmlUrl));
@@ -112,47 +106,9 @@ export default function GithubReposPage() {
         }
     };
 
-    const openLlmSettings = (repo: RepositorySummary) => {
-        setSelectedRepo(repo);
-        setSettingsModalVisible(true);
-    };
-
-    const closeLlmSettings = () => {
-        setSettingsModalVisible(false);
-        setSelectedRepo(null);
-    };
-
-    const handleConfirmLlmAnalysis = () => {
-        if (!selectedRepo) return;
-        const repo = selectedRepo;
-        const url = repo.htmlUrl;
-
-        const byShas =
-            llmFilterType === 'shas' && commitShas
-                ? {
-                    repoURI: url,
-                    commitShas: commitShas.split(',').map((s) => s.trim()).filter(Boolean),
-                    promptComplexity,
-                    analysisMode,
-                    requestedAnalyses,
-                }
-                : undefined;
-
-        const byDateRange =
-            llmFilterType === 'dateRange' && fromDate && toDate
-                ? {
-                    repoURI: url,
-                    fromDate: `${fromDate}T00:00:00Z`,
-                    toDate: `${toDate}T23:59:59Z`,
-                    promptComplexity,
-                    analysisMode,
-                    requestedAnalyses,
-                }
-                : undefined;
-
-        setSettingsModalVisible(false);
-        setSelectedRepo(null);
-        handleAnalyze(repo, true, byShas, byDateRange);
+    const handleSearchFilter = (repo: RepositorySummary) => {
+        setRepoURI(repo.htmlUrl);
+        router.push("/(app)/home");
     };
 
     const getRepoErrorMessage = (status?: number): string => {
@@ -190,33 +146,12 @@ export default function GithubReposPage() {
                     loading={reposLoading}
                     error={error}
                     onRetry={handleLoadRepoData}
-                    onAnalyzeWithLlm={(repo) => openLlmSettings(repo)}
-                    onAnalyzeWithoutLlm={(repo) => handleAnalyze(repo, false)}
+                    onAnalyzeWithLlm={(repo) => handleSearchFilter(repo)}
+                    onAnalyzeWithoutLlm={(repo) => handleAnalyze(repo)}
                 />
             </View>
 
             <PaginationButton currPage={currPage} lastPage={lastPage} setCurrPage={setCurrPage}></PaginationButton>
-
-            <LlmAnalysisSettings
-                visible={settingsModalVisible}
-                onClose={closeLlmSettings}
-                onConfirm={handleConfirmLlmAnalysis}
-                confirmLabel="Start Analysis"
-                llmFilterType={llmFilterType}
-                onLlmFilterTypeChange={setLlmFilterType}
-                commitShas={commitShas}
-                onCommitShasChange={setCommitShas}
-                fromDate={fromDate}
-                onFromDateChange={setFromDate}
-                toDate={toDate}
-                onToDateChange={setToDate}
-                promptComplexity={promptComplexity}
-                onPromptComplexityChange={setPromptComplexity}
-                analysisMode={analysisMode}
-                onAnalysisModeChange={setAnalysisMode}
-                requestedAnalyses={requestedAnalyses}
-                onRequestedAnalysesChange={setRequestedAnalyses}
-            />
         </View>
     );
 }

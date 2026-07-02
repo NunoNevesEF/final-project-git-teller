@@ -5,7 +5,7 @@ import TooltipLabel from '@/components/utils/TooltipLabel';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import { ANALYSIS_TYPES, AnalysisType } from '@/constants/analysisTypes';
 
-export type LlmFilterType = 'shas' | 'dateRange' | 'overview';
+export type LlmFilterType = 'shas' | 'detailedSettings' | 'overview';
 export type PromptComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
 export type AnalysisMode = 'DIFF' | 'META';
 export type { AnalysisType };
@@ -19,9 +19,9 @@ interface LlmAnalysisSettingsProps {
     onLlmFilterTypeChange: (type: LlmFilterType) => void;
     commitShas: string;
     onCommitShasChange: (shas: string) => void;
-    fromDate: string;
+    fromDate: string | null;
     onFromDateChange: (date: string) => void;
-    toDate: string;
+    toDate: string | null;
     onToDateChange: (date: string) => void;
     promptComplexity: PromptComplexity;
     onPromptComplexityChange: (c: PromptComplexity) => void;
@@ -63,7 +63,7 @@ export default function LlmAnalysisSettings({
                         />
                         <View style={commonStyles.optionGroup}>
                             <OptionButton label="Overview" active={llmFilterType === 'overview'} onPress={() => onLlmFilterTypeChange('overview')} commonStyles={commonStyles} />
-                            <OptionButton label="Date Range" active={llmFilterType === 'dateRange'} onPress={() => onLlmFilterTypeChange('dateRange')} commonStyles={commonStyles} />
+                            <OptionButton label="Detailed Settings" active={llmFilterType === 'detailedSettings'} onPress={() => onLlmFilterTypeChange('detailedSettings')} commonStyles={commonStyles} />
                             <OptionButton label="Commit SHAs" active={llmFilterType === 'shas'} onPress={() => onLlmFilterTypeChange('shas')} commonStyles={commonStyles} />
                         </View>
 
@@ -73,13 +73,6 @@ export default function LlmAnalysisSettings({
                                 onChangeText={onCommitShasChange}
                                 placeholder="Commit SHAs (comma separated)"
                             />
-                        )}
-
-                        {llmFilterType === 'dateRange' && (
-                            <>
-                                <CustomTextInput value={fromDate} onChangeText={onFromDateChange} placeholder="From (YYYY-MM-DD)" />
-                                <CustomTextInput value={toDate} onChangeText={onToDateChange} placeholder="To (YYYY-MM-DD)" />
-                            </>
                         )}
 
                         {llmFilterType !== 'overview' && (

@@ -4,7 +4,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.stereotype.Service
-import pt.isel.domain.CommitDateRangeAnalysisRequest
+import pt.isel.domain.report.GitAnalysisRequest
+import pt.isel.domain.DateInterval
 import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.SuccessfulJob
@@ -34,33 +35,48 @@ class ScheduledJobExecutor(
             val runningJob = scheduledReportService.runJob(pendingJob)
             val llmConfig = scheduledReportService.getScheduleLlmConfig(pendingJob.scheduledReportId)
 
-            when (val analysisResult = analysisService.createAnalysis(repoUri)) {
-                is Success -> {
-                    val llmAnalysis = if (llmConfig != null) {
-                        try {
-                            if (llmConfig.overviewOnly) {
-                                commitAnalysisService.analyzeGitOverview(analysisResult.right).llmAnalysis
-                            } else {
-                                val request = CommitDateRangeAnalysisRequest(
-                                    repoURI = repoUri,
-                                    fromDate = pendingJob.dataFrom,
-                                    toDate = Instant.now(),
-                                    promptComplexity = llmConfig.promptComplexity,
-                                    analysisMode = llmConfig.analysisMode,
-                                    requestedAnalyses = llmConfig.requestedAnalyses
-                                )
-                                commitAnalysisService.analyzeCommitsBetweenDates(request).llmAnalysis
-                            }
-                        } catch (e: Exception) {""}
-                    } else { ""}
+            val request = GitAnalysisRequest(
+                repoURI = repoUri,
+                llmRequest = llmConfig,
+                dateFilter = DateInterval(pendingJob.dataFrom, Instant.now()),
+                gitAccountId = null
+            )
 
-                    val gitAnalysis = analysisResult.right.copy(llmAnalysis = llmAnalysis)
+            when (val analysisResult = analysisService.analyze(request,null)) {
+//                is Success -> {
+//                    val llmAnalysis = if (llmConfig != null) {
+//                        try {
+//                            if (llmConfig.flag) {
+//                                commitAnalysisService.analyzeGitOverview(analysisResult.right).llmAnalysis
+//                            } else {
+//                                require(llmConfig.byDetailedSettings != null)
+//                                val request = CommitDetailledSettingsAnalysisRequest(
+//                                    promptComplexity = llmConfig.byDetailedSettings.promptComplexity,
+//                                    analysisMode = llmConfig.byDetailedSettings.analysisMode,
+//                                    requestedAnalyses = llmConfig.byDetailedSettings.requestedAnalyses,
+//                                )
+//                                commitAnalysisService.analyzeCommitsDetailedSettings(request, repoUri, null).llmAnalysis
+//                            }
+//                        } catch (e: Exception) {""}
+//                    } else { ""}
+//
+//                    val gitAnalysis = analysisResult.right.copy(llmAnalysis = llmAnalysis)
+//
+//                    val successJob = scheduledReportService.endJob(runningJob, true) as? SuccessfulJob
+//                        ?: throw IllegalStateException("what")
+//                    scheduledReportService.updateReportLastRun(successJob.scheduledReportId, successJob.startedAt)
+//                    reportService.createReport(gitAnalysis, repoUri, userId)
+//                }
+                is Success -> {
+                    val gitAnalysis = analysisResult.right
 
                     val successJob = scheduledReportService.endJob(runningJob, true) as? SuccessfulJob
-                        ?: throw IllegalStateException("what")
+                        ?: throw IllegalStateException()
+
                     scheduledReportService.updateReportLastRun(successJob.scheduledReportId, successJob.startedAt)
                     reportService.createReport(gitAnalysis, repoUri, userId)
                 }
+
 
                 is Failure -> {
                     when (val error = analysisResult.left) {

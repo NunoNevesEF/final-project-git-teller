@@ -17,6 +17,8 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
+import pt.isel.domain.report.AnalysisRequestWrapper
+import pt.isel.domain.report.CommitDetailedSettingsAnalysisRequest
 import pt.isel.domain.schedule.OneTimeScheduledReport
 import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
@@ -26,7 +28,6 @@ import pt.isel.model.scheduledReport.GetOneTimeScheduledReportDTO
 import pt.isel.model.scheduledReport.GetPeriodicScheduledReportDTO
 import pt.isel.model.scheduledReport.GetScheduledReportDTO
 import java.time.Instant
-import pt.isel.domain.schedule.LlmScheduleConfig
 
 @Entity
 @Table(name = "scheduled_reports")
@@ -84,12 +85,19 @@ abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>,
         cancellationReason = errorMsg
     }
 
-    fun getLlmConfig(): LlmScheduleConfig? {
+    fun getLlmConfig(): AnalysisRequestWrapper? {
         if (llmComplexity == null) return null
-        return LlmScheduleConfig(
-            promptComplexity = llmComplexity!!,
-            analysisMode = llmMode ?: "DIFF",
-            requestedAnalyses = llmAnalyses?.split(",") ?: listOf("DEFAULT")
+
+        return AnalysisRequestWrapper(
+            flag = false,
+            byShas = null,
+            byDetailedSettings = CommitDetailedSettingsAnalysisRequest(
+                maxCommits = 20,
+                maxCharsPerFile = 5000,
+                promptComplexity = llmComplexity!!,
+                analysisMode = llmMode ?: "DIFF",
+                requestedAnalyses = llmAnalyses?.split(",") ?: listOf("DEFAULT")
+            )
         )
     }
 

@@ -15,10 +15,9 @@ import java.io.File
 import java.time.Instant
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
-import pt.isel.domain.SearchInfo
+import pt.isel.domain.DateInterval
 
 data class GitCommunication(val git: Git, val repoURI: String) {
-    val commits by lazy { getAllCommits() }
     val branches by lazy { getAllBranches() }
 
     companion object {
@@ -78,7 +77,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
             val repoPath = getRepoPath(repoURI)
             val repoPathFile = File(repoPath)
 
-            if (!repoPathFile.exists() || !File(repoPathFile, ".git").exists()) {
+            if (!repoPathFile.exists() /*|| !File(repoPathFile, ".git").exists()*/) {
                 throw RepositoryNotFoundException("Local repository not found: $repoPath")
             }
 
@@ -86,7 +85,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
         }
     }
 
-    private fun getAllCommits(): List<RevCommit> {
+    fun getAllCommits(): List<RevCommit> {
         return git.log().all().call().toList()
     }
 
@@ -178,7 +177,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
         return Pair(additions, deletions)
     }
 
-    fun getMostModifiedFiles(): List<ModifiedFiles> {
+    fun getMostModifiedFiles(commits: List<RevCommit>): List<ModifiedFiles> {
         val fileStats = mutableMapOf<String, Pair<Int, Long>>()
 
         for (commit in commits) {
@@ -210,7 +209,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
             }
     }
 
-    fun getFirstAndLastCommitDate(): Pair<Instant, Instant> {
+    fun getFirstAndLastCommitDate(commits: List<RevCommit>): Pair<Instant, Instant> {
         val lastCommitTime = Instant.ofEpochSecond(commits.first().commitTime.toLong())
         val firstCommitTime = Instant.ofEpochSecond(commits.last().commitTime.toLong())
         return Pair(firstCommitTime, lastCommitTime)
@@ -260,16 +259,29 @@ data class GitCommunication(val git: Git, val repoURI: String) {
         return commitShas.mapNotNull { findCommitBySha(it) }
     }
 
-    fun getCommitsBetween(from: Instant, to: Instant): List<RevCommit> {
-        require(!from.isAfter(to)) { "fromDate não pode ser depois de toDate" }
+    fun getCommits(dateInterval: DateInterval?): List<RevCommit> {
+        val walk = RevWalk(git.repository)
+        val head = git.repository.resolve("HEAD")
 
-        return commits.filter { commit ->
-                val commitInstant = Instant.ofEpochSecond(commit.commitTime.toLong())
-                !commitInstant.isBefore(from) && !commitInstant.isAfter(to)
-            }.sortedBy { it.commitTime }
+        walk.markStart(walk.parseCommit(head))
+
+        val result = mutableListOf<RevCommit>()
+
+        for (commit in walk) {
+            val time = Instant.ofEpochSecond(commit.commitTime.toLong())
+
+            if (dateInterval != null) {
+                if (time.isBefore(dateInterval.beginDate)) continue
+                if (time.isAfter(dateInterval.endDate)) continue
+            }
+
+            result.add(commit)
+        }
+
+        walk.close()
+
+        return result.sortedBy { it.commitTime }
     }
-
-
 }
 
 const val reposStorageLocation = "gitRepos"

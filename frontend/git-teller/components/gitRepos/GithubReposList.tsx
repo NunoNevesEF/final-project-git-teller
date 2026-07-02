@@ -62,17 +62,19 @@ export default function GithubReposList({
                     </Pressable>
 
                     <View style={commonStyles.analyzeButtonsRow}>
+                        {/*Este botão deve se chamar antes analyze with filters, deve levar redirect para o form mas com o repoURI preenchido*/}
                         <Pressable
                             style={commonStyles.analyzeButton}
                             onPress={() => onAnalyzeWithLlm?.(item)}
                         >
-                            <Text style={commonStyles.analyzeButtonText}>Analyze with LLM</Text>
+                            <Text style={commonStyles.analyzeButtonText}>Analyze with Filters</Text>
                         </Pressable>
+                        {/*Este botão deve se chamar antes analyze without filters, deve manter a funcionalidade*/}
                         <Pressable
                             style={[commonStyles.analyzeButton, commonStyles.analyzeButtonSecondary]}
                             onPress={() => onAnalyzeWithoutLlm?.(item)}
                         >
-                            <Text style={commonStyles.analyzeButtonText}>Analyze without LLM</Text>
+                            <Text style={commonStyles.analyzeButtonText}>Quick Analyze Without Filters</Text>
                         </Pressable>
                     </View>
                 </View>
