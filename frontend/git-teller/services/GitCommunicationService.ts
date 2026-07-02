@@ -32,6 +32,7 @@ export interface GitAnalysisRequest {
 export async function analyzeRepo(
   request: GitAnalysisRequest,
 ): Promise<GitAnalysis> {
+    console.log(request)
   // PUBLIC (sem auth)
   if (!request.gitAccountId) {
     return apiPost(`${PUBLIC_SERVICE_PATH}/gitAnalysis`, request);

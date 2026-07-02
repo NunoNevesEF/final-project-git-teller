@@ -16,10 +16,9 @@ class GithubController(
 
     // para nao duplicar o principal e userId, assim todos passam a funcao especifica call
     // converte o Either retornado para ResponseEntity usando `failureStatus`.
-    private fun <L, R> withAuthenticated(
+    private fun <R> withAuthenticated(
         authentication: Authentication,
-        failureStatus: Int = 401,
-        call: (Int) -> Either<L, R>
+        call: (Int) -> Either<GithubCommunicationServiceError, R>
     ): ResponseEntity<Any> {
         val principal = authentication.principal as? UserPrincipal
             ?: return ResponseEntity.status(401).body(mapOf("error" to "Invalid user"))
@@ -27,14 +26,18 @@ class GithubController(
         val userId = principal.getUserId()
         return when (val result = call(userId)) {
             is Either.Right -> ResponseEntity.ok(result.right)
-            is Either.Left -> ResponseEntity.status(failureStatus)
+            is Either.Left -> ResponseEntity.status(result.left.toStatus())
                 .body(mapOf("error" to result.left.toString()))
         }
     }
 
-    @GetMapping("/repos")
-    fun getUserRepositories(authentication: Authentication): ResponseEntity<Any> =
-        withAuthenticated(authentication) { githubService.getAuthenticatedUserRepositories(it) }
+    @GetMapping("/repos/{gitLinkedAccountId}/{currPage}")
+    fun getUserRepositories(
+        authentication: Authentication,
+        @PathVariable gitLinkedAccountId: Int,
+        @PathVariable currPage: Int,
+    ): ResponseEntity<Any> =
+        withAuthenticated(authentication) { githubService.getAuthenticatedUserRepositories(it, gitLinkedAccountId, page = currPage) }
 
     /*@GetMapping("/repos/{owner}/{repo}")
     fun getRepository(

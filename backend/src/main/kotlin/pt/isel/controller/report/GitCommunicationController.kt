@@ -13,6 +13,7 @@ import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.git.GitAnalysisService
 import pt.isel.utils.Success
+import pt.isel.utils.leftOrNull
 
 @CrossOrigin(origins = ["http://localhost:8081"])
 @RestController
@@ -27,7 +28,7 @@ class GitCommunicationController(
     ): ResponseEntity<GitAnalysis> {
         return when (val result = gitAnalysisService.analyze(request, token = null)) {
             is Success -> ResponseEntity.ok(result.right)
-            else -> ResponseEntity.notFound().build()
+            else -> ResponseEntity.status(result.leftOrNull()!!.toStatus()).build()
         }
     }
 }

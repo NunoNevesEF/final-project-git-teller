@@ -90,8 +90,9 @@ class GitAnalysisService(private val llmAnalysisService: CommitAnalysisService) 
         val msg = e.message.orEmpty()
         return when {
             rootCause(e) is NoRemoteRepositoryException -> FailureDoNotRetry(GitErrors.REPO_NOT_FOUND)
-            msg == JGitText.get().authenticationNotSupported -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
-            msg == JGitText.get().notAuthorized -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
+            msg.contains(JGitText.get().authenticationNotSupported) -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
+            msg.contains(JGitText.get().noCredentialsProvider) -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
+            msg.contains(JGitText.get().notAuthorized) -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
             msg.contains("408") || msg.contains("504") -> FailureRetry //TIMEOUT
             else -> return FailureDoNotRetry(GitErrors.UNKNOWN_ERROR)
         }

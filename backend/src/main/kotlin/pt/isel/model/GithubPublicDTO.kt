@@ -2,6 +2,10 @@ package pt.isel.model
 
 import java.time.Instant
 
+data class UserRepositoriesDTO(
+    val lastPage: Int?,
+    val repositories: List<RepositorySummary>
+)
 
 data class RepositorySummary(
     val id: Long,
@@ -14,7 +18,6 @@ data class RepositorySummary(
     val starsCount: Int,
     val forksCount: Int,
     val updatedAt: Instant,
-    val gitAccountId: Int
 )
 
 /*data class BranchSummary(

@@ -4,6 +4,7 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
@@ -14,11 +15,29 @@ import pt.isel.model.*
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.utils.Success
 
-sealed class GithubCommunicationServiceError
-object RepositoryNotFoundError : GithubCommunicationServiceError()
-object InvalidTokenError : GithubCommunicationServiceError()
-object RateLimitError : GithubCommunicationServiceError()
-object NetworkError : GithubCommunicationServiceError()
+sealed class GithubCommunicationServiceError{
+    abstract fun toStatus(): Int
+}
+
+object RepositoryNotFoundError : GithubCommunicationServiceError() {
+    override fun toStatus() = 404
+}
+
+object LinkedGitAccountNotFoundError: GithubCommunicationServiceError(){
+    override fun toStatus() = 404
+}
+
+object InvalidTokenError : GithubCommunicationServiceError() {
+    override fun toStatus() = 403
+}
+
+object RateLimitError : GithubCommunicationServiceError() {
+    override fun toStatus() = 429
+}
+
+object NetworkError : GithubCommunicationServiceError() {
+    override fun toStatus() = 503
+}
 
 
 // SUGESTãO Para o Futuro -> reduzir a quantidade de restTemplate, headers e entity repetidos, criando funções auxiliares para isso
@@ -31,17 +50,16 @@ class GithubCommunicationService(
         accept = listOf(MediaType.APPLICATION_JSON)
     }
 
-    private fun getGithubAccountAuthInfo(userId: Int): Pair<Int, String>? {
-        val accountResult = linkedAccountService.findUserGithubAccounts(userId)
+    private fun getGithubAccountAuthInfo(userId: Int, gitLinkedAccountId: Int): String? {
+        val accountResult = linkedAccountService.findUserOAuthAccount(gitLinkedAccountId, userId)
         return if(accountResult !is Success) null
-        else accountResult.right.firstOrNull()?.let{ it.id to it.accessToken }
+        else accountResult.right.accessToken
     }
 
-
-    private fun <T> callGitHub(userId: Int, block: (Int, String) -> T): Either<GithubCommunicationServiceError, T> {
+    private fun <T> callGitHub(userId: Int, gitLinkedAccountId: Int, block: (String) -> T): Either<GithubCommunicationServiceError, T> {
         return try {
-            val (linkedAccountId, token) = getGithubAccountAuthInfo(userId) ?: return failure(InvalidTokenError)
-            val result = block(linkedAccountId, token)
+            val token = getGithubAccountAuthInfo(userId, gitLinkedAccountId) ?: return failure(LinkedGitAccountNotFoundError)
+            val result = block(token)
             success(result)
         } catch (e: RestClientException) {
             when {
@@ -74,17 +92,29 @@ class GithubCommunicationService(
 
     fun getAuthenticatedUserRepositories(
         userId: Int,
+        gitLinkedAccountId: Int,
         page: Int = 1,
-        perPage: Int = 30
-    ): Either<GithubCommunicationServiceError, List<RepositorySummary>> =
-        callGitHub(userId) { id, token ->
+        perPage: Int = 5
+    ): Either<GithubCommunicationServiceError, UserRepositoriesDTO> =
+        callGitHub(userId, gitLinkedAccountId) { token ->
             val restTemplate = RestTemplate()
             val headers = createHeaders(token)
             val entity = HttpEntity<Unit>(headers)
             val url = "https://api.github.com/user/repos?page=$page&per_page=$perPage&sort=updated&direction=desc"
             val response = restTemplate.exchange(url, HttpMethod.GET, entity, Array<GitHubRepositoryDTO>::class.java)
-            response.body?.map { it.toSummary(id) } ?: emptyList()
+
+            val repositories = response.body?.map { it.toSummary() } ?: emptyList()
+            val lastPage = response.getLastPage()
+
+            UserRepositoriesDTO(lastPage, repositories)
         }
+
+    private fun ResponseEntity<Array<GitHubRepositoryDTO>>.getLastPage(): Int?{
+        val linkHeader = headers.get("Link")?.firstOrNull() ?: return null    //Link does not exist if only 1 page
+        val lastPageUrl = linkHeader.split(",").firstOrNull{it.contains("last")} ?: return null  //Last does not exist if curr page is last
+        val baseUrlSection = lastPageUrl.split("&")[0] //baseUrl & per_page & sort & direction
+        return baseUrlSection.substringAfter("=").first().digitToInt() //https:...?page=${page_number}
+    }
 
     /*fun getRepository(
         userId: Int,
