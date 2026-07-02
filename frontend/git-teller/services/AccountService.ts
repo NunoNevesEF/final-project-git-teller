@@ -1,12 +1,14 @@
 import {Linking, Platform} from "react-native";
 import authApiClient from "@/services/authApiClient";
+import {OAuthLinkedAccountListItemDTO} from "@/models/account/OAuthLinkedAccountListItemDTO";
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const SERVICE_PATH = '/api/private/accounts'
 
-export async function linkGitAccount(provider: string): Promise<void> {
+export async function linkNewProviderAccount(provider: string): Promise<void> {
     try {
         const response = await authApiClient.get<{ url: string }>(
-            `/api/private/accounts/link/${provider}`
+            `${SERVICE_PATH}/link/${provider}`
         );
 
         const url = `${DEFAULT_API_BASE}/${response.data.url}`;
@@ -19,4 +21,8 @@ export async function linkGitAccount(provider: string): Promise<void> {
     } catch (err: any) {
         console.log(err?.message);
     }
+}
+
+export async function listGitAccounts(): Promise<OAuthLinkedAccountListItemDTO[]>{
+    return (await authApiClient.get<OAuthLinkedAccountListItemDTO[]>(`${SERVICE_PATH}/linked-account/git`)).data;
 }

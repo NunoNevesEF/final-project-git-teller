@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/store/AuthProvider';
 import { useTheme } from '@/constants/themeProvider';
 import { useCommonStyles } from '@/constants/useCommonStyles';
-import {linkGitAccount} from "@/services/AccountService";
+import {linkNewProviderAccount} from "@/services/AccountService";
 
 export default function AuthMenuButton() {
     const [visible, setVisible] = useState(false);
@@ -35,7 +35,7 @@ export default function AuthMenuButton() {
         closeMenu();
 
         try {
-            await linkGitAccount('github');
+            await linkNewProviderAccount('github');
             console.log('Link request sent');
         } catch (error) {
             console.error('Failed to link account:', error);
