@@ -5,7 +5,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import pt.isel.model.account.OAuthLinkedAccountListItemDTO
 import pt.isel.model.account.UserDTO
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
 import pt.isel.service.account.AccountService
@@ -57,7 +57,7 @@ class PrivateAccountController(
     fun listGitAccounts(
         @AuthenticationPrincipal principal: UserPrincipal,
     ): ResponseEntity<List<OAuthLinkedAccountListItemDTO>>{
-        return when(val gitAccountsResult = linkedAccountService.findUserGithubAccounts(principal.getUserId())){
+        return when(val gitAccountsResult = linkedAccountService.findUserGitAccounts(principal.getUserId())){
             is Success -> ResponseEntity.ok(gitAccountsResult.right.map{OAuthLinkedAccountListItemDTO.create(it)})
             is Failure -> ResponseEntity.notFound().build()
         }

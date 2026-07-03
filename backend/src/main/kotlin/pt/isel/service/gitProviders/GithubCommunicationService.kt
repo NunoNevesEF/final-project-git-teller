@@ -1,81 +1,29 @@
-package pt.isel.service.git
+package pt.isel.service.gitProviders
 
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
-import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
+import pt.isel.domain.account.OAuthAccountProvider
+import pt.isel.infraestructure.config.git.GitRequestFactory
 import pt.isel.utils.Either
-import pt.isel.utils.failure
-import pt.isel.utils.success
-import pt.isel.model.*
-import pt.isel.service.account.LinkedAccountService
-import pt.isel.utils.Success
-
-sealed class GithubCommunicationServiceError{
-    abstract fun toStatus(): Int
-}
-
-object RepositoryNotFoundError : GithubCommunicationServiceError() {
-    override fun toStatus() = 404
-}
-
-object LinkedGitAccountNotFoundError: GithubCommunicationServiceError(){
-    override fun toStatus() = 404
-}
-
-object InvalidTokenError : GithubCommunicationServiceError() {
-    override fun toStatus() = 403
-}
-
-object RateLimitError : GithubCommunicationServiceError() {
-    override fun toStatus() = 429
-}
-
-object NetworkError : GithubCommunicationServiceError() {
-    override fun toStatus() = 503
-}
-
+import pt.isel.model.git.GitHubEmailDTO
+import pt.isel.model.git.GitHubRepositoryDTO
+import pt.isel.model.git.GitProviderServiceError
+import pt.isel.model.git.UserRepositoriesDTO
 
 // SUGESTãO Para o Futuro -> reduzir a quantidade de restTemplate, headers e entity repetidos, criando funções auxiliares para isso
 @Service
 class GithubCommunicationService(
-    private val linkedAccountService: LinkedAccountService,
-) {
-    private fun createHeaders(accessToken: String): HttpHeaders = HttpHeaders().apply {
-        setBearerAuth(accessToken)
-        accept = listOf(MediaType.APPLICATION_JSON)
-    }
-
-    private fun getGithubAccountAuthInfo(userId: Int, gitLinkedAccountId: Int): String? {
-        val accountResult = linkedAccountService.findUserOAuthAccount(gitLinkedAccountId, userId)
-        return if(accountResult !is Success) null
-        else accountResult.right.accessToken
-    }
-
-    private fun <T> callGitHub(userId: Int, gitLinkedAccountId: Int, block: (String) -> T): Either<GithubCommunicationServiceError, T> {
-        return try {
-            val token = getGithubAccountAuthInfo(userId, gitLinkedAccountId) ?: return failure(LinkedGitAccountNotFoundError)
-            val result = block(token)
-            success(result)
-        } catch (e: RestClientException) {
-            when {
-                e.message?.contains("401") == true || e.message?.contains("403") == true -> failure(InvalidTokenError)
-                e.message?.contains("404") == true -> failure(RepositoryNotFoundError)
-                e.message?.contains("rate limit") == true || e.message?.contains("rate_limit") == true -> failure(RateLimitError)
-                else -> failure(NetworkError)
-            }
-        }
-    }
+    private val restTemplate: RestTemplate,
+    private val requestFactory: GitRequestFactory,
+): IGitProviderService {
+    override val provider = OAuthAccountProvider.GITHUB
 
     fun getPrimaryEmailOrNull(accessToken: String): String? {
-        val restTemplate = RestTemplate()
         return try {
-            val headers = createHeaders(accessToken)
-            val entity = HttpEntity<Unit>(headers)
+            val entity = requestFactory.createEntity(accessToken)
 
             val response = restTemplate.exchange(
                 "https://api.github.com/user/emails",
@@ -83,6 +31,7 @@ class GithubCommunicationService(
                 entity,
                 Array<GitHubEmailDTO>::class.java
             )
+
             val emails = response.body ?: return null
             emails.firstOrNull { it.primary }?.email
         } catch (_: RestClientException) {
@@ -90,16 +39,11 @@ class GithubCommunicationService(
         }
     }
 
-    fun getAuthenticatedUserRepositories(
-        userId: Int,
-        gitLinkedAccountId: Int,
-        page: Int = 1,
-        perPage: Int = 5
-    ): Either<GithubCommunicationServiceError, UserRepositoriesDTO> =
-        callGitHub(userId, gitLinkedAccountId) { token ->
-            val restTemplate = RestTemplate()
-            val headers = createHeaders(token)
-            val entity = HttpEntity<Unit>(headers)
+    override fun getAuthenticatedUserRepositories(
+        accessToken: String, page: Int, perPage: Int
+    ): Either<GitProviderServiceError, UserRepositoriesDTO> =
+        requestFactory.callGit(accessToken) { token ->
+            val entity = requestFactory.createEntity(token)
             val url = "https://api.github.com/user/repos?page=$page&per_page=$perPage&sort=updated&direction=desc"
             val response = restTemplate.exchange(url, HttpMethod.GET, entity, Array<GitHubRepositoryDTO>::class.java)
 

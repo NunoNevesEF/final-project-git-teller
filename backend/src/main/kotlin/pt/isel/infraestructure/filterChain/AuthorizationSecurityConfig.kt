@@ -1,4 +1,4 @@
-package pt.isel.security.filterChain
+package pt.isel.infraestructure.filterChain
 
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
@@ -12,7 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
-import pt.isel.security.filter.JWTAuthenticationFilter
+import pt.isel.infraestructure.filter.JWTAuthenticationFilter
 
 @Configuration
 @EnableWebSecurity

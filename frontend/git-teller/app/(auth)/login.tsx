@@ -168,6 +168,14 @@ export default function Login() {
             />
 
             <OAuthRedirectButton
+                label="Continue with Gitlab"
+                provider="gitlab"
+                apiBase={API_BASE}
+                disabled={loading}
+                onError={setErrorMessage}
+            />
+
+            <OAuthRedirectButton
                 label="Continue with Google"
                 provider="google"
                 apiBase={API_BASE}

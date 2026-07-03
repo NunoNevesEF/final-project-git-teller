@@ -1,4 +1,4 @@
-package pt.isel.security.oauth.handler
+package pt.isel.infraestructure.oauth.handler
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.util.UriComponentsBuilder
 import pt.isel.domain.account.OAuthAccountProvider
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.auth.JwtService
 

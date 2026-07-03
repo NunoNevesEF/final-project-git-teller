@@ -62,8 +62,8 @@ class LinkedAccountService(
             .toEither { AccountNotFoundError }
             .map{ it.toDomain() }
 
-    fun findUserGithubAccounts(userId: Int): Either<AccountNotFoundError, List<OAuthLinkedAccount>>{
-        val accounts = oauthLinkedAccountRepo.findByUserAndProvider(userId, OAuthAccountProvider.GITHUB)
+    fun findUserGitAccounts(userId: Int): Either<AccountNotFoundError, List<OAuthLinkedAccount>>{
+        val accounts = oauthLinkedAccountRepo.findGitAccounts(userId)
         return if(accounts.isEmpty()) return failure(AccountNotFoundError)
         else success(accounts.map{ it.toDomain() })
     }

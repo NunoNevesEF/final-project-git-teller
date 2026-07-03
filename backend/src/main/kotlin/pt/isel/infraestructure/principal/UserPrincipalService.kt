@@ -1,4 +1,4 @@
-package pt.isel.security.principal
+package pt.isel.infraestructure.principal
 
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service

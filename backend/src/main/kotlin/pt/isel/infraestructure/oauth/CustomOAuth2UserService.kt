@@ -1,4 +1,4 @@
-package pt.isel.security.oauth
+package pt.isel.infraestructure.oauth
 
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
@@ -7,14 +7,14 @@ import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.ServiceError
 import pt.isel.service.account.AccountService
 import pt.isel.service.account.AccountTypeMaxedError
 import pt.isel.service.account.EmailAlreadyExists
 import pt.isel.service.auth.JwtService
 import pt.isel.utils.getOrThrow
-import pt.isel.service.git.GithubCommunicationService
+import pt.isel.service.gitProviders.GithubCommunicationService
 
 @Service
 class CustomOAuth2UserService(
@@ -50,6 +50,7 @@ class CustomOAuth2UserService(
         return when (registrationId) {
             "google" -> getGoogleEmail(oauth2User)
             "github" -> getGithubEmail(oauth2User, accessTokenValue)
+            "gitlab" -> getGitlabEmail(oauth2User)
             else -> throw OAuth2AuthenticationException("Unknown Provider")
         }
     }
@@ -58,6 +59,7 @@ class CustomOAuth2UserService(
         return when (registrationId) {
             "google" -> oauth2User.name
             "github" -> getGithubId(oauth2User)
+            "gitlab" -> getGitlabId(oauth2User)
             else -> throw OAuth2AuthenticationException("Unknown Provider")
         }
     }
@@ -71,9 +73,17 @@ class CustomOAuth2UserService(
             ?: (githubCommunicationService.getPrimaryEmailOrNull(accessTokenValue)
                 ?: throw OAuth2AuthenticationException("Github Authentication Failed - Email Not Found"))
 
+    private fun getGitlabEmail(oauth2User: OAuth2User): String =
+        oauth2User.getAttribute("email")
+        ?: throw OAuth2AuthenticationException("Gitlab Authentication Failed - Email Not Found")
+
     private fun getGithubId(oauth2User: OAuth2User): String =
         oauth2User.getAttribute<Int?>("id")?.toString() ?:
             throw OAuth2AuthenticationException("Github Authentication Failed - Id Not Found")
+
+    private fun getGitlabId(oauth2User: OAuth2User): String =
+        oauth2User.getAttribute<Int?>("id")?.toString() ?:
+        throw OAuth2AuthenticationException("Gitlab Authentication Failed - Id Not Found")
 
     private fun mapToOAuthException(error: ServiceError): OAuth2AuthenticationException =
         when (error) {

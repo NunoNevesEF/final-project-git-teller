@@ -1,13 +1,12 @@
-package pt.isel.security
+package pt.isel.infraestructure
 
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.account.UserService
-import pt.isel.utils.Success
 import pt.isel.utils.rightOrNull
 
 @Service

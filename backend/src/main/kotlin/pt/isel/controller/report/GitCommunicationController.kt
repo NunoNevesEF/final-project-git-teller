@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.model.report.GitAnalysis
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
-import pt.isel.service.git.GitAnalysisService
+import pt.isel.service.report.GitAnalysisService
 import pt.isel.utils.Success
 import pt.isel.utils.leftOrNull
 

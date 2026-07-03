@@ -3,6 +3,7 @@ package pt.isel.repository.memory.account.linkedAccount
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Repository
 import pt.isel.domain.account.OAuthAccountProvider
+import pt.isel.domain.account.OAuthAccountProvider.Companion.gitAccounts
 import pt.isel.entity.OAuthLinkedAccountEntity
 import pt.isel.repository.interfaces.account.IOAuthLinkedAccountRepository
 import pt.isel.repository.memory.RepoMem
@@ -22,4 +23,7 @@ class OAuthLinkedAccountRepoMem : RepoMem<OAuthLinkedAccountEntity>(), IOAuthLin
 
     override fun findByUserAndProviderAndProviderId(userId: Int, provider: OAuthAccountProvider, providerId: String): OAuthLinkedAccountEntity? =
         persistence.values.firstOrNull{ it.user.id == userId && it.provider == provider && it.providerId == providerId }
+
+    override fun findGitAccounts(userId: Int) : List<OAuthLinkedAccountEntity> =
+        persistence.values.filter{ it.user.id == userId && it.provider in gitAccounts }
 }

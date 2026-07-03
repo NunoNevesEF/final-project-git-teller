@@ -44,16 +44,16 @@ export default function Info() {
 
   // Headless browser trigger render
   useEffect(() => {
-    const data = (window as any).__GIT_ANALYSIS__;
-    if (data) {
-      setResult(data);
-      setIsHeadless(true);
+      const data = (window as any).__GIT_ANALYSIS__;
+      if (data) {
+        setResult(data);
+        setIsHeadless(true);
     }
   }, []);
 
   // Headless browser wait to render
   useEffect(() => {
-    if (!result) return;
+      if (!result) return;
     requestAnimationFrame(() => {
       (window as any).__REPORT_READY__ = true;
     });

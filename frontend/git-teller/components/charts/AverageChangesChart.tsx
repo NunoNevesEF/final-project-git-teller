@@ -28,7 +28,7 @@ export default function AverageChangesChart({ data }: { data: Record<string, Com
     ...Object.values(avgChangesByUser)
   );
 
-  const segments = maxCommits <= 10 ? maxCommits : 6;
+  const segments = Math.max(1, maxCommits <= 10 ? maxCommits : 6);
 
   return (
     <View>

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 import pt.isel.model.report.CreateUserReportDTO
 import pt.isel.model.report.GitAnalysis
 import pt.isel.model.report.UserReportDTO
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.report.UserReportService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success

@@ -1,4 +1,4 @@
-package pt.isel.security.config.schedule
+package pt.isel.infraestructure.config.schedule
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -10,8 +10,8 @@ import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.SuccessfulJob
 import pt.isel.service.ScheduledReportService
-import pt.isel.service.git.FailureDoNotRetry
-import pt.isel.service.git.GitAnalysisService
+import pt.isel.service.report.FailureDoNotRetry
+import pt.isel.service.report.GitAnalysisService
 import pt.isel.service.llmanalysis.CommitAnalysisService
 import pt.isel.service.report.UserReportService
 import pt.isel.utils.Failure

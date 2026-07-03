@@ -1,4 +1,4 @@
-package pt.isel.security.config.schedule
+package pt.isel.infraestructure.config.schedule
 
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
