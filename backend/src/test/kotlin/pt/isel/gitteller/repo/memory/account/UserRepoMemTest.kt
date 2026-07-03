@@ -64,6 +64,19 @@ class UserRepoMemTest{
         assertNull(actual)
     }
 
+    @Test
+    fun `method read returns User by userName`(){
+        val expected = repo.create(newUser())
+        val actual = repo.findByUserName(expected.userName!!)
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `method read returns Null if userName not found`(){
+        val actual = repo.findByUserName("invalidUserName333")
+        assertNull(actual)
+    }
+
 //    @Test
 //    fun `method readOrCreateByEmail returns User If email is found`(){
 //        val expected = repo.create(newUser())

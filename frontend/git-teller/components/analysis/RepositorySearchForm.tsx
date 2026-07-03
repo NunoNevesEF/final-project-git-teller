@@ -7,7 +7,7 @@ import { useCommonStyles } from '@/constants/useCommonStyles';
 import { useState } from 'react';
 import { View, Button, Text, Pressable, ScrollView } from 'react-native';
 import { useAuth } from '@/store/AuthProvider';
-import DateRangePicker from '../utils/DateRangePicker';
+import { DateRangePicker } from '../utils/DatePicker';
 
 export type { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType };
 

@@ -1,5 +1,6 @@
 package pt.isel.controller.account
 
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
@@ -10,6 +11,8 @@ import pt.isel.utils.Failure
 import pt.isel.utils.Success
 import pt.isel.service.account.AccountService
 import pt.isel.service.account.LinkedAccountService
+import pt.isel.service.account.UserService
+import pt.isel.service.account.UsernameAlreadyExists
 import pt.isel.service.auth.JwtService
 
 @CrossOrigin(origins = ["http://localhost:8081"])
@@ -37,7 +40,22 @@ class PublicAccountController(
 class PrivateAccountController(
     private val jwtService: JwtService,
     private val linkedAccountService: LinkedAccountService,
+    private val userService: UserService,
 ){
+    @PutMapping("/username")
+    fun setUsername(
+        @AuthenticationPrincipal principal: UserPrincipal,
+        @RequestParam username: String,
+    ): ResponseEntity<UserDTO> {
+        return when (val result = userService.update(principal.getUserId(), username)) {
+            is Success -> ResponseEntity.ok(UserDTO.create(result.right))
+            is Failure -> when (result.left) {
+                is UsernameAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).build()
+                else -> ResponseEntity.badRequest().build()
+            }
+        }
+    }
+
     @GetMapping("/link/{provider}")
     fun linkNewProviderAccount(
         @AuthenticationPrincipal principal: UserPrincipal,

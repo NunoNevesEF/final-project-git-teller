@@ -7,4 +7,5 @@ import pt.isel.entity.User
 @Repository
 interface UserRepositoryJpa : JpaRepository<User, Int> {
     fun findByEmail(email: String): User?
+    fun findByUserName(userName: String): User?
 }

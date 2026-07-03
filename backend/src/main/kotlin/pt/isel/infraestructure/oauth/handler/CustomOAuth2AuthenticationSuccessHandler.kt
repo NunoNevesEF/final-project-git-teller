@@ -13,13 +13,17 @@ import org.springframework.web.util.UriComponentsBuilder
 import pt.isel.domain.account.OAuthAccountProvider
 import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
+import pt.isel.service.account.UserService
 import pt.isel.service.auth.JwtService
+import pt.isel.utils.Failure
+import pt.isel.utils.Success
 
 @Component
 class CustomOAuth2AuthenticationSuccessHandler(
     private val jwtService: JwtService,
     private val authorizedClientService: OAuth2AuthorizedClientService,
     private val linkedAccountService: LinkedAccountService,
+    private val userService: UserService,
     @Value("\${app.frontend.redirect-url.web}") private val webRedirectUrl: String,
     @Value("\${app.frontend.redirect-url.mobile}") private val mobileRedirectUrl: String
 ) : AuthenticationSuccessHandler {
@@ -48,6 +52,12 @@ class CustomOAuth2AuthenticationSuccessHandler(
 
         val tokenPair = jwtService.generateTokenPair(authentication)
 
+        val user = when (val result = userService.findById(principal.getUserId())) {
+            is Success -> result.right
+            is Failure -> null
+        }
+        val needsUsername = user?.userName.isNullOrBlank()
+
         val userAgent = request.getHeader("User-Agent") ?: ""
         val isMobile = userAgent.contains("Android", ignoreCase = true) ||
                 userAgent.contains("iPhone", ignoreCase = true) ||
@@ -58,6 +68,8 @@ class CustomOAuth2AuthenticationSuccessHandler(
             .fromUriString(targetUrl)
             .queryParam("accessToken", tokenPair.accessToken)
             .queryParam("refreshToken", tokenPair.refreshToken)
+            .queryParam("needsUsername", needsUsername)
+            .queryParam("username", user?.userName ?: "")
             .build()
             .toUriString()
 

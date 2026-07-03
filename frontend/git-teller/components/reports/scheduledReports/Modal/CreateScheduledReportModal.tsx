@@ -8,6 +8,7 @@ import { useTheme } from '@/constants/themeProvider';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import FrequencyModeInput from "@/components/reports/scheduledReports/Modal/FrequencyMode/FrequencyModeInput";
 import TooltipLabel from '@/components/utils/TooltipLabel';
+import { DateTimeDayPicker } from '@/components/utils/DatePicker';
 import { ANALYSIS_TYPES } from '@/constants/analysisTypes';
 
 type LlmComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
@@ -142,19 +143,15 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
 
                             {scheduleType === 'ONE_TIME' && (
                                 <>
-                                    <TextInput
-                                        placeholder="Data start (YYYY-MM-DD/HH:mm)"
-                                        placeholderTextColor={colors.icon}
+                                    <DateTimeDayPicker
+                                        placeholder="Data start"
                                         value={dataStart}
-                                        onChangeText={setDataStart}
-                                        style={styles.searchInput}
+                                        onChange={setDataStart}
                                     />
-                                    <TextInput
-                                        placeholder="Run at (YYYY-MM-DD/HH:mm)"
-                                        placeholderTextColor={colors.icon}
+                                    <DateTimeDayPicker
+                                        placeholder="Run at"
                                         value={runAt}
-                                        onChangeText={setRunAt}
-                                        style={styles.searchInput}
+                                        onChange={setRunAt}
                                     />
                                 </>
                             )}

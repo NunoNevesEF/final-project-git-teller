@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service
 import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.account.UserService
+import pt.isel.utils.Success
 import pt.isel.utils.rightOrNull
 
 @Service
@@ -16,9 +17,9 @@ class CustomUserDetailsService(
 ) : UserDetailsService {
     override fun loadUserByUsername(email: String): UserDetails {
         val user = userService.findByEmail(email).rightOrNull() ?: throw UsernameNotFoundException("User not found")
-//        val account = linkedAccountService.findUserFormAccount(user.id)
-//        if(account !is Success) throw UsernameNotFoundException("User not found")
+        val account = linkedAccountService.findUserFormAccount(user.id)
+        if (account !is Success) throw UsernameNotFoundException("User not found")
 
-        return UserPrincipal(user, "t")
+        return UserPrincipal(user, account.right.passwordHash)
     }
 }

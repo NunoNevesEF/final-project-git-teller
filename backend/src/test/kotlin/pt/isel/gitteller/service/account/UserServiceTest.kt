@@ -9,6 +9,8 @@ import org.mockito.kotlin.whenever
 import pt.isel.entity.User
 import pt.isel.repository.memory.account.UserRepoMem
 import pt.isel.service.account.EmailAlreadyExists
+import pt.isel.service.account.InvalidUsername
+import pt.isel.service.account.UsernameAlreadyExists
 import pt.isel.service.account.UserNotFound
 import pt.isel.service.account.UserService
 import pt.isel.utils.isFailure
@@ -128,6 +130,30 @@ class UserServiceTest {
 
         assertTrue(actual.isFailure())
         assertEquals(UserNotFound, actual.leftOrNull())
+    }
+
+    @Test
+    fun `method update returns InvalidUsername error if new username is blank`(){
+        val testUser = newUser()
+
+        val actual = userService.update(testUser.id, "   ")
+
+        assertTrue(actual.isFailure())
+        assertEquals(InvalidUsername, actual.leftOrNull())
+    }
+
+    @Test
+    fun `method update returns UsernameAlreadyExists error if username taken by another user`(){
+        val updateUserName = "Updated_UserName"
+        val testUser = newUser(id = 0)
+        val otherUser = newUser(id = 1, email = "other@email.com", userName = updateUserName)
+
+        whenever(userRepo.findByUserName(updateUserName)).thenReturn(otherUser)
+
+        val actual = userService.update(testUser.id, updateUserName)
+
+        assertTrue(actual.isFailure())
+        assertEquals(UsernameAlreadyExists, actual.leftOrNull())
     }
 
     @Test

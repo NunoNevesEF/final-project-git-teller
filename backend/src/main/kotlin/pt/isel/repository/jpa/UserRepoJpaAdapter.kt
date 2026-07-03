@@ -23,6 +23,9 @@ class UserRepoJpaAdapter(
     override fun findByEmail(email: String): User? =
         jpa.findByEmail(email)
 
+    override fun findByUserName(userName: String): User? =
+        jpa.findByUserName(userName)
+
     override fun update(entity: User): User? =
         if (jpa.existsById(entity.id)) jpa.save(entity) else null
 

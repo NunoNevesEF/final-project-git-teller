@@ -4,7 +4,7 @@ CREATE TABLE users
 
     email      VARCHAR(255) NOT NULL UNIQUE,
 
-    user_name  VARCHAR(255),
+    user_name  VARCHAR(255) UNIQUE,
 
     role       VARCHAR(50) NOT NULL DEFAULT 'USER'
 );

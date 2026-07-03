@@ -27,6 +27,10 @@ class UserRepoMem : IUserRepository {
         return users.values.firstOrNull { it.email == email }
     }
 
+    override fun findByUserName(userName: String): User? {
+        return users.values.firstOrNull { it.userName == userName }
+    }
+
     override fun update(entity: User): User?{
         if(users.containsKey(entity.id)){
             users[entity.id] = entity

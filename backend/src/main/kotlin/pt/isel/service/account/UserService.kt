@@ -13,6 +13,8 @@ import pt.isel.utils.toEither
 sealed class UserServiceError : ServiceError
 object UserNotFound : UserServiceError()
 object EmailAlreadyExists : UserServiceError()
+object UsernameAlreadyExists : UserServiceError()
+object InvalidUsername : UserServiceError()
 
 @Service
 class UserService(private val userRepo: IUserRepository) {
@@ -25,7 +27,9 @@ class UserService(private val userRepo: IUserRepository) {
 
     fun findByEmail(email: String): Either<UserNotFound, User> = userRepo.findByEmail(email).toEither { UserNotFound }
 
-    fun update(id: Int, newUsername: String): Either<UserNotFound, User> {
+    fun update(id: Int, newUsername: String): Either<UserServiceError, User> {
+        if (newUsername.isBlank()) return failure(InvalidUsername)
+        userRepo.findByUserName(newUsername)?.let { if (it.id != id) return failure(UsernameAlreadyExists) }
         val oldUser = userRepo.findById(id) ?: return failure(UserNotFound)
         val updatedUser = oldUser.copy(userName = newUsername)
         return success(userRepo.update(updatedUser)!!)

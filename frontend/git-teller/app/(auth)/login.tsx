@@ -4,6 +4,7 @@ import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
+import { saveTokens } from "@/services/secureStore";
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 const LOGIN_PATH = "/api/public/auth/login";
@@ -15,6 +16,8 @@ export default function Login() {
     const params = useLocalSearchParams<{
         accessToken?: string | string[];
         refreshToken?: string | string[];
+        needsUsername?: string | string[];
+        username?: string | string[];
     }>();
 
     const [Email, setEmail] = useState("");
@@ -28,22 +31,13 @@ export default function Login() {
     useEffect(() => {
         if (oauthHandledRef.current) return;
 
-        const accessTokenParam = params.accessToken;
-        const refreshTokenParam = params.refreshToken;
+        const firstParam = (value?: string | string[]) =>
+            typeof value === "string" ? value : Array.isArray(value) ? value[0] : undefined;
 
-        const accessToken =
-            typeof accessTokenParam === "string"
-                ? accessTokenParam
-                : Array.isArray(accessTokenParam)
-                    ? accessTokenParam[0]
-                    : undefined;
-
-        const refreshToken =
-            typeof refreshTokenParam === "string"
-                ? refreshTokenParam
-                : Array.isArray(refreshTokenParam)
-                    ? refreshTokenParam[0]
-                    : undefined;
+        const accessToken = firstParam(params.accessToken);
+        const refreshToken = firstParam(params.refreshToken);
+        const needsUsername = firstParam(params.needsUsername) === "true";
+        const username = firstParam(params.username);
 
         if (!accessToken) return;
 
@@ -53,7 +47,17 @@ export default function Login() {
             try {
                 setLoading(true);
                 setErrorMessage(null);
-                await signIn({ accessToken, refreshToken, username: "User" });
+
+                if (needsUsername) {
+                    await saveTokens({ accessToken, refreshToken });
+                    router.replace({
+                        pathname: "./username",
+                        params: { accessToken, refreshToken },
+                    });
+                    return;
+                }
+
+                await signIn({ accessToken, refreshToken, username: username || "User" });
                 router.replace("../home");
             } catch (err: any) {
                 oauthHandledRef.current = false;
@@ -63,10 +67,8 @@ export default function Login() {
             }
         };
 
-        console.log(accessToken)
-
         finalizeOAuthLogin();
-    }, [params.accessToken, params.refreshToken, signIn]);
+    }, [params.accessToken, params.refreshToken, params.needsUsername, params.username, signIn]);
 
     const handleLogin = async () => {
         setLoading(true);
