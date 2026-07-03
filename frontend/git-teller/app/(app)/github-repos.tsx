@@ -47,10 +47,17 @@ export default function GithubReposPage() {
     }, [selectedAccountId, currPage])
 
     const handleLoadRepoList = async () => {
-        const accountsData = await listGitAccounts();
-        setAccountList(accountsData);
+        try{
+            const accountsData = await listGitAccounts();
+            setAccountList(accountsData);
 
-        if(accountsData.length > 0){ setSelectedAccountId(accountsData[0].id) }
+            if(accountsData.length > 0){ setSelectedAccountId(accountsData[0].id) }
+        } catch(err: any){
+            const status = err?.response?.status;
+            setError(getRepoErrorMessage(status));
+            setReposLoading(false);
+            if(!status) {console.error('Error listing accounts', err);}
+        }
     };
 
     const handleLoadRepoData = async() => {
@@ -93,6 +100,8 @@ export default function GithubReposPage() {
             }
 
             const result = await analyzeRepo(request);
+
+            console.log(result)
 
             setResult(result);
             setProjectName(getProjectName(repo.htmlUrl));

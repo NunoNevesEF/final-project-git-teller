@@ -2,42 +2,59 @@
 package pt.isel.controller
 
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.Authentication
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
-import pt.isel.security.principal.UserPrincipal
-import pt.isel.service.git.*
+import pt.isel.infraestructure.principal.UserPrincipal
+import pt.isel.model.git.LinkedAccountNotFoundError
+import pt.isel.model.git.GitAccountAuthInfo
+import pt.isel.model.git.GitProviderServiceError
+import pt.isel.model.git.InvalidProviderError
+import pt.isel.model.git.UserRepositoriesDTO
+import pt.isel.service.account.LinkedAccountService
+import pt.isel.service.gitProviders.*
 import pt.isel.utils.Either
+import pt.isel.utils.Success
+import pt.isel.utils.failure
 
 @RestController
-@RequestMapping("/api/github")
-class GithubController(
-    private val githubService: GithubCommunicationService
+@RequestMapping("/api/git")
+class GitController(
+    private val linkedAccountService: LinkedAccountService,
+    private val providerResolver: GitProviderResolver
 ) {
+    private fun <R: Any> withAuthenticated(
+        principal: UserPrincipal,
+        gitLinkedAccountId: Int,
+        call: (GitAccountAuthInfo) -> Either<GitProviderServiceError, R>
+    ): ResponseEntity<R> {
+        val gitAccountAuthInfo = getGitAccountAuthInfo(principal.getUserId(), gitLinkedAccountId)
+            ?: return ResponseEntity.status(LinkedAccountNotFoundError.status).build()
 
-    // para nao duplicar o principal e userId, assim todos passam a funcao especifica call
-    // converte o Either retornado para ResponseEntity usando `failureStatus`.
-    private fun <R> withAuthenticated(
-        authentication: Authentication,
-        call: (Int) -> Either<GithubCommunicationServiceError, R>
-    ): ResponseEntity<Any> {
-        val principal = authentication.principal as? UserPrincipal
-            ?: return ResponseEntity.status(401).body(mapOf("error" to "Invalid user"))
-
-        val userId = principal.getUserId()
-        return when (val result = call(userId)) {
+        return when (val result = call(gitAccountAuthInfo)) {
             is Either.Right -> ResponseEntity.ok(result.right)
-            is Either.Left -> ResponseEntity.status(result.left.toStatus())
-                .body(mapOf("error" to result.left.toString()))
+            is Either.Left -> ResponseEntity.status(result.left.status).build()
         }
     }
 
     @GetMapping("/repos/{gitLinkedAccountId}/{currPage}")
     fun getUserRepositories(
-        authentication: Authentication,
+        @AuthenticationPrincipal principal: UserPrincipal,
         @PathVariable gitLinkedAccountId: Int,
         @PathVariable currPage: Int,
-    ): ResponseEntity<Any> =
-        withAuthenticated(authentication) { githubService.getAuthenticatedUserRepositories(it, gitLinkedAccountId, page = currPage) }
+    ): ResponseEntity<UserRepositoriesDTO>{
+        return withAuthenticated(principal, gitLinkedAccountId) { (token, provider) ->
+            val service = providerResolver.get(provider) ?:
+                return@withAuthenticated failure(InvalidProviderError)
+
+            service.getAuthenticatedUserRepositories(token, currPage)
+        }
+    }
+
+    private fun getGitAccountAuthInfo(userId: Int, gitLinkedAccountId: Int): GitAccountAuthInfo? {
+        val accountResult = linkedAccountService.findUserOAuthAccount(gitLinkedAccountId, userId)
+        return if(accountResult !is Success) null
+        else GitAccountAuthInfo(accountResult.right.accessToken, accountResult.right.provider)
+    }
 
     /*@GetMapping("/repos/{owner}/{repo}")
     fun getRepository(

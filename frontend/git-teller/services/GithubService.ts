@@ -24,7 +24,7 @@ export type RepositorySummary = {
 };
 
 export async function getMyGithubRepos({gitLinkedAccountId, currPage} : GetMyGithubReposProps): Promise<UserRepositoriesDto> {
-    const resp = await authApiClient.get<UserRepositoriesDto>(`/api/github/repos/${gitLinkedAccountId}/${currPage}`);
+    const resp = await authApiClient.get<UserRepositoriesDto>(`/api/git/repos/${gitLinkedAccountId}/${currPage}`);
     return resp.data;
 }
 

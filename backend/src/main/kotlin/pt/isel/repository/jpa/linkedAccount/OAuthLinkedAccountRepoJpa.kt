@@ -14,6 +14,7 @@ interface OAuthLinkedAccountRepoJpa: JpaRepository<OAuthLinkedAccountEntity, Int
     fun findByUserId(userId: Int): List<OAuthLinkedAccountEntity>
     fun findByUserIdAndProvider(userId: Int, provider: OAuthAccountProvider): List<OAuthLinkedAccountEntity>
     fun findByUserIdAndProviderAndProviderId(userId: Int, provider: OAuthAccountProvider, providerId: String): OAuthLinkedAccountEntity?
+    fun findByUserIdAndProviderIn(userId: Int, providers: List<OAuthAccountProvider>): List<OAuthLinkedAccountEntity>
 }
 
 @Repository
@@ -32,4 +33,7 @@ class OAuthLinkedAccountRepoAdapter(
 
     override fun findByUserAndProviderAndProviderId(userId: Int, provider: OAuthAccountProvider, providerId: String): OAuthLinkedAccountEntity? =
         jpa.findByUserIdAndProviderAndProviderId(userId, provider, providerId)
+
+    override fun findGitAccounts(userId: Int): List<OAuthLinkedAccountEntity> =
+        jpa.findByUserIdAndProviderIn(userId, OAuthAccountProvider.gitAccounts)
 }

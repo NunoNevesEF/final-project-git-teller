@@ -3,7 +3,7 @@ import { Pressable, Text, Linking, Platform } from "react-native";
 
 type Props = {
     label: string;
-    provider: "google" | "github";
+    provider: "google" | "github" | "gitlab";
     apiBase?: string;
     disabled?: boolean;
     onError?: (message: string) => void;

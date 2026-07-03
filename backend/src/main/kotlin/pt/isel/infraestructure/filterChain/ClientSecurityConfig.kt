@@ -1,4 +1,4 @@
-package pt.isel.security.filterChain
+package pt.isel.infraestructure.filterChain
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -7,9 +7,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
-import pt.isel.security.oauth.CustomOAuth2AuthorizationRequestResolver
-import pt.isel.security.oauth.handler.CustomOAuth2AuthenticationSuccessHandler
-import pt.isel.security.oauth.CustomOAuth2UserService
+import pt.isel.infraestructure.oauth.CustomOAuth2AuthorizationRequestResolver
+import pt.isel.infraestructure.oauth.handler.CustomOAuth2AuthenticationSuccessHandler
+import pt.isel.infraestructure.oauth.CustomOAuth2UserService
 
 @Configuration
 @EnableWebSecurity

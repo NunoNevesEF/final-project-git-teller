@@ -40,7 +40,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
 
             token?.let {
                 clone.setCredentialsProvider(
-                    UsernamePasswordCredentialsProvider(token, "")
+                    UsernamePasswordCredentialsProvider("oauth2", token)
                 )
             }
 

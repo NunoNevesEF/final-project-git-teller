@@ -4,7 +4,7 @@ import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.stereotype.Service
 import pt.isel.domain.TokenPair
-import pt.isel.security.principal.UserPrincipalService
+import pt.isel.infraestructure.principal.UserPrincipalService
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success

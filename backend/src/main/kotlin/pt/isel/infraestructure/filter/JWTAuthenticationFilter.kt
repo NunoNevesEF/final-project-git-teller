@@ -1,4 +1,4 @@
-package pt.isel.security.filter
+package pt.isel.infraestructure.filter
 
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -9,7 +9,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 import pt.isel.service.auth.JwtService
-import pt.isel.security.principal.UserPrincipalService
+import pt.isel.infraestructure.principal.UserPrincipalService
 
 @Component
 class JWTAuthenticationFilter(

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 import pt.isel.domain.schedule.ScheduledReportJob
 import pt.isel.model.scheduledReport.CreateScheduleReportDTO
 import pt.isel.model.scheduledReport.GetScheduledReportDTO
-import pt.isel.security.principal.UserPrincipal
+import pt.isel.infraestructure.principal.UserPrincipal
 import pt.isel.service.ScheduledReportService
 import pt.isel.utils.Failure
 import pt.isel.utils.Success

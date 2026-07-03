@@ -94,7 +94,15 @@ export default function Signup() {
             />
 
             <OAuthRedirectButton
-                label="Continue with Google"
+                label="Sign up with Gitlab"
+                provider="gitlab"
+                apiBase={API_BASE}
+                disabled={loading}
+                onError={setErrorMessage}
+            />
+
+            <OAuthRedirectButton
+                label="Sign up with Google"
                 provider="google"
                 apiBase={API_BASE}
                 disabled={loading}

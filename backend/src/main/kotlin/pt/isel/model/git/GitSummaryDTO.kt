@@ -1,4 +1,4 @@
-package pt.isel.model
+package pt.isel.model.git
 
 import java.time.Instant
 

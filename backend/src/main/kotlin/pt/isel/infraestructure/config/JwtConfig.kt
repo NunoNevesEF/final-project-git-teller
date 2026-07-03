@@ -1,4 +1,4 @@
-package pt.isel.security.config
+package pt.isel.infraestructure.config
 
 import com.nimbusds.jose.jwk.JWKSelector
 import com.nimbusds.jose.jwk.JWKSet

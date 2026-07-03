@@ -1,4 +1,4 @@
-package pt.isel.service.git
+package pt.isel.service.report
 
 import org.eclipse.jgit.api.errors.InvalidRemoteException
 import org.eclipse.jgit.api.errors.TransportException
@@ -9,14 +9,11 @@ import pt.isel.domain.DateInterval
 import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.domain.report.GitCommunication
 import pt.isel.model.report.GitAnalysis
-import pt.isel.security.principal.UserPrincipal
 import pt.isel.service.ServiceError
-import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.llmanalysis.CommitAnalysisService
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
-import pt.isel.utils.Success
 
 
 sealed class GitAnalysisServiceError() : ServiceError {
