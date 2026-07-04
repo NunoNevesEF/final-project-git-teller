@@ -53,7 +53,7 @@ export default function LlmAnalysisSettings({
             >
                 <Pressable
                     onPress={() => {}}
-                    style={{ width: '90%', maxWidth: 360, maxHeight: '85%', backgroundColor: colors.background, borderRadius: 12, overflow: "hidden"}}
+                    style={{ width: '95%', maxWidth: 370, maxHeight: '85%', backgroundColor: colors.background, borderRadius: 12, overflow: "hidden"}}
                 >
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{padding: 16,}}>
                         <Text style={[commonStyles.formTitle, { marginBottom: 12, color: colors.text }]}>LLM Analysis Settings</Text>
