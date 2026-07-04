@@ -1,5 +1,5 @@
 import { GitAnalysis } from "@/models/GitAnalysis";
-import authApiClient from "@/services/authApiClient";
+import apiClient from "@/services/authApiClient";
 import { DateInterval } from "@/models/DateInterval";
 
 const PUBLIC_SERVICE_PATH = "api/public/gitCommunication";
@@ -35,7 +35,7 @@ export async function analyzeRepo(
   if (!request.gitAccountId) {
     console.log("inside request");
     return (
-      await authApiClient.post<GitAnalysis>(
+      await apiClient.post<GitAnalysis>(
         `${PUBLIC_SERVICE_PATH}/gitAnalysis`,
         request,
       )
@@ -44,7 +44,7 @@ export async function analyzeRepo(
 
   // PRIVATE (com auth header via authApiClient interceptor)
   return (
-    await authApiClient.post<GitAnalysis>(
+    await apiClient.post<GitAnalysis>(
       `${PRIVATE_SERVICE_PATH}/gitAnalysis`,
       request,
     )

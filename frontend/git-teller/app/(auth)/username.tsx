@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-nativ
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
-import authApiClient from "@/services/authApiClient";
+import apiClient from "@/services/authApiClient";
 
 export default function Username() {
     const { signIn } = useAuth();
@@ -34,7 +34,7 @@ export default function Username() {
         setErrorMessage(null);
 
         try {
-            await authApiClient.put("/api/private/accounts/username", null, {
+            await apiClient.put("/api/private/accounts/username", null, {
                 params: { username: username.trim() },
             });
 
