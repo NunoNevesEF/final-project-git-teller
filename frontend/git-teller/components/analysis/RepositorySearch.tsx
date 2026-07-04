@@ -96,7 +96,6 @@ export default function RepositorySearch() {
         
         const result = await analyzeRepo(request);
 
-
         setResult(result);
         setProjectNameStore(projectName);
         setReportId(null);
