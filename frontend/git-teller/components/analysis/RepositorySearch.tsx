@@ -91,16 +91,18 @@ export default function RepositorySearch() {
             : null,
         };
 
-        setRepoURI("");
-        setGitAccountId(null);
-        
-        const result = await analyzeRepo(request);
+        try {
+          setRepoURI("");
+          setGitAccountId(null);
+          const result = await analyzeRepo(request);
+          setResult(result);
+          setProjectNameStore(projectName);
+          setReportId(null);
+          router.push('/Info');
+        } catch {
+          // Alert should be showed, nothing else to do here
+        }
 
-        setResult(result);
-        setProjectNameStore(projectName);
-        setReportId(null);
-
-      router.push('/Info');
     } finally {
       setLoading(false);
     }

@@ -61,6 +61,11 @@ data class GitCommunication(val git: Git, val repoURI: String) {
         /**Temporary function for testing JGIT behavior, creates directory path from git repo URI**/
         private fun getRepoPath(repoURI: String): String {
             val splitPath = repoURI.split("/").drop(2)
+
+            require(splitPath.size >= 3) {
+                "Invalid repository URL"
+            }
+
             val userDirectory = splitPath[1]
             val serviceDirectory = splitPath[0].removeSuffix(".com")
             val repoDirectory = splitPath[2]
