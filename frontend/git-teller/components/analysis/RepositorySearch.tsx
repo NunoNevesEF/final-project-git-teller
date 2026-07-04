@@ -8,6 +8,8 @@ import LoadingComponent from '../utils/LoadingComponent';
 
 export default function RepositorySearch() {
   const router = useRouter();
+  const gitAccountId = useAnalysisInfoStore((s) => s.gitAccountId);
+  const setGitAccountId = useAnalysisInfoStore((s) => s.setGitAccountId);
   const repoURI = useAnalysisInfoStore((s) => s.repoURI);
   const setRepoURI = useAnalysisInfoStore((s) => s.setRepoURI);
   const setResult = useAnalysisInfoStore((state) => state.setResult);
@@ -78,7 +80,7 @@ export default function RepositorySearch() {
 
         const request = {
           repoURI: url,
-          gitAccountId: null,
+          gitAccountId: gitAccountId,
           dateFilter: dateFilter,
           llmRequest: llmAnalysisEnabled
             ? {
@@ -90,6 +92,7 @@ export default function RepositorySearch() {
         };
 
         setRepoURI("");
+        setGitAccountId(null);
         
         const result = await analyzeRepo(request);
 
