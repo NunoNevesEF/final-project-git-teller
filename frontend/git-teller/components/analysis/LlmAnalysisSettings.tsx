@@ -4,6 +4,7 @@ import OptionButton from '@/components/utils/OptionButton';
 import TooltipLabel from '@/components/utils/TooltipLabel';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import { ANALYSIS_TYPES, AnalysisType } from '@/constants/analysisTypes';
+import { useTheme } from '@/constants/themeProvider';
 
 export type LlmFilterType = 'shas' | 'detailedSettings' | 'overview';
 export type PromptComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX';
@@ -42,19 +43,20 @@ export default function LlmAnalysisSettings({
     requestedAnalyses, onRequestedAnalysesChange,
 }: LlmAnalysisSettingsProps) {
     const commonStyles = useCommonStyles();
+    const { colors } = useTheme()
 
     return (
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} >
             <Pressable
                 style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}
                 onPress={onClose}
             >
                 <Pressable
                     onPress={() => {}}
-                    style={{ width: '90%', maxWidth: 360, maxHeight: '85%', backgroundColor: '#fff', borderRadius: 12, padding: 16 }}
+                    style={{ width: '90%', maxWidth: 360, maxHeight: '85%', backgroundColor: colors.background, borderRadius: 12, overflow: "hidden"}}
                 >
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <Text style={[commonStyles.formTitle, { marginBottom: 12 }]}>LLM Analysis Settings</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{padding: 16,}}>
+                        <Text style={[commonStyles.formTitle, { marginBottom: 12, color: colors.text }]}>LLM Analysis Settings</Text>
 
                         <TooltipLabel
                             label="Filter by"
@@ -133,7 +135,7 @@ export default function LlmAnalysisSettings({
                             </>
                         )}
 
-                        <Pressable style={[commonStyles.primaryButton, { marginTop: 16 }]} onPress={onConfirm}>
+                        <Pressable style={[commonStyles.primaryButton, { marginTop: 16, alignSelf: "center", width: "80%", }]} onPress={onConfirm}>
                             <Text style={commonStyles.primaryButtonText}>{confirmLabel}</Text>
                         </Pressable>
                     </ScrollView>
