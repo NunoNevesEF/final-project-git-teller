@@ -36,6 +36,17 @@ export default function HeatMapCommits({data,}: {data: Record<string, CommitAnal
     count,
   }));
 
+  const dates = heatMapData.map(v => new Date(v.date));
+
+  const firstDate = new Date(Math.min(...dates.map(d => d.getTime())));
+  const lastDate = new Date(Math.max(...dates.map(d => d.getTime())));
+
+  const numDays =
+    Math.ceil(
+      (lastDate.getTime() - firstDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+    ) + 1;
+
   const LEGEND = [
     { label: "Less", opacity: 0.1 },
     { label: "0.3", opacity: 0.3 },
@@ -51,8 +62,8 @@ export default function HeatMapCommits({data,}: {data: Record<string, CommitAnal
       <ScrollView horizontal showsHorizontalScrollIndicator>
       <ContributionGraph
         values={heatMapData}
-        endDate={new Date()}
-        numDays={105}
+        endDate={lastDate}
+        numDays={numDays}
         width={A4_WIDTH - 150}
         height={320}
         squareSize={25}

@@ -57,10 +57,26 @@ export default function MostModifiedFiles({
         <Text style={{ flex: 2, color: colors.text, fontWeight: "600" }}>
           File
         </Text>
-        <Text style={{ flex: 1, textAlign: "center", color: colors.text, fontWeight: "600" }}>
+
+        <Text
+          style={{
+            flex: 1,
+            textAlign: "center",
+            color: colors.text,
+            fontWeight: "600",
+          }}
+        >
           Changes
         </Text>
-        <Text style={{ flex: 1.2, textAlign: "right", color: colors.text, fontWeight: "600" }}>
+
+        <Text
+          style={{
+            flex: 1.2,
+            textAlign: "right",
+            color: colors.text,
+            fontWeight: "600",
+          }}
+        >
           Date
         </Text>
       </View>
@@ -75,26 +91,47 @@ export default function MostModifiedFiles({
             alignItems: "center",
           }}
         >
-          <View style={{ flex: 2, flexDirection: "row", alignItems: "center" }}>
+          <View
+            style={{
+              flex: 2,
+              flexDirection: "row",
+              alignItems: "center",
+              minWidth: 0,
+            }}
+          >
             <View style={{ marginRight: 8 }}>
               {getFileIcon(file.extension, colors.text)}
             </View>
 
             <Text
-  style={{
-    color: colors.text,
-    flexShrink: 1,
-  }}
->
-  {file.path}
-</Text>
+              style={{
+                flex: 1,
+                minWidth: 0,
+                flexShrink: 1,
+                color: colors.text,
+              }}
+            >
+              {file.path}
+            </Text>
           </View>
 
-          <Text style={{ flex: 1, textAlign: "center", color: colors.text }}>
+          <Text
+            style={{
+              flex: 1,
+              textAlign: "center",
+              color: colors.text,
+            }}
+          >
             {file.changes}
           </Text>
 
-          <Text style={{ flex: 1.2, textAlign: "right", color: colors.icon }}>
+          <Text
+            style={{
+              flex: 1.2,
+              textAlign: "right",
+              color: colors.icon,
+            }}
+          >
             {formatDate(file.lastModified)}
           </Text>
         </View>
