@@ -16,6 +16,7 @@ import PaginationButton from "@/components/utils/PaginationButton";
 export default function GithubReposPage() {
     const {isAuthenticated, loading} = useAuth();
     const router = useRouter();
+    const setGitAccountId = useAnalysisInfoStore((s) => s.setGitAccountId);
     const setRepoURI = useAnalysisInfoStore((s) => s.setRepoURI);
     const setResult = useAnalysisInfoStore((state) => state.setResult);
     const setProjectName = useAnalysisInfoStore((state) => state.setProjectName);
@@ -116,6 +117,7 @@ export default function GithubReposPage() {
     };
 
     const handleSearchFilter = (repo: RepositorySummary) => {
+        setGitAccountId(selectedAccountId);
         setRepoURI(repo.htmlUrl);
         router.push("/(app)/home");
     };
