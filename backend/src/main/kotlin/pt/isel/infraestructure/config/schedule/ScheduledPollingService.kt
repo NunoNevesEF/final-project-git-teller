@@ -15,11 +15,11 @@ class ScheduledPollingService(
     fun pollSchedules() {
         val schedules = scheduledReportService.listDueJobs()
 
-        schedules.forEach { (scheduleId, repoUri, userId) ->
+        schedules.forEach { (scheduleId, userId, repoUri, gitAccountId) ->
             try{
                 val job = scheduledReportService.createScheduledReportJob(scheduleId)
                 scheduledReportService.calculateNextReport(scheduleId)
-                scheduledJobExecutor.schedule(job, repoUri, userId)
+                scheduledJobExecutor.schedule(job, userId, repoUri, gitAccountId)
             } catch(_: ScheduledReportNotFoundException){
                 println("Scheduled report has been deleted") //TODO: THINK IF SOMETHING ELSE HAS TO BE DONE.
             }

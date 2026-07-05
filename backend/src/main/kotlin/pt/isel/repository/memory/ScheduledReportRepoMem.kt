@@ -13,11 +13,14 @@ import java.time.Instant
     havingValue = "memory",
     matchIfMissing = true
 )
-class ScheduledReportRepoMem(): RepoMem<ScheduledReportEntity<*,*>>(), IScheduledReportRepository {
-    override fun findByUserId(userId: Int): List<ScheduledReportEntity<*,*>> =
+class ScheduledReportRepoMem(): RepoMem<ScheduledReportEntity>(), IScheduledReportRepository {
+    override fun findByIdAndUserId(id: Int, userId: Int): ScheduledReportEntity? =
+        persistence.values.firstOrNull{ it.id == id && it.user.id == userId}
+
+    override fun findByUserId(userId: Int): List<ScheduledReportEntity> =
         persistence.values.filter{ it.user.id == userId }
 
-    override fun findDue(): List<ScheduledReportEntity<*,*>> {
+    override fun findDue(): List<ScheduledReportEntity> {
         val limit = Instant.now().plus(Duration.ofMinutes(15))
         return persistence.values
             .filter { it.isDue(limit) }

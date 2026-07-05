@@ -26,9 +26,10 @@ import java.time.LocalTime
         name = "PERIODIC"
     )
 )
-sealed interface CreateScheduleReportDTO<T: ScheduledReport<T, *>>{
+sealed interface CreateScheduleReportDTO{
     val repoUri: String
-    fun toDomain(userId: Int): ScheduledReport<T,*>
+    val gitAccountId: Int?
+    fun toDomain(userId: Int): ScheduledReport
 }
 
 data class CreateOneTimeScheduledReportDTO(
@@ -36,7 +37,8 @@ data class CreateOneTimeScheduledReportDTO(
     val dataStart: Instant,
     val runAt: Instant,
     val llmConfig: AnalysisRequestWrapper? = null,
-): CreateScheduleReportDTO<OneTimeScheduledReport>{
+    override val gitAccountId: Int?,
+): CreateScheduleReportDTO{
     override fun toDomain(userId: Int) =
         OneTimeScheduledReport.create(
             userId = userId, repoURI = repoUri, nextRun = runAt,
@@ -50,7 +52,8 @@ data class CreatePeriodicScheduledReportDTO(
     val time: LocalTime,
     val freqMode: FrequencyMode,
     val llmConfig: AnalysisRequestWrapper? = null,
-): CreateScheduleReportDTO<PeriodicScheduledReport>{
+    override val gitAccountId: Int?,
+): CreateScheduleReportDTO{
     override fun toDomain(userId: Int) =
         PeriodicScheduledReport.create(
             userId = userId, repoURI = repoUri,

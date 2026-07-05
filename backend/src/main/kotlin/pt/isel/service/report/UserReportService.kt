@@ -19,20 +19,19 @@ class UserReportService(
     private val userReportRepo: IUserReportRepository,
     private val reportGenerationService: ReportPDFGenerationService
 ) {
-    fun createReport(gitAnalysis: GitAnalysis, repoUri: String, userId: Int): Either<UserNotFound, Int> =
+    fun createReport(gitAnalysis: GitAnalysis, userId: Int): Either<UserNotFound, Int> =
         when(val userResult = userService.findById(userId)){
             is Success -> {
                 val report = userReportRepo.create(
-                    ReportEntity(user = userResult.right, repoURI = repoUri, gitAnalysis = gitAnalysis)
+                    ReportEntity(user = userResult.right, gitAnalysis = gitAnalysis)
                 )
                 success(report.id)
             }
             is Failure -> userResult
         }
 
-    fun getUserReportsByUserId(userId: Int): List<UserReportDTO> = userReportRepo.findByUserId(userId).map { report ->
-        UserReportDTO(id = report.id, createdAt = report.createdAt, repoUri = report.repoURI)
-    }
+    fun getUserReportsByUserId(userId: Int): List<UserReportDTO> =
+        userReportRepo.findByUserId(userId).map { report -> UserReportDTO.create(report) }
 
     fun getAnalysis(reportId: Int, userId: Int): Either<UserReportNotFound, GitAnalysis> =
         userReportRepo.findByIdAndUserId(reportId, userId).toEither { UserReportNotFound }.map { it.gitAnalysis }

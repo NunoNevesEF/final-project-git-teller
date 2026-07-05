@@ -80,6 +80,7 @@ export interface CreatePeriodicScheduledReportDTO {
   time: string;
   freqMode: FrequencyMode;
   llmConfig?: any;
+  gitAccountId: number | null;
 }
 
 export type CreateScheduledReportDTO =

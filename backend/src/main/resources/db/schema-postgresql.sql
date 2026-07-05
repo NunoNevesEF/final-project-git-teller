@@ -1,42 +1,42 @@
 CREATE TABLE users
 (
-    id         SERIAL PRIMARY KEY,
+    id        SERIAL PRIMARY KEY,
 
-    email      VARCHAR(255) NOT NULL UNIQUE,
+    email     VARCHAR(255) NOT NULL UNIQUE,
 
-    user_name  VARCHAR(255) UNIQUE,
+    user_name VARCHAR(255) UNIQUE,
 
-    role       VARCHAR(50) NOT NULL DEFAULT 'USER'
+    role      VARCHAR(50)  NOT NULL DEFAULT 'USER'
 );
 
 CREATE TABLE linked_accounts
 (
-    id         SERIAL PRIMARY KEY,
-    user_id    INTEGER NOT NULL
+    id      SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL
         REFERENCES users (id)
             ON DELETE CASCADE
 );
 
 CREATE TABLE form_accounts
 (
-    id             INTEGER PRIMARY KEY
+    id            INTEGER PRIMARY KEY
         REFERENCES linked_accounts (id)
             ON DELETE CASCADE,
 
-    password_hash  TEXT NOT NULL
+    password_hash TEXT NOT NULL
 );
 
 CREATE TABLE oauth_accounts
 (
-    id             INTEGER PRIMARY KEY
+    id            INTEGER PRIMARY KEY
         REFERENCES linked_accounts (id)
             ON DELETE CASCADE,
 
-    access_token   TEXT,
-    refresh_token  TEXT,
+    access_token  TEXT,
+    refresh_token TEXT,
 
-    provider       VARCHAR(100) NOT NULL,
-    provider_id    VARCHAR(255) NOT NULL
+    provider      VARCHAR(100) NOT NULL,
+    provider_id   VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE scheduled_reports
@@ -47,6 +47,10 @@ CREATE TABLE scheduled_reports
 
     user_id             INTEGER     NOT NULL
         REFERENCES users (id)
+            ON DELETE CASCADE,
+
+    git_account_id      INTEGER
+        REFERENCES oauth_accounts
             ON DELETE CASCADE,
 
     repo_uri            TEXT        NOT NULL,
@@ -103,7 +107,7 @@ CREATE TABLE scheduled_report_jobs
 
     retry_count         INTEGER     NOT NULL DEFAULT 0,
 
-    state               VARCHAR(20) NOT NULL,
+    status               VARCHAR(20) NOT NULL,
 
     run_at              TIMESTAMPTZ,
     started_at          TIMESTAMPTZ,
@@ -112,7 +116,7 @@ CREATE TABLE scheduled_report_jobs
     error_msg           TEXT,
 
     CONSTRAINT chk_job_state
-        CHECK (state IN ('PENDING', 'RUNNING', 'SUCCESS', 'FAILURE'))
+        CHECK (status IN ('PENDING', 'RUNNING', 'SUCCESS', 'FAILURE'))
 );
 
 CREATE TABLE report
@@ -120,8 +124,6 @@ CREATE TABLE report
     id         SERIAL PRIMARY KEY,
 
     user_id    INTEGER      NOT NULL REFERENCES users (id),
-
-    repo_uri   VARCHAR(255) NOT NULL,
 
     created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 

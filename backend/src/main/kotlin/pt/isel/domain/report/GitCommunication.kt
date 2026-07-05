@@ -52,7 +52,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
             val repoPathFile = getRepoFile(getRepoPath(repoURI))
 
             return try {
-                getGitRepo(repoPathFile)
+                getGitRepo(repoPathFile).also{ fetchRepo(it, token) }
             } catch (e: RepositoryNotFoundException) {
                 cloneGitRepo(repoURI, repoPathFile, token)
             }
@@ -71,6 +71,18 @@ data class GitCommunication(val git: Git, val repoURI: String) {
         /**Temporary function for testing JGIT behavior, creates file from directory path**/
         private fun getRepoFile(repoPath: String): File {
             return File(repoPath)
+        }
+
+        private fun fetchRepo(git: Git, token: String?) {
+            val fetch = git.fetch()
+
+            token?.let {
+                fetch.setCredentialsProvider(
+                    UsernamePasswordCredentialsProvider("oauth2", token)
+                )
+            }
+
+            fetch.call()
         }
 
         fun openExisting(repoURI: String): GitCommunication {

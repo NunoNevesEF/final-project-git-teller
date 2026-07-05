@@ -2,6 +2,7 @@ package pt.isel.infraestructure.config.schedule
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.ResponseEntity
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.stereotype.Service
 import pt.isel.domain.report.GitAnalysisRequest
@@ -10,6 +11,7 @@ import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.SuccessfulJob
 import pt.isel.service.ScheduledReportService
+import pt.isel.service.account.LinkedAccountService
 import pt.isel.service.report.FailureDoNotRetry
 import pt.isel.service.report.GitAnalysisService
 import pt.isel.service.llmanalysis.CommitAnalysisService
@@ -24,49 +26,34 @@ class ScheduledJobExecutor(
     private val scheduledReportService: ScheduledReportService,
     private val analysisService: GitAnalysisService,
     private val reportService: UserReportService,
+    private val linkedAccountService: LinkedAccountService,
     private val commitAnalysisService: CommitAnalysisService,
 ) {
-    fun schedule(job: PendingJob, repoUri: String, userId: Int) {
-        taskScheduler.schedule({ execute(job, repoUri, userId) }, job.runAt)
+    fun schedule(job: PendingJob, userId: Int, repoUri: String, gitAccountId: Int?) {
+        taskScheduler.schedule({ execute(job, repoUri, userId, gitAccountId) }, job.runAt)
     }
 
-    private fun execute(pendingJob: PendingJob, repoUri: String, userId: Int) {
+    private fun execute(pendingJob: PendingJob, repoUri: String, userId: Int, gitAccountId: Int?) {
         try {
             val runningJob = scheduledReportService.runJob(pendingJob)
             val llmConfig = scheduledReportService.getScheduleLlmConfig(pendingJob.scheduledReportId)
 
+            val accountResult =
+                if(gitAccountId != null) linkedAccountService.findUserOAuthAccount(gitAccountId, userId)
+                else null
+
+            val token = //TODO: REPLACE WITH SUCCESS -> TOKEN / FAILURE -> INSTANT END / NULL -> NULL
+                if(accountResult is Success) accountResult.right.accessToken
+                else null
+
             val request = GitAnalysisRequest(
                 repoURI = repoUri,
                 llmRequest = llmConfig,
-                dateFilter = DateInterval(pendingJob.dataFrom, Instant.now()),
-                gitAccountId = null
+                dateFilter = DateInterval(runningJob.dataFrom, runningJob.dataTo),
+                gitAccountId = gitAccountId
             )
 
-            when (val analysisResult = analysisService.analyze(request,null)) {
-//                is Success -> {
-//                    val llmAnalysis = if (llmConfig != null) {
-//                        try {
-//                            if (llmConfig.flag) {
-//                                commitAnalysisService.analyzeGitOverview(analysisResult.right).llmAnalysis
-//                            } else {
-//                                require(llmConfig.byDetailedSettings != null)
-//                                val request = CommitDetailledSettingsAnalysisRequest(
-//                                    promptComplexity = llmConfig.byDetailedSettings.promptComplexity,
-//                                    analysisMode = llmConfig.byDetailedSettings.analysisMode,
-//                                    requestedAnalyses = llmConfig.byDetailedSettings.requestedAnalyses,
-//                                )
-//                                commitAnalysisService.analyzeCommitsDetailedSettings(request, repoUri, null).llmAnalysis
-//                            }
-//                        } catch (e: Exception) {""}
-//                    } else { ""}
-//
-//                    val gitAnalysis = analysisResult.right.copy(llmAnalysis = llmAnalysis)
-//
-//                    val successJob = scheduledReportService.endJob(runningJob, true) as? SuccessfulJob
-//                        ?: throw IllegalStateException("what")
-//                    scheduledReportService.updateReportLastRun(successJob.scheduledReportId, successJob.startedAt)
-//                    reportService.createReport(gitAnalysis, repoUri, userId)
-//                }
+            when (val analysisResult = analysisService.analyze(request, token)) {
                 is Success -> {
                     val gitAnalysis = analysisResult.right
 
@@ -74,7 +61,7 @@ class ScheduledJobExecutor(
                         ?: throw IllegalStateException()
 
                     scheduledReportService.updateReportLastRun(successJob.scheduledReportId, successJob.startedAt)
-                    reportService.createReport(gitAnalysis, repoUri, userId)
+                    reportService.createReport(gitAnalysis, userId)
                 }
 
 
@@ -90,7 +77,7 @@ class ScheduledJobExecutor(
                         else -> {
                             when (val failedJob = scheduledReportService.endJob(runningJob, false, allowRetry = true)) {
                                 is FailedJob -> scheduledReportService.updateReportLastRun(failedJob.scheduledReportId, failedJob.startedAt)
-                                is PendingJob -> schedule(failedJob, repoUri, userId)
+                                is PendingJob -> schedule(failedJob, userId, repoUri, gitAccountId)
                                 else -> throw IllegalStateException("what")
                             }
                         }

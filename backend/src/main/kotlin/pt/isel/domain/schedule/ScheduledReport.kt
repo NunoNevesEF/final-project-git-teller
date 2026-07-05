@@ -1,6 +1,7 @@
 package pt.isel.domain.schedule
 
 import pt.isel.domain.report.AnalysisRequestWrapper
+import pt.isel.entity.OAuthLinkedAccountEntity
 import pt.isel.entity.User
 import pt.isel.entity.schedule.OneTimeScheduledReportEntity
 import pt.isel.entity.schedule.PeriodicScheduledReportEntity
@@ -9,7 +10,7 @@ import pt.isel.utils.CronInput
 import pt.isel.utils.CronUtils
 import java.time.Instant
 
-sealed class ScheduledReport<SELF : ScheduledReport<SELF, ENTITY>, ENTITY : ScheduledReportEntity<ENTITY, SELF>>(
+sealed class ScheduledReport(
     id: Int, userId: Int, repoUri: String, nextRun: Instant?, dataStart: Instant
 ) {
     init {
@@ -26,14 +27,18 @@ sealed class ScheduledReport<SELF : ScheduledReport<SELF, ENTITY>, ENTITY : Sche
     abstract val lastRunAt: Instant?
     abstract val dataFrom: Instant
     abstract val llmConfig: AnalysisRequestWrapper?
+    abstract val isCancelled: Boolean
+    abstract val cancellationReason: String?
 
     fun createJob(): PendingJob = ScheduledReportJob.create(
         scheduledReportId = id, scheduledFor = nextRunAt!!, dataFrom = dataFrom
     )
 
-    abstract fun advanceSchedule(): SELF
-    abstract fun recordExecution(jobExecTime: Instant): SELF
-    abstract fun toEntity(user: User): ENTITY
+    abstract fun cancel(errorMsg: String): ScheduledReport
+
+    abstract fun advanceSchedule(): ScheduledReport
+    abstract fun recordExecution(jobExecTime: Instant): ScheduledReport
+    abstract fun toEntity(user: User, gitAccount: OAuthLinkedAccountEntity?): ScheduledReportEntity
 }
 
 data class OneTimeScheduledReport(
@@ -44,7 +49,10 @@ data class OneTimeScheduledReport(
     override val lastRunAt: Instant? = null,
     override val dataFrom: Instant,
     override val llmConfig: AnalysisRequestWrapper? = null,
-) : ScheduledReport<OneTimeScheduledReport, OneTimeScheduledReportEntity>(id, userId, repoUri, nextRunAt, dataFrom) {
+
+    override val isCancelled: Boolean = false,
+    override val cancellationReason: String? = null,
+) : ScheduledReport(id, userId, repoUri, nextRunAt, dataFrom) {
     companion object {
         fun create(
             id: Int = 0, userId: Int, repoURI: String, nextRun: Instant,
@@ -55,13 +63,19 @@ data class OneTimeScheduledReport(
         )
     }
 
+    override fun cancel(errorMsg: String): ScheduledReport = this.copy(
+        isCancelled = true, cancellationReason = errorMsg
+    )
+
     override fun advanceSchedule() = copy(nextRunAt = null)
     override fun recordExecution(jobExecTime: Instant): OneTimeScheduledReport = copy(lastRunAt = jobExecTime)
 
-    override fun toEntity(user: User) = OneTimeScheduledReportEntity(
-        id = id, repoUri = repoUri, nextRunAt = nextRunAt, lastRunAt = lastRunAt, dataFrom = dataFrom
+    override fun toEntity(user: User, gitAccount: OAuthLinkedAccountEntity?) = OneTimeScheduledReportEntity(
+        id = id, repoUri = repoUri, nextRunAt = nextRunAt, lastRunAt = lastRunAt, dataFrom = dataFrom,
+        isCancelled = isCancelled, cancellationReason = cancellationReason
     ).apply {
         this.user = user
+        this.gitAccount = gitAccount
         llmConfig?.let {
             llmComplexity = it.byDetailedSettings?.promptComplexity
             llmMode = it.byDetailedSettings?.analysisMode
@@ -78,11 +92,14 @@ data class PeriodicScheduledReport(
     override val lastRunAt: Instant? = null,
     override val dataFrom: Instant,
 
+    override val isCancelled: Boolean = false,
+    override val cancellationReason: String? = null,
+
     val active: Boolean = true,
     val timeZone: String,
     val cronExpression: String,
     override val llmConfig: AnalysisRequestWrapper? = null,
-) : ScheduledReport<PeriodicScheduledReport, PeriodicScheduledReportEntity>(id, userId, repoUri, nextRunAt, dataFrom) {
+) : ScheduledReport(id, userId, repoUri, nextRunAt, dataFrom) {
     companion object {
         fun create(
             id: Int = 0, userId: Int, repoURI: String, timeZone: String,
@@ -98,16 +115,20 @@ data class PeriodicScheduledReport(
                 timeZone = timeZone,
                 cronExpression = cronExpression,
                 dataFrom = CronUtils.calculatePrev(cronInput.mode, timeZone, nextRun),
-                llmConfig = llmConfig
+                llmConfig = llmConfig,
             )
         }
     }
+
+    override fun cancel(errorMsg: String): ScheduledReport = this.copy(
+        isCancelled = true, cancellationReason = errorMsg
+    )
 
     override fun advanceSchedule() = copy(nextRunAt = calculateNextRunTime(), dataFrom = nextRunAt)
 
     override fun recordExecution(jobExecTime: Instant) = copy(lastRunAt = jobExecTime)
 
-    override fun toEntity(user: User) = PeriodicScheduledReportEntity(
+    override fun toEntity(user: User, gitAccount: OAuthLinkedAccountEntity?) = PeriodicScheduledReportEntity(
         id = id,
         repoUri = repoUri,
         nextRunAt = nextRunAt,
@@ -115,9 +136,12 @@ data class PeriodicScheduledReport(
         dataFrom = dataFrom,
         active = active,
         timeZone = timeZone,
-        cronExpression = cronExpression
+        cronExpression = cronExpression,
+        isCancelled = isCancelled,
+        cancellationReason = cancellationReason
     ).also {
         it.user = user
+        it.gitAccount = gitAccount
         llmConfig?.let { cfg ->
             it.llmComplexity = cfg.byDetailedSettings?.promptComplexity
             it.llmMode = cfg.byDetailedSettings?.analysisMode

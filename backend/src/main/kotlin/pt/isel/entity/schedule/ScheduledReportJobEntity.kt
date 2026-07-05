@@ -13,7 +13,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
-import pt.isel.domain.report.JobStatus
 import pt.isel.domain.schedule.FailedJob
 import pt.isel.domain.schedule.PendingJob
 import pt.isel.domain.schedule.RunningJob
@@ -31,6 +30,9 @@ class ScheduledReportJobEntity(
     @Column(name = "data_from", nullable = false)
     var dataFrom: Instant,
 
+    @Column(name = "data_to", nullable = false)
+    var dataTo: Instant,
+
     @Column(name = "scheduled_for", nullable = false)
     var scheduledFor: Instant,
 
@@ -42,19 +44,56 @@ class ScheduledReportJobEntity(
 ) {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scheduled_report_id", nullable = false)
-    lateinit var scheduledReport: ScheduledReportEntity<*, *>
+    lateinit var scheduledReport: ScheduledReportEntity
 
     fun updateState(newState: JobStateEmbeddable): ScheduledReportJobEntity {
         state = newState
         return this
     }
 
+    fun isQueued() = state.status == JobStatus.PENDING || state.status == JobStatus.RUNNING
+
     fun toDomain(): ScheduledReportJob {
-        return when (state.state) {
-            JobStatus.PENDING -> PendingJob(id, scheduledReport.id, dataFrom, scheduledFor, retryCount, state.runAt!!)
-            JobStatus.RUNNING -> RunningJob(id, scheduledReport.id, dataFrom, scheduledFor, retryCount, state.startedAt!!)
-            JobStatus.SUCCESS -> SuccessfulJob(id, scheduledReport.id, dataFrom, scheduledFor, retryCount, state.startedAt!!, state.endedAt!!)
-            JobStatus.FAILURE -> FailedJob(id, scheduledReport.id, dataFrom, scheduledFor, retryCount, state.startedAt!!, state.endedAt!!, state.errorMsg ?: "")
+        return when (state.status) {
+            JobStatus.PENDING -> PendingJob(
+                id,
+                scheduledReport.id,
+                dataFrom,
+                dataTo,
+                scheduledFor,
+                retryCount,
+                state.runAt!!
+            )
+            JobStatus.RUNNING -> RunningJob(
+                id,
+                scheduledReport.id,
+                dataFrom,
+                dataTo,
+                scheduledFor,
+                retryCount,
+                state.startedAt!!
+            )
+            JobStatus.SUCCESS -> SuccessfulJob(
+                id,
+                scheduledReport.id,
+                dataFrom,
+                dataTo,
+                scheduledFor,
+                retryCount,
+                state.startedAt!!,
+                state.endedAt!!
+            )
+            JobStatus.FAILURE -> FailedJob(
+                id,
+                scheduledReport.id,
+                dataFrom,
+                dataTo,
+                scheduledFor,
+                retryCount,
+                state.startedAt!!,
+                state.endedAt!!,
+                state.errorMsg ?: ""
+            )
         }
     }
 }
@@ -62,7 +101,7 @@ class ScheduledReportJobEntity(
 @Embeddable
 class JobStateEmbeddable(
     @Enumerated(EnumType.STRING)
-    var state: JobStatus = JobStatus.PENDING,
+    var status: JobStatus = JobStatus.PENDING,
 
     @Column(name = "run_at")
     var runAt: Instant? = null,

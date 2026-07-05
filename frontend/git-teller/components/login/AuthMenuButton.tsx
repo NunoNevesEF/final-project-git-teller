@@ -40,6 +40,17 @@ export default function AuthMenuButton() {
         } catch (error) {
             console.error('Failed to link account:', error);
         }
+    }
+
+    const handleLinkGitlab = async () => {
+        closeMenu();
+
+        try {
+            await linkNewProviderAccount('gitlab');
+            console.log('Link request sent');
+        } catch (error) {
+            console.error('Failed to link account:', error);
+        }
     };
 
     if (loading) return null;
@@ -104,6 +115,13 @@ export default function AuthMenuButton() {
                                     onPress={handleLinkGithub}
                                 >
                                     <Text style={commonStyles.primaryButtonText}>Link Github Account</Text>
+                                </Pressable>
+
+                                <Pressable
+                                    style={commonStyles.primaryButton }
+                                    onPress={handleLinkGitlab}
+                                >
+                                    <Text style={commonStyles.primaryButtonText}>Link Gitlab Account</Text>
                                 </Pressable>
 
                                 <Pressable

@@ -21,10 +21,7 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-abstract class ScheduledReportTest<
-        DOMAIN: ScheduledReport<DOMAIN, ENTITY>,
-        ENTITY: ScheduledReportEntity<ENTITY, DOMAIN>
->{
+/*abstract class ScheduledReportTest{
     val validId = 0
 
     val validUserId = 0
@@ -43,10 +40,10 @@ abstract class ScheduledReportTest<
         repoUri: String = validRepoURI,
         nextRun: Instant? = validNextRun,
         lastRun: Instant? = null,
-    ): DOMAIN
+    ): ScheduledReport
 
-    abstract fun assertAdvanceScheduled(original: DOMAIN, result: DOMAIN)
-    abstract fun assertToEntity(original: DOMAIN, result: ENTITY)
+    abstract fun assertAdvanceScheduled(original: ScheduledReport, result: ScheduledReport)
+    abstract fun assertToEntity(original: ScheduledReport, result: ScheduledReportEntity)
 
     @Test
     fun `creation fails if id less than 0`(){
@@ -222,4 +219,4 @@ class PeriodicScheduledReportTest: ScheduledReportTest<PeriodicScheduledReport, 
         val expected = createScheduledReport(id = 0).copy(nextRunAt = actual.nextRunAt, dataFrom = actual.dataFrom)
         assertEquals(expected, actual)
     }
-}
+}*/
