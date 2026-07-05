@@ -1,7 +1,8 @@
-import {useState} from "react";
-import {
-    CreateScheduledReportDTO, dailyMode, FrequencyMode,
-} from "@/models/scheduledReport/CreateScheduledReportDTO";
+import { useEffect, useState } from "react";
+import { listGitAccounts } from "@/services/AccountService";
+import { OAuthLinkedAccountListItemDTO } from "@/models/account/OAuthLinkedAccountListItemDTO";
+import { AccountDropdownMenu } from "@/components/gitRepos/AccountsDropdownMenu";
+import {CreateScheduledReportDTO, dailyMode, FrequencyMode} from "@/models/scheduledReport/CreateScheduledReportDTO";
 import {createScheduledReport} from "@/services/ScheduledReportService";
 import {Modal, Pressable, ScrollView, TextInput, TouchableOpacity, View, Text} from "react-native";
 import { useTheme } from '@/constants/themeProvider';
@@ -32,26 +33,52 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
     const [time, setTime] = useState('09:00');
     const [freqMode, setFreqMode] = useState<FrequencyMode>(dailyMode());
 
+    const [accountList, setAccountList] = useState<OAuthLinkedAccountListItemDTO[]>([]);
+    const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+
     const [enableLlm, setEnableLlm] = useState(false);
     const [llmStrategy, setLlmStrategy] = useState<'overview' | 'commits'>('commits');
     const [llmComplexity, setLlmComplexity] = useState<LlmComplexity>('MEDIUM');
     const [llmMode, setLlmMode] = useState<LlmMode>('DIFF');
     const [llmAnalyses, setLlmAnalyses] = useState<string[]>(['DEFAULT']);
 
+    useEffect(() => {
+        if (!visible) return;
+
+        const loadAccounts = async () => {
+            try {
+                const accounts = await listGitAccounts();
+                setAccountList(accounts);
+
+                if (accounts.length > 0) {
+                    setSelectedAccountId(accounts[0].id);
+                }
+            } catch (err) {
+                console.error("Failed to load git accounts", err);
+            }
+        };
+
+        loadAccounts();
+    }, [visible]);
 
     const handleCreate = async () => {
         try {
+            if (!isValidRepositoryUrl(repoUri)) {
+                console.log("Invalid repository URL");
+                return;
+            }
+
             const byDetailedSettings = {
                 promptComplexity: llmComplexity,
                 analysisMode: llmMode,
                 requestedAnalyses: llmAnalyses,
             };
             
-            const llmConfig = {
+            const llmConfig = enableLlm ? {
                 flag: llmStrategy === 'overview',
                 byShas: null,
                 byDetailedSettings: byDetailedSettings
-            };
+            } : null;
 
             let dto: CreateScheduledReportDTO;
 
@@ -62,6 +89,7 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
                     dataStart: toInstant(dataStart),
                     runAt: toInstant(runAt),
                     llmConfig,
+                    gitAccountId: selectedAccountId
                 };
             } else {
                 dto = {
@@ -71,6 +99,7 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
                     time,
                     freqMode,
                     llmConfig,
+                    gitAccountId: selectedAccountId
                 };
             }
 
@@ -90,6 +119,20 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
         const [hour, minute] = timePart.split(":").map(Number);
         if (!year || !month || !day || hour === undefined || minute === undefined) return null;
         return new Date(year, month - 1, day, hour, minute, 0).toISOString();
+    };
+
+    const isValidRepositoryUrl = (repoUrl: string) => {
+        try {
+            const url = new URL(repoUrl);
+
+            const parts = url.pathname
+                .split("/")
+                .filter(Boolean);
+
+            return parts.length >= 2;
+        } catch {
+            return false;
+        }
     };
 
     return (
@@ -130,6 +173,16 @@ export default function ScheduledReportModal({visible, onClose, onCreated}: Sche
                                     Periodic
                                 </Text>
                             </Pressable>
+                        </View>
+
+                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                            <Text style={{ marginRight: 10 }}>ACCOUNT</Text>
+
+                            <AccountDropdownMenu
+                                accounts={accountList}
+                                selectedAccountId={selectedAccountId}
+                                onSelect={setSelectedAccountId}
+                            />
                         </View>
 
                         <View style={styles.inputSection}>

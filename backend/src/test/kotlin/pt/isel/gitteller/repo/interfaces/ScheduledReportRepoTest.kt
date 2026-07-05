@@ -31,7 +31,7 @@ abstract class ScheduledReportRepoTest {
         dataFrom: Instant = validDataFrom,
         user: User = validUser,
         active: Boolean = true
-    ): ScheduledReportEntity<*, *>
+    ): ScheduledReportEntity
 
     @Test
     fun `method findByUserId returns user scheduled reports`() {

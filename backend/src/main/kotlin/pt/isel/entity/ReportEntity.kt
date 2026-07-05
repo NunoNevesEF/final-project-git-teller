@@ -25,9 +25,6 @@ class ReportEntity (
     @JoinColumn(name = "user_id", nullable = false)
     val user : User,
 
-    @Column(name = "repo_uri", nullable = false)
-    val repoURI: String,
-
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
 

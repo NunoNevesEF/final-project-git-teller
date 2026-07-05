@@ -21,8 +21,7 @@ export default function UserReportPageTabs({ activeTab, setActiveTab }: Props) {
         overflow: 'hidden',
       }}
     >
-      {/* REPORTS */}
-      <Pressable
+      <Pressable //REPORTS TAB
         style={{
           flex: 1,
           padding: 12,
@@ -41,8 +40,7 @@ export default function UserReportPageTabs({ activeTab, setActiveTab }: Props) {
         </Text>
       </Pressable>
 
-      {/* SCHEDULED */}
-      <Pressable
+      <Pressable //SCHEDULED TAB
         style={{
           flex: 1,
           padding: 12,

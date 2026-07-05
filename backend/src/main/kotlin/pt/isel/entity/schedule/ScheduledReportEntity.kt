@@ -23,6 +23,7 @@ import pt.isel.domain.schedule.OneTimeScheduledReport
 import pt.isel.domain.schedule.PeriodicScheduledReport
 import pt.isel.domain.schedule.ScheduledReport
 import pt.isel.entity.IsEntity
+import pt.isel.entity.OAuthLinkedAccountEntity
 import pt.isel.entity.User
 import pt.isel.model.scheduledReport.GetOneTimeScheduledReportDTO
 import pt.isel.model.scheduledReport.GetPeriodicScheduledReportDTO
@@ -33,7 +34,7 @@ import java.time.Instant
 @Table(name = "scheduled_reports")
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "report_type")
-abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>, DOMAIN : ScheduledReport<DOMAIN, SELF>>(
+abstract class ScheduledReportEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) override var id: Int = 0,
 
     @Column(name = "repo_uri", nullable = false) var repoUri: String = "",
@@ -59,10 +60,15 @@ abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>,
     @JoinColumn(name = "user_id", nullable = false)
     lateinit var user: User
 
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "git_account_id", nullable = true)
+    var gitAccount: OAuthLinkedAccountEntity? = null
+
     @OneToMany(mappedBy = "scheduledReport", cascade = [CascadeType.ALL])
     var jobs: MutableList<ScheduledReportJobEntity> = mutableListOf()
 
-    abstract fun toDomain(): DOMAIN
+    abstract fun toDomain(): ScheduledReport
 
     abstract fun toDTO(): GetScheduledReportDTO
 
@@ -79,11 +85,6 @@ abstract class ScheduledReportEntity<SELF : ScheduledReportEntity<SELF, DOMAIN>,
     }
 
     fun isDue(limit: Instant): Boolean = isActive() && !isJobScheduled() && limit >= nextRunAt
-
-    fun cancel(errorMsg: String) {
-        isCancelled = true
-        cancellationReason = errorMsg
-    }
 
     fun getLlmConfig(): AnalysisRequestWrapper? {
         if (llmComplexity == null) return null
@@ -113,12 +114,22 @@ class OneTimeScheduledReportEntity(
     repoUri: String = "",
     nextRunAt: Instant? = null,
     lastRunAt: Instant? = null,
-    dataFrom: Instant = Instant.now()
-) : ScheduledReportEntity<OneTimeScheduledReportEntity, OneTimeScheduledReport>(
-    id, repoUri, nextRunAt, lastRunAt, dataFrom
+    dataFrom: Instant = Instant.now(),
+    isCancelled: Boolean = false,
+    cancellationReason: String? = null,
+) : ScheduledReportEntity(
+    id, repoUri, nextRunAt, lastRunAt, dataFrom, isCancelled, cancellationReason
 ) {
-    override fun toDomain() = OneTimeScheduledReport(
-        id, user.id, repoUri, nextRunAt, lastRunAt, dataFrom, getLlmConfig()
+    override fun toDomain() : ScheduledReport = OneTimeScheduledReport(
+        id,
+        user.id,
+        repoUri,
+        nextRunAt,
+        lastRunAt,
+        dataFrom,
+        getLlmConfig(),
+        isCancelled,
+        cancellationReason
     )
 
     override fun toDTO(): GetScheduledReportDTO =
@@ -138,18 +149,35 @@ class OneTimeScheduledReportEntity(
 @Entity
 @DiscriminatorValue("PERIODIC")
 class PeriodicScheduledReportEntity(
-    id: Int = 0, repoUri: String, nextRunAt: Instant, lastRunAt: Instant? = null, dataFrom: Instant,
+    id: Int = 0,
+    repoUri: String,
+    nextRunAt: Instant,
+    lastRunAt: Instant? = null,
+    dataFrom: Instant,
+    isCancelled: Boolean = false,
+    cancellationReason: String? = null,
 
     @Column(nullable = false) var active: Boolean = true,
 
     @Column(name = "timezone", nullable = false) var timeZone: String,
 
     @Column(name = "cron_expression", nullable = false) var cronExpression: String
-) : ScheduledReportEntity<PeriodicScheduledReportEntity, PeriodicScheduledReport>(
-    id, repoUri, nextRunAt, lastRunAt, dataFrom
+) : ScheduledReportEntity(
+    id, repoUri, nextRunAt, lastRunAt, dataFrom, isCancelled, cancellationReason
 ) {
     override fun toDomain() = PeriodicScheduledReport(
-        id, user.id, repoUri, nextRunAt!!, lastRunAt, dataFrom, active, timeZone, cronExpression, getLlmConfig()
+        id,
+        user.id,
+        repoUri,
+        nextRunAt!!,
+        lastRunAt,
+        dataFrom,
+        isCancelled,
+        cancellationReason,
+        active,
+        timeZone,
+        cronExpression,
+        getLlmConfig()
     )
 
     override fun toDTO(): GetScheduledReportDTO =

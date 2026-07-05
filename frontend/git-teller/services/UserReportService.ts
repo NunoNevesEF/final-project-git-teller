@@ -8,9 +8,9 @@ export async function createReport(dto: CreateUserReportDTO): Promise<number> {
   return (await apiClient.post<number>(`${SERVICE_PATH}/create`, dto)).data;
 }
 
-export async function getUserReports(): Promise<UserReportDTO[]> {
-  return (await apiClient.get<UserReportDTO[]>(`${SERVICE_PATH}/user-reports`))
-    .data;
+export async function getUserReports(): Promise<UserReportDTO[]>{
+    const userReports = (await apiClient.get<UserReportDTO[]>(`${SERVICE_PATH}/user-reports`)).data;
+    return userReports.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getReportAnalysis(

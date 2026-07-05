@@ -31,7 +31,7 @@ class UserReportController(
         @RequestBody dto: CreateUserReportDTO,
         @AuthenticationPrincipal userPrincipal: UserPrincipal
     ): ResponseEntity<Int> {
-        return when(val reportResult = userReportService.createReport(dto.gitAnalysis, dto.repoUri, userPrincipal.getUserId())){
+        return when(val reportResult = userReportService.createReport(dto.gitAnalysis, userPrincipal.getUserId())){
             is Success -> ResponseEntity.created(URI("/private/report/${reportResult.right}")).body(reportResult.right)
             is Failure -> ResponseEntity.notFound().build()
         }

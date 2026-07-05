@@ -9,8 +9,9 @@ import java.time.Duration
 import java.time.Instant
 
 @Repository
-interface ScheduledReportRepoJpa : JpaRepository<ScheduledReportEntity<*,*>, Int>{
-    fun findByUserId(userId: Int): List<ScheduledReportEntity<*,*>>
+interface ScheduledReportRepoJpa : JpaRepository<ScheduledReportEntity, Int>{
+    fun findByIdAndUserId(id : Int, userId : Int) : ScheduledReportEntity?
+    fun findByUserId(userId: Int): List<ScheduledReportEntity>
 }
 
 @Repository
@@ -20,11 +21,14 @@ interface ScheduledReportRepoJpa : JpaRepository<ScheduledReportEntity<*,*>, Int
 )
 class ScheduledReportJpaAdapter(
     jpa: ScheduledReportRepoJpa
-) : RepoJpaAdapter<ScheduledReportEntity<*,*>, ScheduledReportRepoJpa>(jpa), IScheduledReportRepository {
-    override fun findByUserId(userId: Int): List<ScheduledReportEntity<*, *>> =
+) : RepoJpaAdapter<ScheduledReportEntity, ScheduledReportRepoJpa>(jpa), IScheduledReportRepository {
+    override fun findByIdAndUserId(id: Int, userId: Int): ScheduledReportEntity? =
+        jpa.findByIdAndUserId(id, userId)
+
+    override fun findByUserId(userId: Int): List<ScheduledReportEntity> =
         jpa.findByUserId(userId)
 
-    override fun findDue(): List<ScheduledReportEntity<*, *>>{ //TODO: CAN BE PROBABLY BE IMPLEMENTED WITH BETTER EFFICIENCY
+    override fun findDue(): List<ScheduledReportEntity>{ //TODO: CAN BE PROBABLY BE IMPLEMENTED WITH BETTER EFFICIENCY
         val limit = Instant.now().plus(Duration.ofMinutes(15))
         return jpa.findAll()
             .filter{ it.isDue(limit) }
