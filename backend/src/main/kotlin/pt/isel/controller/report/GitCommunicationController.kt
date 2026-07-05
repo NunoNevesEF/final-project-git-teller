@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RestController
 import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.model.report.GitAnalysis
 import pt.isel.infraestructure.principal.UserPrincipal
+import pt.isel.model.GenericError
 import pt.isel.service.account.LinkedAccountService
+import pt.isel.service.report.FailureDoNotRetry
 import pt.isel.service.report.GitAnalysisService
 import pt.isel.utils.Success
 import pt.isel.utils.leftOrNull
@@ -25,10 +27,21 @@ class GitCommunicationController(
     @PostMapping("/gitAnalysis")
     fun generateAnalysis(
         @RequestBody request: GitAnalysisRequest,
-    ): ResponseEntity<GitAnalysis> {
+    ): ResponseEntity<Any> {
         return when (val result = gitAnalysisService.analyze(request, token = null)) {
             is Success -> ResponseEntity.ok(result.right)
-            else -> ResponseEntity.status(result.leftOrNull()!!.toStatus()).build()
+//            else -> ResponseEntity.status(result.leftOrNull()!!.toStatus()).build()
+            else -> {
+                val error = result.leftOrNull() as FailureDoNotRetry
+                ResponseEntity
+                    .status(error.toStatus())
+                    .body(
+                        GenericError(
+                            code = error.toStatus(),
+                            message = error.err.message
+                        )
+                    )
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 import { generatePdf } from '@/services/PdfGenerationService';
-import { createReport, downloadPdf} from "@/services/UserReportService";
+import { createReport } from "@/services/UserReportService";
 import { useAnalysisInfoStore } from '@/store/useAnalysisInfoStore';
 import { View, ScrollView, Button, Platform, Pressable, Text } from 'react-native';
 import CommitsChart from "@/components/charts/commitsChart";

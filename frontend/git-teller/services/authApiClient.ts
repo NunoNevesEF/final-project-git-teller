@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { clearTokens, getTokens, saveTokens } from "./secureStore";
+import { Alert, Platform } from "react-native";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -89,6 +90,15 @@ apiClient.interceptors.response.use(
       error.response?.status !== 401 ||
       originalRequest._retry
     ) {
+      const message =
+        (error.response?.data as any)?.message ??
+        "An unexpected error occurred.";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+
       return Promise.reject(error);
     }
 

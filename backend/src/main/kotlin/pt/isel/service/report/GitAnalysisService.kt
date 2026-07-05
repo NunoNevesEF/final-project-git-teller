@@ -27,14 +27,19 @@ object FailureRetry : GitAnalysisServiceError() {
 class FailureDoNotRetry(val err: GitErrors) : GitAnalysisServiceError() {
     override fun toStatus() = when (err) {
         GitErrors.INVALID_REPO_URI -> 400
-        GitErrors.REPO_NOT_FOUND -> 400
+        GitErrors.REPO_NOT_FOUND_OR_PRIVATE -> 404
+        GitErrors.INVALID_FILTERS-> 404
         GitErrors.AUTHENTICATION_ERROR -> 400
         GitErrors.UNKNOWN_ERROR -> 500
     }
 }
 
-enum class GitErrors {
-    INVALID_REPO_URI, REPO_NOT_FOUND, AUTHENTICATION_ERROR, UNKNOWN_ERROR,
+enum class GitErrors(val message: String) {
+    INVALID_REPO_URI("The repository URL is invalid."),
+    REPO_NOT_FOUND_OR_PRIVATE("Repository was not found or is private."),
+    INVALID_FILTERS("There were no results for the given filters."),
+    AUTHENTICATION_ERROR("Authentication failed."),
+    UNKNOWN_ERROR("An unexpected error occurred.");
 }
 
 @Service
@@ -78,6 +83,8 @@ class GitAnalysisService(private val llmAnalysisService: CommitAnalysisService) 
     }
 
     private fun handleGitException(e: Exception) = when (e) {
+        is InvalidFiltersException -> failure(FailureDoNotRetry(GitErrors.INVALID_FILTERS))
+        is IllegalArgumentException -> failure(FailureDoNotRetry(GitErrors.INVALID_REPO_URI))
         is InvalidRemoteException -> failure(FailureDoNotRetry(GitErrors.INVALID_REPO_URI))
         is TransportException -> failure(handleTransport(e))
         else -> failure(FailureDoNotRetry(GitErrors.UNKNOWN_ERROR))
@@ -86,9 +93,9 @@ class GitAnalysisService(private val llmAnalysisService: CommitAnalysisService) 
     private fun handleTransport(e: TransportException): GitAnalysisServiceError {
         val msg = e.message.orEmpty()
         return when {
-            rootCause(e) is NoRemoteRepositoryException -> FailureDoNotRetry(GitErrors.REPO_NOT_FOUND)
+            rootCause(e) is NoRemoteRepositoryException -> FailureDoNotRetry(GitErrors.REPO_NOT_FOUND_OR_PRIVATE)
             msg.contains(JGitText.get().authenticationNotSupported) -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
-            msg.contains(JGitText.get().noCredentialsProvider) -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
+            msg.contains(JGitText.get().noCredentialsProvider) -> FailureDoNotRetry(GitErrors.REPO_NOT_FOUND_OR_PRIVATE)
             msg.contains(JGitText.get().notAuthorized) -> FailureDoNotRetry(GitErrors.AUTHENTICATION_ERROR)
             msg.contains("408") || msg.contains("504") -> FailureRetry //TIMEOUT
             else -> return FailureDoNotRetry(GitErrors.UNKNOWN_ERROR)
@@ -96,4 +103,6 @@ class GitAnalysisService(private val llmAnalysisService: CommitAnalysisService) 
     }
 
     private fun rootCause(t: Throwable): Throwable = t.cause?.let(::rootCause) ?: t
+
+    class InvalidFiltersException : RuntimeException()
 }

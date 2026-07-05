@@ -1,9 +1,12 @@
 import { GitAnalysis } from "@/models/GitAnalysis";
-import { apiPostBlob, apiGet, apiGetBlob } from "./apiClient";
-import { getTokens } from "./secureStore";
+import apiClient from "@/services/authApiClient";
 
-const SERVICE_PATH = "public/pdf";
+const SERVICE_PATH = "api/public/pdf";
 
 export async function generatePdf(gitAnalysis: GitAnalysis): Promise<Blob> {
-  return apiPostBlob(`${SERVICE_PATH}/generate`, gitAnalysis);
+  return (
+    await apiClient.post<Blob>(`${SERVICE_PATH}/generate`, gitAnalysis, {
+      responseType: "blob",
+    })
+  ).data;
 }

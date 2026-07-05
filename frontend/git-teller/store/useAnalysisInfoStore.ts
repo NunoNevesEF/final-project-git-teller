@@ -6,11 +6,13 @@ interface AnalysisInfoState {
   reportId: number | null;
   projectName: string;
   repoURI: string;
+  gitAccountId: number | null;
 
   setResult: (result: GitAnalysis) => void;
   setReportId: (id: number | null) => void;
   setProjectName: (name: string) => void;
   setRepoURI: (name: string) => void;
+  setGitAccountId: (gitAccountId: number | null) => void;
 
   clearResult: () => void;
 }
@@ -20,6 +22,7 @@ export const useAnalysisInfoStore = create<AnalysisInfoState>((set) => ({
   reportId: null,
   projectName: "",
   repoURI: "",
+  gitAccountId: null,
 
   setResult: (result) => set({ result }),
 
@@ -29,11 +32,14 @@ export const useAnalysisInfoStore = create<AnalysisInfoState>((set) => ({
 
   setRepoURI: (repoURI) => set({ repoURI }),
 
+  setGitAccountId: (gitAccountId) => set({ gitAccountId }),
+
   clearResult: () =>
     set({
       result: null,
       reportId: null,
       projectName: "",
       repoURI: "",
+      gitAccountId: null,
     }),
 }));
