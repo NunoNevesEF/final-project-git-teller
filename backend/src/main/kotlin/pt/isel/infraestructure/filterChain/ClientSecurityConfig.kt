@@ -46,13 +46,13 @@ class ClientSecurityConfig(
                     }
                     .userInfoEndpoint { userInfo -> userInfo.userService(customOAuth2UserService) }
                     .successHandler(customOAuth2AuthenticationSuccessHandler)
-                    .failureUrl("http://localhost:8081/login?oauthError=true")
+                    .failureUrl("https://frontend-production-fc0c.up.railway.app/login?oauthError=true")
             }
             .logout { logout ->
                 logout
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)
-                    .logoutSuccessUrl("http://localhost:8081/login")
+                    .logoutSuccessUrl("https://frontend-production-fc0c.up.railway.app/login")
                     .permitAll()
             }
 
