@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { ReactNode } from "react";
 import { useTheme } from "@/constants/themeProvider";
 import { getRepositoryParts } from "@/constants/RepositoryParts";
@@ -6,12 +6,11 @@ import { GetScheduledReportDTO } from "@/models/scheduledReport/GetScheduledRepo
 
 type Props = {
     report: GetScheduledReportDTO;
-    onOpen: () => void;
     children?: ReactNode;
     actions: ReactNode;
 };
 
-export default function BaseScheduledReportItem({report, onOpen, children, actions}: Props) {
+export default function BaseScheduledReportItem({report, children, actions}: Props) {
     const { colors } = useTheme();
 
     const repository = getRepositoryParts(report.repoUri);
@@ -28,8 +27,7 @@ export default function BaseScheduledReportItem({report, onOpen, children, actio
                 paddingVertical: 10,
             }}
         >
-            <Pressable
-                onPress={onOpen}
+            <View
                 style={{
                     flex: 1,
                     marginRight: 16,
@@ -101,7 +99,7 @@ export default function BaseScheduledReportItem({report, onOpen, children, actio
                         Cancelled: {report.cancellationReason}
                     </Text>
                 )}
-            </Pressable>
+            </View>
 
             <View
                 style={{
