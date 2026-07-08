@@ -31,24 +31,9 @@ class ReportPDFGenerationService {
 
             val json = objectMapper.writeValueAsString(gitAnalysis)
 
-            page.onConsoleMessage { msg ->
-                println("CONSOLE: ${msg.type()} ${msg.text()}")
-            }
-
-            page.onPageError { error ->
-                println("PAGE ERROR: $error")
-            }
-
-            page.onRequestFailed { request ->
-                println("REQUEST FAILED: ${request.url()} ${request.failure()}")
-            }
-
             page.emulateMedia(Page.EmulateMediaOptions().setMedia(Media.PRINT))
             page.addInitScript("window.__GIT_ANALYSIS__ = $json")
-            page.navigate("https://frontend-production-fc0c.up.railway.app/Info")
-
-            println("URL: ${page.url()}")
-            println(page.content().take(2000))
+            page.navigate("https://frontend-production-fc0c.up.railway.app/")
 
             page.setViewportSize(1920, 1080)
 
