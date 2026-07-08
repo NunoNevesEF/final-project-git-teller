@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
 
-const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const DEFAULT_API_BASE = "https://git-teller-api.up.railway.app";
 const SIGNUP_PATH = "/api/public/accounts/signup";
 const API_BASE = DEFAULT_API_BASE;
 
