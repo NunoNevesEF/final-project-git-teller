@@ -4,7 +4,6 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
-import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.treewalk.AbstractTreeIterator
@@ -13,25 +12,29 @@ import pt.isel.model.report.ModifiedFiles
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
+import java.util.UUID
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import pt.isel.domain.DateInterval
 
-data class GitCommunication(val git: Git, val repoURI: String) {
+data class GitCommunication(val git: Git, val repoURI: String, val localPath: File) {
     val branches by lazy { getAllBranches() }
 
     companion object {
+
         fun create(repoURI: String, token: String?): GitCommunication {
-            val git = getOrCloneGitRepo(repoURI, token)
-            return GitCommunication(git, repoURI)
+            val repoPathFile = getRepoFile(getRepoPath(repoURI))
+
+            val git = try {
+                cloneGitRepo(repoURI, repoPathFile, token)
+            } catch (e: Exception) {
+                repoPathFile.deleteRecursively()
+                throw e
+            }
+
+            return GitCommunication(git, repoURI, repoPathFile)
         }
 
-        /**Temporary function for testing JGIT behavior, get a repo from gitRepos directory**/
-        private fun getGitRepo(repoPathFile: File): Git {
-            return Git.open(repoPathFile)
-        }
-
-        /**Temporary function for testing JGIT behavior, clones a repo to gitRepos directory**/
         private fun cloneGitRepo(repoURI: String, repoPathFile: File, token: String?): Git {
             val clone = Git.cloneRepository()
                 .setURI(repoURI)
@@ -47,18 +50,7 @@ data class GitCommunication(val git: Git, val repoURI: String) {
             return clone.call()
         }
 
-        /**Temporary function for testing JGIT behavior, tries to get a repo from gitRepos directory, if it doesn't exist then it clones**/
-        private fun getOrCloneGitRepo(repoURI: String, token: String?): Git {
-            val repoPathFile = getRepoFile(getRepoPath(repoURI))
 
-            return try {
-                getGitRepo(repoPathFile).also{ fetchRepo(it, token) }
-            } catch (e: RepositoryNotFoundException) {
-                cloneGitRepo(repoURI, repoPathFile, token)
-            }
-        }
-
-        /**Temporary function for testing JGIT behavior, creates directory path from git repo URI**/
         private fun getRepoPath(repoURI: String): String {
             val splitPath = repoURI.split("/").drop(2)
 
@@ -69,37 +61,20 @@ data class GitCommunication(val git: Git, val repoURI: String) {
             val userDirectory = splitPath[1]
             val serviceDirectory = splitPath[0].removeSuffix(".com")
             val repoDirectory = splitPath[2]
+            val uniqueId = UUID.randomUUID().toString()
 
-            return "$reposStorageLocation/$userDirectory/$serviceDirectory/$repoDirectory"
+            return "$reposStorageLocation/$serviceDirectory-$userDirectory-$repoDirectory-$uniqueId"
         }
 
-        /**Temporary function for testing JGIT behavior, creates file from directory path**/
         private fun getRepoFile(repoPath: String): File {
             return File(repoPath)
         }
+    }
 
-        private fun fetchRepo(git: Git, token: String?) {
-            val fetch = git.fetch()
 
-            token?.let {
-                fetch.setCredentialsProvider(
-                    UsernamePasswordCredentialsProvider("oauth2", token)
-                )
-            }
-
-            fetch.call()
-        }
-
-        fun openExisting(repoURI: String): GitCommunication {
-            val repoPath = getRepoPath(repoURI)
-            val repoPathFile = File(repoPath)
-
-            if (!repoPathFile.exists() /*|| !File(repoPathFile, ".git").exists()*/) {
-                throw RepositoryNotFoundException("Local repository not found: $repoPath")
-            }
-
-            return GitCommunication(Git.open(repoPathFile), repoURI)
-        }
+    fun delete() {
+        git.close()
+        localPath.deleteRecursively()
     }
 
     fun getAllCommits(): List<RevCommit> {
