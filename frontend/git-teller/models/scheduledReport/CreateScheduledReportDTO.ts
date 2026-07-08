@@ -71,6 +71,7 @@ export interface CreateOneTimeScheduledReportDTO {
   dataStart: string | null;
   runAt: string | null;
   llmConfig?: any;
+  gitAccountId: number | null;
 }
 
 export interface CreatePeriodicScheduledReportDTO {
