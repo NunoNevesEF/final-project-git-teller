@@ -8,7 +8,7 @@ import pt.isel.utils.Success
 import pt.isel.service.auth.AuthService
 import pt.isel.utils.rightOrNull
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/auth")
 class AuthController(private val authService: AuthService) {

@@ -17,7 +17,7 @@ import pt.isel.service.report.GitAnalysisService
 import pt.isel.utils.Success
 import pt.isel.utils.leftOrNull
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/gitCommunication")
 class GitCommunicationController(
@@ -46,7 +46,7 @@ class GitCommunicationController(
     }
 }
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/private/gitCommunication")
 class GitCommunicationPrivateController(

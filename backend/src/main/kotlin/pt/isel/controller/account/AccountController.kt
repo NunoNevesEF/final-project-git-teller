@@ -15,7 +15,7 @@ import pt.isel.service.account.UserService
 import pt.isel.service.account.UsernameAlreadyExists
 import pt.isel.service.auth.JwtService
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/accounts")
 class PublicAccountController(

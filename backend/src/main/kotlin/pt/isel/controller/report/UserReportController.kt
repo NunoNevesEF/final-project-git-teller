@@ -20,7 +20,7 @@ import pt.isel.utils.Failure
 import pt.isel.utils.Success
 import java.net.URI
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/private/report")
 class UserReportController(
