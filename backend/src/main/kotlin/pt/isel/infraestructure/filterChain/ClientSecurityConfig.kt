@@ -31,7 +31,12 @@ class ClientSecurityConfig(
         http
             .authorizeHttpRequests { authRequest -> authRequest
                     //.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-                    .requestMatchers(*publicPages, publicAPI).permitAll()
+                    .requestMatchers(
+                        *publicPages,
+                        publicAPI,
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
+                    ).permitAll()
                     .requestMatchers(privateAPI).authenticated()
                     .anyRequest().authenticated()
             }
