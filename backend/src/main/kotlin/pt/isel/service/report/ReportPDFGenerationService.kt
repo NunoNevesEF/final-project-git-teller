@@ -33,7 +33,7 @@ class ReportPDFGenerationService {
 
             page.emulateMedia(Page.EmulateMediaOptions().setMedia(Media.PRINT))
             page.addInitScript("window.__GIT_ANALYSIS__ = $json")
-            page.navigate("http://localhost:8081/Info")
+            page.navigate("https://frontend-production-fc0c.up.railway.app/Info")
 
             page.setViewportSize(1920, 1080)
 
