@@ -121,7 +121,9 @@ export default function Login() {
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
-            <AuthMenuButton />
+            <View style={commonStyles.topLeftActionButton}>
+                <AuthMenuButton />
+            </View>
 
             <Text style={commonStyles.authTitle}>Log in</Text>
 
