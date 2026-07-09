@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
+import AuthMenuButton from "@/components/login/AuthMenuButton";
 
 const DEFAULT_API_BASE = "https://git-teller-api.up.railway.app";
 const LOGIN_PATH = "/api/public/auth/login";
@@ -120,11 +121,7 @@ export default function Login() {
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
-            <Link href="../signup" asChild>
-                <Pressable style={commonStyles.topLeftActionButton}>
-                    <Text style={commonStyles.topLeftActionButtonText}>Sign Up</Text>
-                </Pressable>
-            </Link>
+            <AuthMenuButton />
 
             <Text style={commonStyles.authTitle}>Log in</Text>
 

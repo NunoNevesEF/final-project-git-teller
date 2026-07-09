@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "reac
 import { useRouter } from "expo-router";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
+import AuthMenuButton from "@/components/login/AuthMenuButton";
 
 const DEFAULT_API_BASE = "https://git-teller-api.up.railway.app";
 const SIGNUP_PATH = "/api/public/accounts/signup";
@@ -47,6 +48,8 @@ export default function Signup() {
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
+            <AuthMenuButton />
+
             <Text style={commonStyles.authTitle}>Sign Up</Text>
 
             <TextInput
