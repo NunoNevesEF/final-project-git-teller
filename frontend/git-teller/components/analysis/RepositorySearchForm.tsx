@@ -9,6 +9,7 @@ import { View, Button, Text, Pressable, ScrollView, Platform } from 'react-nativ
 import { useAuth } from '@/store/AuthProvider';
 import { DateRangePicker } from '../utils/DatePicker';
 import QRCode from "react-native-qrcode-svg";
+import { useTheme } from '@/constants/themeProvider';
 
 export type { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType };
 
@@ -62,6 +63,7 @@ export default function RepositorySearchForm({
     const ANDROID_DOWNLOAD_URL =
         "https://expo.dev/accounts/zetalfa13/projects/git-teller/builds/f13afa30-32ba-4911-9453-29fb3d28a7b8";
 
+    const { colors } = useTheme()
     const commonStyles = useCommonStyles();
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
     const { isAuthenticated } = useAuth();
@@ -79,7 +81,7 @@ export default function RepositorySearchForm({
                         zIndex: 1000,
                     }}
                 >
-                    <Text style={{ marginBottom: 8, fontSize: 12 }}>
+                    <Text style={{ marginBottom: 8, fontSize: 12, color: colors.text }}>
                         Android App
                     </Text>
 
@@ -88,7 +90,7 @@ export default function RepositorySearchForm({
                         size={100}
                     />
 
-                    <Text style={{ marginTop: 8, fontSize: 11 }}>
+                    <Text style={{ marginTop: 8, fontSize: 11, color: colors.text }}>
                         Scan to download
                     </Text>
                 </View>
