@@ -33,6 +33,7 @@ export default function Username() {
             });
 
             await signIn({ accessToken: accessToken!, username: username.trim() });
+            router.replace("../home");
         } catch (err: any) {
             if (err?.response?.status === 409) {
                 setErrorMessage("That username is taken, choose another.");

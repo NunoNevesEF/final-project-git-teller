@@ -55,6 +55,7 @@ export default function Login() {
                 }
 
                 await signIn({ accessToken, refreshToken, username: username || "User" });
+                router.replace("../home");
             } catch (err: any) {
                 oauthHandledRef.current = false;
                 setErrorMessage(err?.message || "Unable to complete Google login.");
@@ -108,6 +109,7 @@ export default function Login() {
             }
 
             await signIn({ accessToken, refreshToken, username });
+            router.replace("/home");
         } catch (err: any) {
             const message = err?.message || "Unable to login. Please try again.";
             setErrorMessage(message);
