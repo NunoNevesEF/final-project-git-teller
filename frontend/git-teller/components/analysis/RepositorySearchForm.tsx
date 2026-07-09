@@ -5,9 +5,10 @@ import LlmAnalysisSettings, {
 } from '@/components/analysis/LlmAnalysisSettings';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import { useState } from 'react';
-import { View, Button, Text, Pressable, ScrollView } from 'react-native';
+import { View, Button, Text, Pressable, ScrollView, Platform } from 'react-native';
 import { useAuth } from '@/store/AuthProvider';
 import { DateRangePicker } from '../utils/DatePicker';
+import QRCode from "react-native-qrcode-svg";
 
 export type { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType };
 
@@ -57,6 +58,11 @@ export default function RepositorySearchForm({
                                                  requestedAnalyses, onRequestedAnalysesChange,
                                                  onSubmit,
                                              }: RepositorySearchFormProps) {
+    // ATUALIZAR PARA FAZER DEPLOY DO UMA NOVA BUILD MOBILE
+    const ANDROID_DOWNLOAD_URL =
+        "https://expo.dev/accounts/zetalfa13/projects/git-teller/builds/f13afa30-32ba-4911-9453-29fb3d28a7b8";
+    const isMobile = Platform.OS === "web" 
+
     const commonStyles = useCommonStyles();
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
     const { isAuthenticated } = useAuth();
@@ -64,6 +70,22 @@ export default function RepositorySearchForm({
 
     return (
         <ScrollView contentContainerStyle={[commonStyles.screen, commonStyles.centered]}>
+            {Platform.OS === "web" && (
+            <View style={{ alignItems: "center", marginBottom: 20 }}>
+                <Text style={{ marginBottom: 8 }}>
+                    Download the Android app
+                </Text>
+
+                <QRCode
+                    value={ANDROID_DOWNLOAD_URL}
+                    size={120}
+                />
+
+                <Text style={{ marginTop: 8, fontSize: 12 }}>
+                    Scan with your phone
+                </Text>
+            </View>
+        )}
             <Text style={commonStyles.formTitle}>Analyze Repository</Text>
 
             <View style={commonStyles.optionGroup}>
