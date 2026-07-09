@@ -3,9 +3,9 @@ package pt.isel.service.llmanalysis
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.patch.FileHeader
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.treewalk.EmptyTreeIterator
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import pt.isel.domain.report.GitCommunication
 import pt.isel.model.AnalysisMode
@@ -25,7 +25,7 @@ data class FileCandidate(
 @Service
 class CommitFileFilteringService {
 
-    private val logger = LoggerFactory.getLogger(CommitFileFilteringService::class.java)
+
 
     fun filterAndRankFiles(
         gitCommunication: GitCommunication,
@@ -33,7 +33,8 @@ class CommitFileFilteringService {
         commit: RevCommit,
         parent: RevCommit?,
         limits: AnalysisLimits,
-        maxRelevantFiles: Int
+        maxRelevantFiles: Int,
+        requestedAnalyses: List<String> = listOf("DEFAULT")
     ): Pair<List<FileCandidate>, List<Pair<String, String>>> {
         val oldTree = parent?.let { gitCommunication.getTreeParser(it) } ?: EmptyTreeIterator()
         val newTree = gitCommunication.getTreeParser(commit)
@@ -51,11 +52,17 @@ class CommitFileFilteringService {
                 val fullPath = newPath ?: oldPath ?: return@forEach
 
                 if (!isRelevantPath(fullPath)) {
-                    rejected.add(fullPath to "Caminho irrelevante (excluído por padrão)")
+                    rejected.add(fullPath to "Not relevant")
                     return@forEach
                 }
 
-                val edits = formatter.toFileHeader(entry).toEditList()
+                val fileHeader = formatter.toFileHeader(entry)
+                if (fileHeader.patchType == FileHeader.PatchType.BINARY) {
+                    rejected.add(fullPath to "Binary file")
+                    return@forEach
+                }
+
+                val edits = fileHeader.toEditList()
                 val insertions = edits.sumOf { it.endB - it.beginB }
                 val deletions = edits.sumOf { it.endA - it.beginA }
 
@@ -66,33 +73,14 @@ class CommitFileFilteringService {
                     changeType = entry.changeType.name,
                     insertions = insertions,
                     deletions = deletions,
-                    score = scoreFile(fullPath, insertions, deletions)
+                    score = scoreFile(fullPath, insertions, deletions, requestedAnalyses)
                 )
 
                 allScanned.add(fileCandidate)
             }
         }
-
-        logger.debug("Ficheiros encontrados no commit: ${(allScanned.size + rejected.size)}")
-        logger.debug("Ficheiros relevantes: ${allScanned.size}")
-        logger.debug("Ficheiros rejeitados: ${rejected.size}")
-
-        if (rejected.isNotEmpty()) {
-            logger.debug("Ficheiros rejeitados:")
-            rejected.forEach { (path, reason) ->
-                logger.debug("  ✗ $path | Motivo: $reason")
-            }
-        }
-
         val sorted = allScanned.sortedByDescending { it.score }
         val selected = sorted.take(maxRelevantFiles)
-
-        logger.debug("Ficheiros ordenados por score (top ${selected.size}):")
-        sorted.forEachIndexed { idx, candidate ->
-            val mark = if (idx < selected.size) "✓" else "✗"
-            logger.debug("  $mark ${candidate.newPath ?: candidate.oldPath} | Score: ${candidate.score} | +${candidate.insertions} -${candidate.deletions}")
-        }
-
         return selected to rejected
     }
 
@@ -132,49 +120,70 @@ class CommitFileFilteringService {
         return true
     }
 
-    fun scoreFile(path: String, insertions: Int, deletions: Int): Int {
-        val lower = path.lowercase()
-        var score = insertions + deletions
+    private val securityKeywords = listOf(
+        "auth", "security", "crypto", "jwt", "oauth", "permission", "cors", "secret", "credential", "csrf"
+    )
 
-        // Source code boost
+    fun scoreFile(path: String, insertions: Int, deletions: Int, requestedAnalyses: List<String> = listOf("DEFAULT")): Int {
+        val lower = path.lowercase()
+        val wants = requestedAnalyses.map { it.uppercase() }
+        val wantsTests = "TESTS" in wants
+        val wantsSecurity = "SECURITY" in wants
+        val wantsArchitecture = "ARCHITECTURE" in wants
+
+
+        var score = minOf(insertions + deletions, 300)
+
+
         if (lower.startsWith("src/")) score += 100
         if (lower.contains("/main/")) score += 50
 
-        // Language boost
+
         when {
             lower.endsWith(".kt") || lower.endsWith(".java") -> score += 40
-            lower.endsWith(".ts") || lower.endsWith(".tsx") -> score += 40
-            lower.endsWith(".py") || lower.endsWith(".go") -> score += 35
+            lower.endsWith(".ts") || lower.endsWith(".tsx") || lower.endsWith(".js") || lower.endsWith(".jsx") -> score += 40
+            lower.endsWith(".py") || lower.endsWith(".go") || lower.endsWith(".rs") ||
+                lower.endsWith(".rb") || lower.endsWith(".php") -> score += 35
+            lower.endsWith(".c") || lower.endsWith(".cpp") || lower.endsWith(".h") ||
+                lower.endsWith(".hpp") || lower.endsWith(".swift") -> score += 35
+            lower.endsWith(".sql") -> score += 20
         }
 
-        // Layer boost — lógica de negócio é mais relevante
+
         when {
             lower.contains("service") -> score += 40
             lower.contains("controller") || lower.contains("handler") -> score += 35
-            lower.contains("repository") || lower.contains("dao") -> score += 30
+            lower.contains("repository") -> score += 30
             lower.contains("domain") || lower.contains("model") -> score += 25
             lower.contains("util") || lower.contains("helper") -> score += 10
         }
 
-        // Test files — relevantes mas menos que produção
-        if (lower.contains("test") || lower.contains("spec")) score -= 10
 
-        // Config/docs — penalizar mais
+        if (wantsSecurity && securityKeywords.any { lower.contains(it) }) score += 40
+
+
+        if (lower.contains("test") || lower.contains("spec")) {
+            score += if (wantsTests) 30 else -10
+        }
+
+
         when {
             lower.endsWith(".md") || lower.endsWith(".txt") -> score -= 30
-            lower.endsWith(".json") || lower.endsWith(".yml") || lower.endsWith(".yaml") -> score -= 15
-            lower.endsWith(".xml") && !lower.contains("pom") -> score -= 20
+            lower.endsWith(".json") || lower.endsWith(".yml") || lower.endsWith(".yaml") ->
+                score += if (wantsSecurity || wantsArchitecture) 20 else -15
+            lower.endsWith(".xml") && !lower.contains("pom") ->
+                score += if (wantsSecurity || wantsArchitecture) 10 else -20
         }
 
         return score
     }
 
     fun adaptiveMaxFiles(commitCount: Int, mode: AnalysisMode): Int = when {
-        mode == AnalysisMode.META -> 15
-        commitCount == 1 -> 10
-        commitCount <= 5 -> 7
-        commitCount <= 15 -> 5
-        else -> 3
+        mode == AnalysisMode.META -> 20
+        commitCount == 1 -> 15
+        commitCount <= 5 -> 13
+        commitCount <= 15 -> 10
+        else -> 5
     }
 
 
