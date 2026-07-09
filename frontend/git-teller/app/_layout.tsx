@@ -19,7 +19,11 @@ function RootInnerLayout() {
       return;
     }
 
-    const onAuthOnlyPage = pathname === '/login' || pathname === '/signup' || pathname === '/username';
+    const onAuthOnlyPage =
+      pathname === '/login' ||
+      pathname === '/signup' ||
+      pathname === '/username' ||
+      pathname === '/search';
     const onAppOnlyPage =
       pathname.startsWith('/home') ||
       pathname.startsWith('/github-repos') ||

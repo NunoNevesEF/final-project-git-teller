@@ -6,12 +6,17 @@ import { useCommonStyles } from "@/constants/useCommonStyles";
 import apiClient from "@/services/authApiClient";
 
 export default function Username() {
-    const { accessToken, signIn } = useAuth();
+    const { accessToken, signIn, signOut } = useAuth();
     const commonStyles = useCommonStyles();
 
     const [username, setUsername] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const handleCancel = async () => {
+        await signOut();
+        router.replace("./login");
+    };
 
     const handleSubmit = async () => {
         if (!username.trim()) {
@@ -61,6 +66,12 @@ export default function Username() {
                 disabled={loading}
             >
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={commonStyles.oauthButtonText}>Continue</Text>}
+            </Pressable>
+
+            <Pressable onPress={handleCancel} disabled={loading} style={{ marginTop: 16 }}>
+                <Text style={{ color: "#2563eb", fontWeight: "600", textDecorationLine: "underline" }}>
+                    Cancel and log out
+                </Text>
             </Pressable>
         </View>
     );
