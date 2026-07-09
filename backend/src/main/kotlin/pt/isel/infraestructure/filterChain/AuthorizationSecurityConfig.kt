@@ -52,7 +52,8 @@ class AuthorizationSecurityConfig(
         val configuration = CorsConfiguration()
 
         configuration.allowedOrigins = listOf(
-            "https://frontend-production-fc0c.up.railway.app",   // Expo web dev
+            "https://frontend-production-fc0c.up.railway.app",
+            "http://localhost:8081",   // Expo web dev (local)
         )
 
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")

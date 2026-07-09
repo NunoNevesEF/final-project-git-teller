@@ -6,7 +6,7 @@ import { useCommonStyles } from "@/constants/useCommonStyles";
 import apiClient from "@/services/authApiClient";
 
 export default function Username() {
-    const { accessToken, signIn, signOut } = useAuth();
+    const { signIn, signOut } = useAuth();
     const commonStyles = useCommonStyles();
 
     const [username, setUsername] = useState("");
@@ -32,7 +32,7 @@ export default function Username() {
                 params: { username: username.trim() },
             });
 
-            await signIn({ accessToken: accessToken!, username: username.trim() });
+            await signIn({ username: username.trim() });
         } catch (err: any) {
             if (err?.response?.status === 409) {
                 setErrorMessage("That username is taken, choose another.");

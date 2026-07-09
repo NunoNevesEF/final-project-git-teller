@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { clearTokens, getTokens, saveTokens } from "./secureStore";
 import { Alert, Platform } from "react-native";
 
-const API_BASE_URL = "https://git-teller-api.up.railway.app";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || "https://git-teller-api.up.railway.app";
 
 type RefreshResponse = {
   accessToken: string;

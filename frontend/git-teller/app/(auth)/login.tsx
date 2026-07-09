@@ -11,7 +11,7 @@ const LOGIN_PATH = "/api/public/auth/login";
 const API_BASE = DEFAULT_API_BASE;
 
 export default function Login() {
-    const { signIn } = useAuth();
+    const { signIn, loading: authLoading } = useAuth();
 
     const params = useLocalSearchParams<{
         accessToken?: string | string[];
@@ -27,9 +27,11 @@ export default function Login() {
     const oauthHandledRef = useRef(false);
     const commonStyles = useCommonStyles();
 
-    // Handle OAuth redirect login if accessToken is present in URL params
+
     useEffect(() => {
         if (oauthHandledRef.current) return;
+
+        if (authLoading) return;
 
         const firstParam = (value?: string | string[]) =>
             typeof value === "string" ? value : Array.isArray(value) ? value[0] : undefined;
@@ -64,7 +66,7 @@ export default function Login() {
         };
 
         finalizeOAuthLogin();
-    }, [params.accessToken, params.refreshToken, params.needsUsername, params.username, signIn]);
+    }, [params.accessToken, params.refreshToken, params.needsUsername, params.username, signIn, authLoading]);
 
     const handleLogin = async () => {
         setLoading(true);
