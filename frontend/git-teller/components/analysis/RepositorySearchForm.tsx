@@ -61,7 +61,6 @@ export default function RepositorySearchForm({
     // ATUALIZAR PARA FAZER DEPLOY DO UMA NOVA BUILD MOBILE
     const ANDROID_DOWNLOAD_URL =
         "https://expo.dev/accounts/zetalfa13/projects/git-teller/builds/f13afa30-32ba-4911-9453-29fb3d28a7b8";
-    const isMobile = Platform.OS === "web" 
 
     const commonStyles = useCommonStyles();
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
@@ -71,21 +70,29 @@ export default function RepositorySearchForm({
     return (
         <ScrollView contentContainerStyle={[commonStyles.screen, commonStyles.centered]}>
             {Platform.OS === "web" && (
-            <View style={{ alignItems: "center", marginBottom: 20 }}>
-                <Text style={{ marginBottom: 8 }}>
-                    Download the Android app
-                </Text>
+                <View
+                    style={{
+                        position: "absolute",
+                        top: 20,
+                        right: 20,
+                        alignItems: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <Text style={{ marginBottom: 8, fontSize: 12 }}>
+                        Android App
+                    </Text>
 
-                <QRCode
-                    value={ANDROID_DOWNLOAD_URL}
-                    size={120}
-                />
+                    <QRCode
+                        value={ANDROID_DOWNLOAD_URL}
+                        size={100}
+                    />
 
-                <Text style={{ marginTop: 8, fontSize: 12 }}>
-                    Scan with your phone
-                </Text>
-            </View>
-        )}
+                    <Text style={{ marginTop: 8, fontSize: 11 }}>
+                        Scan to download
+                    </Text>
+                </View>
+            )}
             <Text style={commonStyles.formTitle}>Analyze Repository</Text>
 
             <View style={commonStyles.optionGroup}>
