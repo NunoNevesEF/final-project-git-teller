@@ -6,7 +6,7 @@ import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
 import AuthMenuButton from "@/components/login/AuthMenuButton";
 
-const DEFAULT_API_BASE = "https://git-teller-api.up.railway.app";
+const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://git-teller-api.up.railway.app";
 const LOGIN_PATH = "/api/public/auth/login";
 const API_BASE = DEFAULT_API_BASE;
 
@@ -55,7 +55,6 @@ export default function Login() {
                 }
 
                 await signIn({ accessToken, refreshToken, username: username || "User" });
-                router.replace("../home");
             } catch (err: any) {
                 oauthHandledRef.current = false;
                 setErrorMessage(err?.message || "Unable to complete Google login.");
@@ -109,7 +108,6 @@ export default function Login() {
             }
 
             await signIn({ accessToken, refreshToken, username });
-            router.replace("/home");
         } catch (err: any) {
             const message = err?.message || "Unable to login. Please try again.";
             setErrorMessage(message);
