@@ -48,9 +48,9 @@ export default function Signup() {
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
-            <View style={commonStyles.topLeftActionButton}>
-                <AuthMenuButton />
-            </View>
+
+            <AuthMenuButton />
+
 
             <Text style={commonStyles.authTitle}>Sign Up</Text>
 
