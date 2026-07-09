@@ -61,7 +61,7 @@ export default function RepositorySearchForm({
                                              }: RepositorySearchFormProps) {
     // ATUALIZAR PARA FAZER DEPLOY DO UMA NOVA BUILD MOBILE
     const ANDROID_DOWNLOAD_URL =
-        "https://expo.dev/accounts/zetalfa13/projects/git-teller/builds/f13afa30-32ba-4911-9453-29fb3d28a7b8";
+        "https://expo.dev/accounts/zetalfa13/projects/git-teller/builds/744ddd3f-f31b-46eb-b002-956986d9d266";
 
     const { colors } = useTheme()
     const commonStyles = useCommonStyles();
