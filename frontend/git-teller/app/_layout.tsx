@@ -48,11 +48,8 @@ function RootInnerLayout() {
         },
       }}
     >
-       {isAuthenticated && !needsUsername ? (
-        <Stack.Screen name="(app)" />
-      ) : (
-        <Stack.Screen name="(auth)" />
-      )}
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
     </Stack>
   );
 }
