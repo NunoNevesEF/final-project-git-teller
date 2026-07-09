@@ -4,7 +4,6 @@ import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
-import { saveTokens } from "@/services/secureStore";
 
 const DEFAULT_API_BASE = "https://git-teller-api.up.railway.app";
 const LOGIN_PATH = "/api/public/auth/login";
@@ -49,11 +48,8 @@ export default function Login() {
                 setErrorMessage(null);
 
                 if (needsUsername) {
-                    await saveTokens({ accessToken, refreshToken });
-                    router.replace({
-                        pathname: "./username",
-                        params: { accessToken, refreshToken },
-                    });
+                    await signIn({ accessToken, refreshToken });
+                    router.replace("./username");
                     return;
                 }
 

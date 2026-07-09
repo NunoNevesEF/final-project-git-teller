@@ -1,24 +1,13 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import apiClient from "@/services/authApiClient";
 
 export default function Username() {
-    const { signIn } = useAuth();
+    const { accessToken, signIn } = useAuth();
     const commonStyles = useCommonStyles();
-
-    const params = useLocalSearchParams<{
-        accessToken?: string | string[];
-        refreshToken?: string | string[];
-    }>();
-
-    const firstParam = (value?: string | string[]) =>
-        typeof value === "string" ? value : Array.isArray(value) ? value[0] : undefined;
-
-    const accessToken = firstParam(params.accessToken);
-    const refreshToken = firstParam(params.refreshToken);
 
     const [username, setUsername] = useState("");
     const [loading, setLoading] = useState(false);
@@ -38,7 +27,7 @@ export default function Username() {
                 params: { username: username.trim() },
             });
 
-            await signIn({ accessToken: accessToken!, refreshToken, username: username.trim() });
+            await signIn({ accessToken: accessToken!, username: username.trim() });
             router.replace("../home");
         } catch (err: any) {
             if (err?.response?.status === 409) {
