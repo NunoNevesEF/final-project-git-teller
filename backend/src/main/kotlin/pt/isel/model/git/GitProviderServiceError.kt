@@ -2,6 +2,8 @@ package pt.isel.model.git
 
 import org.springframework.http.HttpStatus
 
+//TODO: DOCUMENT
+
 sealed class GitProviderServiceError{
     abstract val status: HttpStatus
 }
@@ -10,7 +12,7 @@ object RepositoryNotFoundError : GitProviderServiceError() {
     override val status = HttpStatus.NOT_FOUND
 }
 
-object InvalidTokenError : GitProviderServiceError() {
+object InvalidProviderTokenError : GitProviderServiceError() {
     override val status = HttpStatus.FORBIDDEN
 }
 

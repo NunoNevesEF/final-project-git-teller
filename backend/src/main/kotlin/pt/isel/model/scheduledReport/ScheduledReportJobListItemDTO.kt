@@ -1,7 +1,7 @@
 package pt.isel.model.scheduledReport
 
-import pt.isel.entity.schedule.JobStatus
-import pt.isel.entity.schedule.ScheduledReportJobEntity
+import pt.isel.entity.report.model.JobStatus
+import pt.isel.entity.report.schedule.ScheduledReportJobEntity
 import java.time.Instant
 
 data class ScheduledReportJobListItemDTO(

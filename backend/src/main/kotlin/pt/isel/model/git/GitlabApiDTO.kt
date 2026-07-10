@@ -3,6 +3,8 @@ package pt.isel.model.git
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.Instant
 
+//TODO: DOCUMENT
+
 data class GitLabProjectDTO(
     val id: Int,
     val name: String,

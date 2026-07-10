@@ -1,7 +1,9 @@
 package pt.isel.service.gitProviders
 
 import org.springframework.stereotype.Service
-import pt.isel.domain.account.OAuthAccountProvider
+import pt.isel.domain.account.OAuthProvider
+
+//TODO: DOCUMENT
 
 @Service
 class GitProviderResolver(
@@ -9,6 +11,6 @@ class GitProviderResolver(
 ) {
     private val servicesByProvider = services.associateBy { it.provider }
 
-    fun get(provider: OAuthAccountProvider): IGitProviderService? =
+    fun get(provider: OAuthProvider): IGitProviderService? =
         servicesByProvider[provider]
 }

@@ -28,7 +28,7 @@ export async function getMyGithubRepos({
   currPage,
 }: GetMyGithubReposProps): Promise<UserRepositoriesDto> {
   const resp = await apiClient.get<UserRepositoriesDto>(
-    `/api/git/repos/${gitLinkedAccountId}/${currPage}`,
+    `/api/git-provider/repos/${gitLinkedAccountId}/${currPage}`,
   );
   return resp.data;
 }

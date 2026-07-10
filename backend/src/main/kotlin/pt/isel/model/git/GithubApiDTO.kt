@@ -4,6 +4,7 @@ package pt.isel.model.git
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.Instant
 
+//TODO: DOCUMENT
 
 internal data class GitHubEmailDTO(
     val email: String,

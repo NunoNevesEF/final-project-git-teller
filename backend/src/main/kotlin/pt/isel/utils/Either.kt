@@ -3,6 +3,8 @@ package pt.isel.utils
 import pt.isel.utils.Either.Left
 import pt.isel.utils.Either.Right
 
+//TODO: DOCUMENT
+
 sealed class Either<out L, out R>{
     data class Left<out L>(val left: L) : Either<L, Nothing>()
     data class Right<out R>(val right: R) : Either<Nothing, R>()
@@ -37,6 +39,16 @@ fun <L, R> Either<L, R>.getOrThrow(mapError: (L) -> Throwable): R =
         is Left -> throw mapError(this.left)
         is Right -> this.right
     }
+
+inline fun <L, R> Either<L, R>.onFailure(action: (L) -> Unit): Either<L, R> {
+    if (this is Left) action(left)
+    return this
+}
+
+inline fun <L, R> Either<L, R>.onSuccess(action: (R) -> Unit): Either<L, R> {
+    if (this is Right) action(right)
+    return this
+}
 
 typealias Success<S> = Right<S>
 typealias Failure<E> = Left<E>

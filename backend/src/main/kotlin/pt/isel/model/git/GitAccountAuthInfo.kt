@@ -1,5 +1,7 @@
 package pt.isel.model.git
 
-import pt.isel.domain.account.OAuthAccountProvider
+import pt.isel.domain.account.OAuthProvider
 
-data class GitAccountAuthInfo(val accessToken: String, val provider: OAuthAccountProvider)
+//TODO: DOCUMENT
+
+data class GitAccountAuthInfo(val accessToken: String, val provider: OAuthProvider)

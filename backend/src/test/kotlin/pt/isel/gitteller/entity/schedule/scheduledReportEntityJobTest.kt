@@ -1,134 +1,183 @@
 package pt.isel.gitteller.entity.schedule
 
-/*import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame
-import pt.isel.domain.schedule.FailedJob
-import pt.isel.domain.schedule.PendingJob
-import pt.isel.domain.schedule.RunningJob
-import pt.isel.domain.schedule.ScheduledReportJob
-import pt.isel.domain.schedule.SuccessfulJob
-import pt.isel.entity.schedule.FailedJobEntity
-import pt.isel.entity.schedule.OneTimeScheduledReportEntity
-import pt.isel.entity.schedule.PendingJobEntity
-import pt.isel.entity.schedule.RunningJobEntity
-import pt.isel.entity.schedule.ScheduledReportJobEntity
-import pt.isel.entity.schedule.SuccessfulJobEntity
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
+import pt.isel.domain.report.schedule.FailedJob
+import pt.isel.domain.report.schedule.PendingJob
+import pt.isel.domain.report.schedule.RunningJob
+import pt.isel.domain.report.schedule.ScheduledReportJob
+import pt.isel.domain.report.schedule.SuccessfulJob
+import pt.isel.entity.report.schedule.JobStateEmbeddable
+import pt.isel.entity.report.schedule.OneTimeScheduledReportEntity
+import pt.isel.entity.report.schedule.ScheduledReportJobEntity
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
 
-abstract class ScheduledReportJobEntityTest<DOMAIN : ScheduledReportJob, STATE : ScheduledReportJobStateEmbeddable> {
+class ScheduledReportJobEntityTest {
     protected val now = Instant.now()
 
     protected val validId = 1
     protected val validDataFrom = now.minus(Duration.ofDays(1))
+    protected val validDataTo = now
     protected val validScheduledFor = now
     protected val validRetryCount = 0
 
-    abstract fun createState(): STATE
+    private companion object {
+        protected val now = Instant.now()
 
-    abstract fun assertToDomain(
-        original: ScheduledReportJobEntity, result: DOMAIN
-    )
+        protected val validId = 1
+        protected val validDataFrom = now.minus(Duration.ofDays(1))
+        protected val validDataTo = now
+        protected val validScheduledFor = now
+        protected val validRetryCount = 0
 
-    @Test
-    fun `method updateState properly updates state`() {
-        val job = ScheduledReportJobEntity(
-            validId, validDataFrom, validScheduledFor, validRetryCount, createState()
+        @JvmStatic
+        fun jobStates() = listOf(
+            Arguments.of(
+                JobStateEmbeddable.pending(now),
+                PendingJob::class.java,
+                { state: JobStateEmbeddable, job: ScheduledReportJob ->
+                    job as PendingJob
+                    assertEquals(state.runAt, job.runAt)
+                }
+            ),
+            Arguments.of(
+                JobStateEmbeddable.running(now),
+                RunningJob::class.java,
+                { state: JobStateEmbeddable, job: ScheduledReportJob ->
+                    job as RunningJob
+                    assertEquals(state.startedAt, job.startedAt)
+                }
+            ),
+            Arguments.of(
+                JobStateEmbeddable.successful(now, now.plusSeconds(10)),
+                SuccessfulJob::class.java,
+                { state: JobStateEmbeddable, job: ScheduledReportJob ->
+                    job as SuccessfulJob
+                    assertEquals(state.startedAt, job.startedAt)
+                    assertEquals(state.endedAt, job.endedAt)
+                }
+            ),
+            Arguments.of(
+                JobStateEmbeddable.failed(now, now.plusSeconds(10), "some error"),
+                FailedJob::class.java,
+                { state: JobStateEmbeddable, job: ScheduledReportJob ->
+                    job as FailedJob
+                    assertEquals(state.startedAt, job.startedAt)
+                    assertEquals(state.endedAt, job.endedAt)
+                    assertEquals(state.errorMsg, job.errorMsg)
+                }
+            )
         )
-
-        val newState = PendingJobEntity(runAt = job.scheduledFor.plus(Duration.ofMinutes(15)))
-
-        val updatedJob = job.updateState(newState)
-
-        assertSame(job, updatedJob)
-        assertSame(newState, job.state)
     }
 
-    @Test
-    fun `method toDomain properly converts entity`() {
+    @ParameterizedTest
+    @MethodSource("jobStates")
+    fun `method toDomain properly converts entity`(
+        state: JobStateEmbeddable,
+        expectedType: Class<out ScheduledReportJob>,
+        extraAssertions: (JobStateEmbeddable, ScheduledReportJob) -> Unit
+    ) {
         val entity = ScheduledReportJobEntity(
-            validId, validDataFrom, validScheduledFor, validRetryCount, createState()
+            validId,
+            validDataFrom,
+            validDataTo,
+            validScheduledFor,
+            validRetryCount,
+            state
         )
-        entity.scheduledReport = OneTimeScheduledReportEntity()
+
+        entity.scheduledReport = OneTimeScheduledReportEntity(id = 123)
 
         val result = entity.toDomain()
 
-        assertToDomain(entity, result as DOMAIN)
+        assertTrue(expectedType.isInstance(result))
+
+        assertEquals(entity.id, result.id)
+        assertEquals(entity.scheduledReport.id, result.scheduledReportId)
+        assertEquals(entity.dataFrom, result.dataFrom)
+        assertEquals(entity.dataTo, result.dataTo)
+        assertEquals(entity.scheduledFor, result.scheduledFor)
+        assertEquals(entity.retryCount, result.retryCount)
+
+        extraAssertions(state, result)
+    }
+
+    @ParameterizedTest
+    @MethodSource("jobStates")
+    fun `method updateState properly updates state`(
+        state: JobStateEmbeddable,
+    ) {
+        val job = ScheduledReportJobEntity(
+            validId,
+            validDataFrom,
+            validDataTo,
+            validScheduledFor,
+            validRetryCount,
+            JobStateEmbeddable.pending(validScheduledFor)
+        )
+
+        val updated = job.updateState(state)
+
+        assertSame(job, updated)
+        assertSame(state, job.state)
+    }
+
+    @Test
+    fun `method isQueued returns true for pending`() {
+        val job = ScheduledReportJobEntity(
+            validId,
+            validDataFrom,
+            validDataTo,
+            validScheduledFor,
+            state = JobStateEmbeddable.pending(validScheduledFor)
+        )
+
+        assertTrue(job.isQueued())
+    }
+
+    @Test
+    fun `method isQueued returns true for running`() {
+        val job = ScheduledReportJobEntity(
+            validId,
+            validDataFrom,
+            validDataTo,
+            validScheduledFor,
+            state = JobStateEmbeddable.running(now)
+        )
+
+        assertTrue(job.isQueued())
+    }
+
+    @Test
+    fun `isQueued returns false for successful`() {
+        val job = ScheduledReportJobEntity(
+            validId,
+            validDataFrom,
+            validDataTo,
+            validScheduledFor,
+            state = JobStateEmbeddable.successful(now, now.plusSeconds(1))
+        )
+
+        assertFalse(job.isQueued())
+    }
+
+    @Test
+    fun `isQueued returns false for failed`() {
+        val job = ScheduledReportJobEntity(
+            validId,
+            validDataFrom,
+            validDataTo,
+            validScheduledFor,
+            state = JobStateEmbeddable.failed(now, now.plusSeconds(1), "boom")
+        )
+
+        assertFalse(job.isQueued())
     }
 }
-
-class PendingJobEntityTest : ScheduledReportJobEntityTest<PendingJob, PendingJobEntity>() {
-    override fun createState() = PendingJobEntity(validScheduledFor)
-
-    override fun assertToDomain(
-        original: ScheduledReportJobEntity, result: PendingJob
-    ) {
-        val state = original.state as PendingJobEntity
-
-        assertEquals(original.id, result.id)
-        assertEquals(original.dataFrom, result.dataFrom)
-        assertEquals(original.scheduledFor, result.scheduledFor)
-        assertEquals(original.retryCount, result.retryCount)
-        assertEquals(state.runAt, result.runAt)
-    }
-}
-
-class RunningJobEntityTest : ScheduledReportJobEntityTest<RunningJob, RunningJobEntity>() {
-    override fun createState() = RunningJobEntity(now)
-
-    override fun assertToDomain(
-        original: ScheduledReportJobEntity, result: RunningJob
-    ) {
-        val state = original.state as RunningJobEntity
-
-        assertEquals(original.id, result.id)
-        assertEquals(original.dataFrom, result.dataFrom)
-        assertEquals(original.scheduledFor, result.scheduledFor)
-        assertEquals(original.retryCount, result.retryCount)
-        assertEquals(state.startedAt, result.startedAt)
-    }
-}
-
-class SuccessfulJobEntityTest : ScheduledReportJobEntityTest<SuccessfulJob, SuccessfulJobEntity>() {
-
-    override fun createState() = SuccessfulJobEntity(
-        now, now.plusSeconds(10)
-    )
-
-    override fun assertToDomain(
-        original: ScheduledReportJobEntity, result: SuccessfulJob
-    ) {
-        val state = original.state as SuccessfulJobEntity
-
-        assertEquals(original.id, result.id)
-        assertEquals(original.dataFrom, result.dataFrom)
-        assertEquals(original.scheduledFor, result.scheduledFor)
-        assertEquals(original.retryCount, result.retryCount)
-
-        assertEquals(state.startedAt, result.startedAt)
-        assertEquals(state.endedAt, result.endedAt)
-    }
-}
-
-class FailedJobEntityTest : ScheduledReportJobEntityTest<FailedJob, FailedJobEntity>() {
-
-    override fun createState() = FailedJobEntity(
-        now, now.plusSeconds(10), "some error"
-    )
-
-    override fun assertToDomain(
-        original: ScheduledReportJobEntity, result: FailedJob
-    ) {
-        val state = original.state as FailedJobEntity
-
-        assertEquals(original.id, result.id)
-        assertEquals(original.dataFrom, result.dataFrom)
-        assertEquals(original.scheduledFor, result.scheduledFor)
-        assertEquals(original.retryCount, result.retryCount)
-
-        assertEquals(state.startedAt, result.startedAt)
-        assertEquals(state.endedAt, result.endedAt)
-        assertEquals(state.errorMsg, result.errorMsg)
-    }
-}*/

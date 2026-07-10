@@ -5,21 +5,23 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
-import pt.isel.domain.account.OAuthAccountProvider
-import pt.isel.infraestructure.config.git.GitRequestFactory
+import pt.isel.domain.account.OAuthProvider
+import pt.isel.infraestructure.providerGit.GitProviderRequestFactory
 import pt.isel.utils.Either
 import pt.isel.model.git.GitHubEmailDTO
 import pt.isel.model.git.GitHubRepositoryDTO
 import pt.isel.model.git.GitProviderServiceError
 import pt.isel.model.git.UserRepositoriesDTO
 
+//TODO: DOCUMENT
+
 // SUGESTãO Para o Futuro -> reduzir a quantidade de restTemplate, headers e entity repetidos, criando funções auxiliares para isso
 @Service
 class GithubCommunicationService(
     private val restTemplate: RestTemplate,
-    private val requestFactory: GitRequestFactory,
+    private val requestFactory: GitProviderRequestFactory,
 ): IGitProviderService {
-    override val provider = OAuthAccountProvider.GITHUB
+    override val provider = OAuthProvider.GITHUB
 
     fun getPrimaryEmailOrNull(accessToken: String): String? {
         return try {
