@@ -1,7 +1,7 @@
 package pt.isel.service.analysis
 
 import org.springframework.stereotype.Service
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.service.error.ServiceError
 import pt.isel.service.account.LinkedAccountService

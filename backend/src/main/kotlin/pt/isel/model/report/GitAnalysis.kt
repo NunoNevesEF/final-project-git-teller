@@ -1,7 +1,9 @@
-package pt.isel.domain.report
+package pt.isel.model.report
 
 import org.eclipse.jgit.revwalk.RevCommit
 import pt.isel.domain.DateInterval
+import pt.isel.domain.report.GitCommunication
+import pt.isel.domain.report.SearchInfo
 import java.time.Instant
 
 //TODO: DOCUMENT

@@ -7,7 +7,7 @@ import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.LoadState
 import com.microsoft.playwright.options.Media
 import org.springframework.stereotype.Service
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 
 /**
  *  `ReportPDFGenerationService`

@@ -1,4 +1,4 @@
-package pt.isel.domain.report
+package pt.isel.model.report
 
 //TODO: DOCUMENT
 

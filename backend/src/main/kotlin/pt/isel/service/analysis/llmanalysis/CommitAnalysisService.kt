@@ -1,4 +1,4 @@
-package pt.isel.service.analysis.llmanalysis
+package pt.isel.service.llmanalysis
 
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
@@ -19,8 +19,12 @@ import pt.isel.domain.report.GitCommunication
 import pt.isel.model.AnalysisMode
 import pt.isel.model.CommitFileSummary
 import pt.isel.model.PromptComplexityLevel
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.service.analysis.OpenRouterLlmService
+import pt.isel.service.analysis.llmanalysis.CommitContextBuilderService
+import pt.isel.service.analysis.llmanalysis.CommitFetcherService
+import pt.isel.service.analysis.llmanalysis.CommitFileFilteringService
+import pt.isel.service.analysis.llmanalysis.FileCandidate
 import pt.isel.service.analysis.llmanalysis.prompt.PromptBuilderService
 import pt.isel.service.analysis.llmanalysis.util.AnalysisLimits
 import pt.isel.service.analysis.llmanalysis.util.DiffExtractionService
@@ -43,18 +47,15 @@ class CommitAnalysisService(
 
 
 
-    fun analyzeCommit(request: CommitAnalysisRequest): CommitAnalysisResponse {
-        val limits = AnalysisLimits.Companion.fromSingle(request)
+    fun analyzeCommit(request: CommitAnalysisRequest, gitComm: GitCommunication): CommitAnalysisResponse {
+        val limits = AnalysisLimits.fromSingle(request)
         val complexity = EnumParser.parseComplexityLevel(request.promptComplexity)
         val mode = EnumParser.parseAnalysisMode(request.analysisMode)
-        val gitComm = GitCommunication.openExisting(request.repoURI)
         val repo = gitComm.git.repository
-        val maxFiles = commitFileFilteringService.adaptiveMaxFiles(commitCount = 1, mode = mode)  // <--
-
-        logger.info("=== STARTING SINGLE COMMIT ANALYSIS === Commit: ${request.commitSha} | Mode: $mode | Complexity: $complexity | MaxFiles: $maxFiles")
+        val maxFiles = commitFileFilteringService.adaptiveMaxFiles(commitCount = 1, mode = mode)
 
         val (commit, parent) = commitFetcherService.readCommitAndParent(repo, request.commitSha)
-        val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(gitComm, repo, commit, parent, limits, maxFiles)  // <--
+        val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(gitComm, repo, commit, parent, limits, maxFiles, request.requestedAnalyses)
 
         val (context, prompt) = when (mode) {
             AnalysisMode.DIFF -> {
@@ -75,31 +76,28 @@ class CommitAnalysisService(
             }
         }
 
-        logger.info("Prompt length ($mode): ${prompt.length} chars")
         return CommitAnalysisResponse(context, llmService.askText(prompt))
     }
 
-    fun analyzeCommitsByShas(request: CommitShasAnalysisRequest, repoURI: String): BatchCommitAnalysisResponse {
+    fun analyzeCommitsByShas(request: CommitShasAnalysisRequest, gitComm: GitCommunication): BatchCommitAnalysisResponse {
         require(request.commitShas.isNotEmpty()) { "Commit SHAs list cannot be empty." }
-        val gitComm = GitCommunication.openExisting(repoURI)
 
         val missing = gitComm.getMissingCommitShas(request.commitShas)
         if (missing.isNotEmpty())
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Commits not found: ${missing.joinToString(", ")}")
 
         return runBatchAnalysis(
-            repoURI = repoURI,
+            repoURI = gitComm.repoURI,
             gitComm = gitComm,
             commits = commitFetcherService.getCommitsByShas(gitComm, request.commitShas),
-            limits = AnalysisLimits.Companion.fromBatch( request.maxCharsPerFile),
+            limits = AnalysisLimits.fromBatch( request.maxCharsPerFile),
             complexity = EnumParser.parseComplexityLevel(request.promptComplexity),
             mode = EnumParser.parseAnalysisMode(request.analysisMode),
             requestedAnalyses = request.requestedAnalyses
         )
     }
 
-    fun analyzeCommitsDetailedSettings(request: CommitDetailedSettingsAnalysisRequest, repoURI: String, dateFilter: DateInterval?): BatchCommitAnalysisResponse {
-        val gitComm = GitCommunication.openExisting(repoURI)
+    fun analyzeCommitsDetailedSettings(request: CommitDetailedSettingsAnalysisRequest, gitComm: GitCommunication, dateFilter: DateInterval?): BatchCommitAnalysisResponse {
         val commits = commitFetcherService.getCommitsBetweenDatesOrAll(gitComm,
             dateFilter, request.maxCommits)
 
@@ -107,10 +105,10 @@ class CommitAnalysisService(
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "No commits found between ${dateFilter?.beginDate} and ${dateFilter?.endDate}.")
 
         return runBatchAnalysis(
-            repoURI = repoURI,
+            repoURI = gitComm.repoURI,
             gitComm = gitComm,
             commits = commits,
-            limits = AnalysisLimits.Companion.fromBatch(request.maxCharsPerFile),
+            limits = AnalysisLimits.fromBatch(request.maxCharsPerFile),
             complexity = EnumParser.parseComplexityLevel(request.promptComplexity),
             mode = EnumParser.parseAnalysisMode(request.analysisMode),
             requestedAnalyses = request.requestedAnalyses,
@@ -135,25 +133,20 @@ class CommitAnalysisService(
         val repo = gitComm.git.repository
         val maxFilesPerCommit = commitFileFilteringService.adaptiveMaxFiles(commitCount = commits.size, mode = mode)
 
-        logger.info("=== STARTING BATCH ANALYSIS === Commits: ${commits.size} | Mode: $mode | MaxFiles: $maxFilesPerCommit | Complexity: $complexity")
-
         val contexts = mutableListOf<CommitAnalysisContext>()
 
-        commits.forEachIndexed { idx, commit ->
+        commits.forEach { commit ->
             val parent = commitFetcherService.resolveParent(repo, commit)
-            logger.info("--- Building context ${idx + 1}/${commits.size}: ${commit.id.name.take(8)} | ${commit.shortMessage} ---")
 
-            val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(gitComm, repo, commit, parent, limits, maxFilesPerCommit)
+            val (selectedFiles, _) = commitFileFilteringService.filterAndRankFiles(gitComm, repo, commit, parent, limits, maxFilesPerCommit, requestedAnalyses)
 
             val context = when (mode) {
                 AnalysisMode.DIFF -> {
                     val files = selectedFiles.toDiffDtos(repo, limits)
-                    logger.info("Selected files (DIFF): ${files.size}")
                     commitContextBuilderService.buildCommitContext(repoURI, commit, parent, files)
                 }
                 AnalysisMode.META -> {
                     val summaries = selectedFiles.toSummaries()
-                    logger.info("Selected files (META): ${summaries.size}")
                     commitContextBuilderService.buildCommitContext(repoURI, commit, parent, summaries.toMetaDtos())
                 }
             }
@@ -175,8 +168,6 @@ class CommitAnalysisService(
         logger.info("=== BATCH ANALYSIS FINISHED ===")
         return BatchCommitAnalysisResponse(batchContext, result)
     }
-
-    // --- Helpers ---
 
     private fun RevCommit.toTimestamp(): String =
         Instant.ofEpochSecond(commitTime.toLong()).toString()
@@ -205,9 +196,7 @@ class CommitAnalysisService(
 
     fun analyzeGitOverview(gitAnalysis: GitAnalysis): BatchCommitAnalysisResponse {
         val prompt = buildOverviewPrompt(gitAnalysis)
-        logger.info("=== STARTING OVERVIEW ANALYSIS === Prompt length: ${prompt.length} chars")
         val result = llmService.askText(prompt)
-        logger.info("=== OVERVIEW ANALYSIS FINISHED ===")
         val totalCommits = gitAnalysis.commitsByUser.values.sumOf { it.size }
         val totalInsertions = gitAnalysis.commitsByUser.values.flatten().sumOf { it.additions }
         val totalDeletions = gitAnalysis.commitsByUser.values.flatten().sumOf { it.deletions }

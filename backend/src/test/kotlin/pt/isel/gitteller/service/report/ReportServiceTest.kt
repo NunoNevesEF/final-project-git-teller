@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.entity.account.User
 import pt.isel.entity.report.Report
 import pt.isel.repository.interfaces.report.IReportRepository

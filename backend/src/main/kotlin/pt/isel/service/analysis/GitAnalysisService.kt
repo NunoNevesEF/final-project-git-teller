@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service
 import pt.isel.domain.DateInterval
 import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.domain.report.GitCommunication
-import pt.isel.domain.report.GitAnalysis
-import pt.isel.domain.report.InvalidFiltersException
+import pt.isel.model.report.GitAnalysis
+import pt.isel.model.report.InvalidFiltersException
 import pt.isel.service.error.CouldNotDetermineAuthentication
 import pt.isel.service.error.GitAnalysisServiceError
 import pt.isel.service.error.GitConnectionTimeout
@@ -17,7 +17,7 @@ import pt.isel.service.error.InvalidFilter
 import pt.isel.service.error.InvalidRepoUri
 import pt.isel.service.error.RepoNotFoundOrPrivate
 import pt.isel.service.error.UnknownGitAnalysisError
-import pt.isel.service.analysis.llmanalysis.CommitAnalysisService
+import pt.isel.service.llmanalysis.CommitAnalysisService
 import pt.isel.utils.Either
 import pt.isel.utils.failure
 import pt.isel.utils.success
@@ -34,38 +34,38 @@ import pt.isel.utils.success
 @Service
 class GitAnalysisService(private val llmAnalysisService: CommitAnalysisService) {
 
-    fun analyze(request: GitAnalysisRequest, token: String?): Either<GitAnalysisServiceError, GitAnalysis> {
+    fun analyze(
+        request: GitAnalysisRequest,
+        token: String?,
+    ): Either<GitAnalysisServiceError, GitAnalysis> {
         return try {
-            val git = buildGitAnalysis(request.repoURI, token, request.dateFilter)
-            val enriched = enrichWithLLM(git, request)
-            success(enriched)
+            val git = GitCommunication.create(request.repoURI, token)
+            try {
+                val gitAnalysis = GitAnalysis.create(git, request.dateFilter)
+                val enriched = enrichWithLLM(git, gitAnalysis, request)
+                success(enriched)
+            } finally {
+                git.delete()
+            }
         } catch (e: Exception) {
             handleGitException(e)
         }
     }
 
-    fun buildGitAnalysis(repoURI: String, token: String?, dateInterval: DateInterval?): GitAnalysis {
-        val gitComm = GitCommunication.create(repoURI, token)
-        return GitAnalysis.create(gitComm, dateInterval)
-    }
-
-    fun enrichWithLLM(gitAnalysis: GitAnalysis, gitAnalysisRequest: GitAnalysisRequest): GitAnalysis {
+    fun enrichWithLLM(git: GitCommunication, gitAnalysis: GitAnalysis, gitAnalysisRequest: GitAnalysisRequest): GitAnalysis {
         if (gitAnalysisRequest.llmRequest == null) return gitAnalysis
         val request = gitAnalysisRequest.llmRequest
 
         val llm = when {
-            request.byShas != null -> llmAnalysisService.analyzeCommitsByShas(
-                request.byShas,
-                gitAnalysisRequest.repoURI
-            )
+            request.byShas != null ->
+                llmAnalysisService.analyzeCommitsByShas(request.byShas, git)
 
             request.byDetailedSettings != null -> {
-                llmAnalysisService.analyzeCommitsDetailedSettings(
-                    request.byDetailedSettings, gitAnalysisRequest.repoURI, gitAnalysisRequest.dateFilter
-                )
+                llmAnalysisService.analyzeCommitsDetailedSettings(request.byDetailedSettings, git, gitAnalysisRequest.dateFilter)
             }
 
-            else -> llmAnalysisService.analyzeGitOverview(gitAnalysis)
+            else ->
+                llmAnalysisService.analyzeGitOverview(gitAnalysis)
         }
 
         return gitAnalysis.copy(llmAnalysis = llm.llmAnalysis)

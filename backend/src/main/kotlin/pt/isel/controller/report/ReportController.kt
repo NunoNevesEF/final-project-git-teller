@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import pt.isel.entity.account.User
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.controller.report.dto.ReportListItemDTO
 import pt.isel.infraestructure.security.principal.UserPrincipal
 import pt.isel.service.error.toHttpStatus

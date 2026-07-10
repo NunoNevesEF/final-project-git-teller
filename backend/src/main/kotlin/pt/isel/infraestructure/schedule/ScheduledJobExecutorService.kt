@@ -6,11 +6,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.stereotype.Service
 import pt.isel.domain.report.GitAnalysisRequest
 import pt.isel.domain.DateInterval
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.domain.report.schedule.FailedJob
 import pt.isel.domain.report.schedule.PendingJob
 import pt.isel.domain.report.schedule.RunningJob
-import pt.isel.domain.report.schedule.SuccessfulJob
 import pt.isel.service.report.ScheduledReportService
 import pt.isel.service.account.LinkedAccountService
 import pt.isel.infraestructure.schedule.model.FailureDoNotRetry
@@ -18,13 +17,11 @@ import pt.isel.infraestructure.schedule.model.FailureDoRetry
 import pt.isel.infraestructure.schedule.model.ScheduledReportResult
 import pt.isel.infraestructure.schedule.model.toScheduledReportResult
 import pt.isel.service.analysis.GitAnalysisService
-import pt.isel.service.analysis.llmanalysis.CommitAnalysisService
 import pt.isel.service.error.LinkedAccountServiceError
 import pt.isel.service.report.ReportOrchestrator
 import pt.isel.utils.Either
 import pt.isel.utils.Failure
 import pt.isel.utils.Success
-import pt.isel.utils.failure
 import pt.isel.utils.map
 import pt.isel.utils.onFailure
 import pt.isel.utils.rightOrNull

@@ -7,8 +7,8 @@ import pt.isel.domain.report.SearchInfo
 import pt.isel.entity.account.User
 import pt.isel.entity.report.Report
 import pt.isel.gitteller.repository.interfaces.RepoTest
-import pt.isel.domain.report.CommitAnalysis
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.CommitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.repository.interfaces.account.IUserRepository
 import pt.isel.repository.interfaces.report.IReportRepository
 import java.time.Duration

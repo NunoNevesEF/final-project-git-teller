@@ -3,7 +3,7 @@ package pt.isel.service.report
 import org.springframework.stereotype.Service
 import pt.isel.entity.account.User
 import pt.isel.entity.report.Report
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.repository.interfaces.report.IReportRepository
 import pt.isel.service.error.ReportNotFound
 import pt.isel.service.error.ReportPDFNotFound

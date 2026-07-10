@@ -10,7 +10,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.entity.account.User
 import pt.isel.service.account.UserService
 import pt.isel.service.error.UserNotFound

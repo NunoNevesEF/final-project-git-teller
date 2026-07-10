@@ -2,11 +2,10 @@ package pt.isel.gitteller.controller.dto
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.Mockito.mock
 import org.mockito.junit.jupiter.MockitoExtension
 import pt.isel.controller.report.dto.ReportListItemDTO
-import pt.isel.domain.report.CommitAnalysis
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.CommitAnalysis
+import pt.isel.model.report.GitAnalysis
 import pt.isel.domain.report.SearchInfo
 import pt.isel.entity.account.User
 import pt.isel.entity.report.Report

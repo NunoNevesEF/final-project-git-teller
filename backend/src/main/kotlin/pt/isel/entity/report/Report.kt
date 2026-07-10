@@ -13,7 +13,7 @@ import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import pt.isel.entity.IsEntity
 import pt.isel.entity.account.User
-import pt.isel.domain.report.GitAnalysis
+import pt.isel.model.report.GitAnalysis
 import java.time.Instant
 
 /**
