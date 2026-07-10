@@ -2,11 +2,13 @@ package pt.isel.model.report
 
 import org.eclipse.jgit.revwalk.RevCommit
 import pt.isel.domain.DateInterval
-import pt.isel.domain.report.SearchInfo
 import pt.isel.domain.report.GitCommunication
-import pt.isel.service.report.GitAnalysisService
+import pt.isel.domain.report.SearchInfo
 import java.time.Instant
 
+//TODO: DOCUMENT
+
+class InvalidFiltersException : RuntimeException()
 
 data class GitAnalysis(
     val searchInfo : SearchInfo,
@@ -28,7 +30,7 @@ data class GitAnalysis(
             val commits = gitCommunication.getCommits(dateInterval)
 
             if (commits.isEmpty()) {
-                throw GitAnalysisService.InvalidFiltersException()
+                throw InvalidFiltersException()
             }
 
             val (first, last) = commits.first() to commits.last()

@@ -1,24 +1,28 @@
 package pt.isel.gitteller.entity.schedule
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
-import pt.isel.domain.schedule.OneTimeScheduledReport
-import pt.isel.domain.schedule.PeriodicScheduledReport
-import pt.isel.domain.schedule.ScheduledReport
-import pt.isel.entity.User
-import pt.isel.entity.schedule.OneTimeScheduledReportEntity
-import pt.isel.entity.schedule.PeriodicScheduledReportEntity
-import pt.isel.entity.schedule.ScheduledReportEntity
-import pt.isel.entity.schedule.ScheduledReportJobEntity
+import pt.isel.domain.report.schedule.OneTimeScheduledReport
+import pt.isel.domain.report.schedule.PeriodicScheduledReport
+import pt.isel.domain.report.schedule.ScheduledReport
+import pt.isel.entity.account.User
+import pt.isel.entity.report.schedule.JobStateEmbeddable
+import pt.isel.entity.report.schedule.OneTimeScheduledReportEntity
+import pt.isel.entity.report.schedule.PeriodicScheduledReportEntity
+import pt.isel.entity.report.schedule.ScheduledReportEntity
+import pt.isel.entity.report.schedule.ScheduledReportJobEntity
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertSame
+import kotlin.test.assertIs
 
-/*abstract class ScheduledReportEntityTest<DOMAIN : ScheduledReport<DOMAIN, ENTITY>, ENTITY : ScheduledReportEntity<ENTITY, DOMAIN>> {
+abstract class ScheduledReportEntityTest<
+        ENTITY : ScheduledReportEntity
+> {
     val now = Instant.now()
 
     val validId = 0
@@ -42,14 +46,25 @@ import kotlin.test.assertSame
         validId,
         scheduledReport.dataFrom,
         scheduledReport.nextRunAt!!,
-        state = PendingJobEntity(scheduledReport.nextRunAt!!)
+        scheduledReport.nextRunAt!!,
+        state = JobStateEmbeddable.pending(scheduledReport.nextRunAt!!)
     )
 
-    abstract fun assertToDomain(original: ENTITY, result: DOMAIN)
+    abstract fun assertToDomain(original: ENTITY, result: ScheduledReport)
 
     abstract fun activate(original: ENTITY): ENTITY
 
     abstract fun deactivate(original: ENTITY): ENTITY
+
+
+    @Test
+    fun `method toDomain maps correctly`() {
+        val entity = createScheduledReportEntity()
+
+        val domain = entity.toDomain()
+
+        assertToDomain(entity, domain)
+    }
 
     @Test
     fun `method addJob properly adds job and implements relation`() {
@@ -68,11 +83,11 @@ import kotlin.test.assertSame
         val job = createJob(scheduledReport)
 
         val expectedRetryCount = job.retryCount + 1
-        val expectedState = RunningJobEntity(job.scheduledFor)
+        val expectedState = JobStateEmbeddable.running(job.scheduledFor)
 
         scheduledReport.addJob(job)
 
-        val updatedJob = scheduledReport.replaceJob(job.id) {
+        val updatedJob = scheduledReport.updateJob(job.id) {
             it.retryCount++
             it.state = expectedState
             it
@@ -87,7 +102,7 @@ import kotlin.test.assertSame
     @Test
     fun `method updateJob returns null if job id not found`() {
         val report = createScheduledReportEntity()
-        val result = report.replaceJob(Integer.MAX_VALUE) { it }
+        val result = report.updateJob(Integer.MAX_VALUE) { it }
         assertNull(result)
     }
 
@@ -138,17 +153,57 @@ import kotlin.test.assertSame
     }
 
     @Test
-    fun `method cancel updates entity with isCancelled as true and errorMsg`(){
+    fun `method isDue returns false if cancelled`() {
         val report = createScheduledReportEntity()
-        val expectedError = "some error"
-        report.cancel(expectedError)
-        assertEquals(expectedError, report.cancellationReason)
-        assertEquals(true, report.isCancelled)
+
+        report.isCancelled = true
+
+        val result = report.isDue(report.nextRunAt!!.plusSeconds(1))
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `getLlmConfig rebuilds wrapper`() {
+        val report = createScheduledReportEntity()
+
+        report.llmComplexity = "HIGH"
+        report.llmMode = "FULL"
+        report.llmAnalyses = "SECURITY,STYLE"
+
+        val cfg = report.getLlmConfig()
+
+        assertNotNull(cfg)
+        assertEquals("HIGH", cfg!!.byDetailedSettings!!.promptComplexity)
+        assertEquals("FULL", cfg.byDetailedSettings.analysisMode)
+        assertEquals(
+            listOf("SECURITY", "STYLE"),
+            cfg.byDetailedSettings.requestedAnalyses
+        )
+    }
+
+    @Test
+    fun `toDomain maps llm configuration`() {
+        val entity = createScheduledReportEntity()
+
+        entity.llmComplexity = "HIGH"
+        entity.llmMode = "DIFF"
+        entity.llmAnalyses = "DEFAULT,SECURITY"
+
+        val domain = entity.toDomain()
+
+        val cfg = domain.llmConfig!!
+
+        assertEquals("HIGH", cfg.byDetailedSettings!!.promptComplexity)
+        assertEquals("DIFF", cfg.byDetailedSettings.analysisMode)
+        assertEquals(
+            listOf("DEFAULT", "SECURITY"),
+            cfg.byDetailedSettings.requestedAnalyses
+        )
     }
 }
 
-class OneTimeScheduledReportEntityTest :
-    ScheduledReportEntityTest<OneTimeScheduledReport, OneTimeScheduledReportEntity>() {
+class OneTimeScheduledReportEntityTest : ScheduledReportEntityTest<OneTimeScheduledReportEntity>() {
     override fun createScheduledReportEntity(
         id: Int, repoUri: String, nextRunAt: Instant, lastRunAt: Instant?, dataFrom: Instant, user: User
     ): OneTimeScheduledReportEntity {
@@ -158,13 +213,16 @@ class OneTimeScheduledReportEntityTest :
     }
 
     override fun assertToDomain(
-        original: OneTimeScheduledReportEntity, result: OneTimeScheduledReport
+        original: OneTimeScheduledReportEntity, result: ScheduledReport
     ) {
+        assertIs<OneTimeScheduledReport>(result)
         assertEquals(original.user.id, result.userId)
         assertEquals(original.repoUri, result.repoUri)
         assertEquals(original.nextRunAt, result.nextRunAt)
         assertEquals(original.lastRunAt, result.lastRunAt)
         assertEquals(original.dataFrom, result.dataFrom)
+        assertEquals(original.isCancelled, result.isCancelled)
+        assertEquals(original.cancellationReason, result.cancellationReason)
     }
 
     override fun activate(original: OneTimeScheduledReportEntity): OneTimeScheduledReportEntity {
@@ -179,8 +237,7 @@ class OneTimeScheduledReportEntityTest :
 
 }
 
-class PeriodicScheduledReportEntityTest :
-    ScheduledReportEntityTest<PeriodicScheduledReport, PeriodicScheduledReportEntity>() {
+class PeriodicScheduledReportEntityTest : ScheduledReportEntityTest<PeriodicScheduledReportEntity>() {
     val validMinute = 0;
     val validHour = 0
     val validMonth = 1;
@@ -193,15 +250,17 @@ class PeriodicScheduledReportEntityTest :
         id: Int, repoUri: String, nextRunAt: Instant, lastRunAt: Instant?, dataFrom: Instant, user: User
     ): PeriodicScheduledReportEntity {
         val scheduledReport = PeriodicScheduledReportEntity(
-            id, repoUri, nextRunAt, lastRunAt, dataFrom, true, validTimezone, validCronExpression
+            id, repoUri, nextRunAt, lastRunAt, dataFrom, false, validTimezone,
+            true, validTimezone, validCronExpression
         )
         scheduledReport.user = user
         return scheduledReport
     }
 
     override fun assertToDomain(
-        original: PeriodicScheduledReportEntity, result: PeriodicScheduledReport
+        original: PeriodicScheduledReportEntity, result: ScheduledReport
     ) {
+        assertIs<PeriodicScheduledReport>(result)
         assertEquals(original.user.id, result.userId)
         assertEquals(original.repoUri, result.repoUri)
         assertEquals(original.nextRunAt, result.nextRunAt)
@@ -221,4 +280,4 @@ class PeriodicScheduledReportEntityTest :
         original.active = false
         return original
     }
-}*/
+}

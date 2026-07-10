@@ -3,13 +3,15 @@ package pt.isel.model.scheduledReport
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import pt.isel.domain.report.AnalysisRequestWrapper
-import pt.isel.domain.schedule.OneTimeScheduledReport
-import pt.isel.domain.schedule.PeriodicScheduledReport
-import pt.isel.domain.schedule.ScheduledReport
+import pt.isel.domain.report.schedule.OneTimeScheduledReport
+import pt.isel.domain.report.schedule.PeriodicScheduledReport
+import pt.isel.domain.report.schedule.ScheduledReport
 import pt.isel.utils.CronInput
 import pt.isel.utils.FrequencyMode
 import java.time.Instant
 import java.time.LocalTime
+
+//TODO: DOCUMENT
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,

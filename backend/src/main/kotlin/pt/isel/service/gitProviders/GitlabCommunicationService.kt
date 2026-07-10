@@ -6,8 +6,8 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
-import pt.isel.domain.account.OAuthAccountProvider
-import pt.isel.infraestructure.config.git.GitRequestFactory
+import pt.isel.domain.account.OAuthProvider
+import pt.isel.infraestructure.providerGit.GitProviderRequestFactory
 import pt.isel.model.git.GitLabProjectDTO
 import pt.isel.model.git.GitLabProjectLanguagesDTO
 import pt.isel.model.git.GitProviderServiceError
@@ -15,12 +15,14 @@ import pt.isel.model.git.UserRepositoriesDTO
 import pt.isel.model.git.mainLanguage
 import pt.isel.utils.Either
 
+//TODO: DOCUMENT
+
 @Service
 class GitlabCommunicationService(
-    private val requestFactory: GitRequestFactory,
+    private val requestFactory: GitProviderRequestFactory,
     private val restTemplate: RestTemplate,
 ): IGitProviderService {
-    override val provider = OAuthAccountProvider.GITLAB
+    override val provider = OAuthProvider.GITLAB
 
     override fun getAuthenticatedUserRepositories(
         accessToken: String,

@@ -4,8 +4,8 @@ import { GitAnalysis } from "@/models/GitAnalysis";
 
 const SERVICE_PATH = "/api/private/report";
 
-export async function createReport(dto: CreateUserReportDTO): Promise<number> {
-  return (await apiClient.post<number>(`${SERVICE_PATH}/create`, dto)).data;
+export async function createReport(gitAnalysis: GitAnalysis): Promise<number> {
+  return (await apiClient.post<number>(`${SERVICE_PATH}/create`, gitAnalysis)).data;
 }
 
 export async function getUserReports(): Promise<UserReportDTO[]>{

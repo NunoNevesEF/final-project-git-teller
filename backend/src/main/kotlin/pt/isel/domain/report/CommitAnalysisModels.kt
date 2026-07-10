@@ -1,5 +1,7 @@
 package pt.isel.domain.report
 
+//TODO: DOCUMENT
+
 import java.time.Instant
 
 data class CommitFileChangeDto(

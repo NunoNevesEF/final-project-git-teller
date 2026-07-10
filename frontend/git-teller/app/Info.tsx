@@ -77,9 +77,7 @@ export default function Info() {
       try{
           setLoadingFile(true);
 
-          const dto: CreateUserReportDTO = { gitAnalysis: result, repoUri: projectName };
-
-          const id = await createReport(dto);
+          const id = await createReport(result);
 
           setReportId(id);
       } catch(err){
