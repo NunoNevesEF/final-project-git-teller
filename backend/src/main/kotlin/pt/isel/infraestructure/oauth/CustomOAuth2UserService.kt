@@ -7,18 +7,20 @@ import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
-import pt.isel.infraestructure.principal.UserPrincipal
-import pt.isel.service.ServiceError
-import pt.isel.service.account.AccountService
-import pt.isel.service.account.AccountTypeMaxedError
-import pt.isel.service.account.EmailAlreadyExists
-import pt.isel.service.auth.JwtService
+import pt.isel.infraestructure.security.principal.UserPrincipal
+import pt.isel.service.error.ServiceError
+import pt.isel.service.account.AccountOrchestrator
+import pt.isel.service.error.LinkedAccountTypeMaxed
+import pt.isel.service.error.EmailAlreadyExists
+import pt.isel.infraestructure.security.jwt.JwtService
 import pt.isel.utils.getOrThrow
 import pt.isel.service.gitProviders.GithubCommunicationService
 
+//TODO: DOCUMENT
+
 @Service
 class CustomOAuth2UserService(
-    private val accountService: AccountService,
+    private val accountService: AccountOrchestrator,
     private val githubCommunicationService: GithubCommunicationService,
     private val jwtService: JwtService,
 ) : DefaultOAuth2UserService() {
@@ -34,7 +36,7 @@ class CustomOAuth2UserService(
 
         if(state != null && jwtService.isValidLinkState(state, registrationId)) {
             val payload = jwtService.parseLinkState(state)
-            val user = accountService.oAuthAccountLink(payload.userId, registrationId, oAuth2id)
+            val user = accountService.oAuthLink(payload.userId, registrationId, oAuth2id)
                 .getOrThrow(::mapToOAuthException)
 
             return UserPrincipal(user.user, oAuth2Id = oAuth2id, attributes = oAuth2User.attributes) //temp
@@ -87,7 +89,7 @@ class CustomOAuth2UserService(
 
     private fun mapToOAuthException(error: ServiceError): OAuth2AuthenticationException =
         when (error) {
-            is AccountTypeMaxedError ->
+            is LinkedAccountTypeMaxed ->
                 OAuth2AuthenticationException("Account already linked for this provider")
 
             is EmailAlreadyExists ->

@@ -8,7 +8,6 @@ import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.treewalk.AbstractTreeIterator
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
-import pt.isel.model.report.ModifiedFiles
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
@@ -16,6 +15,9 @@ import java.util.UUID
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import pt.isel.domain.DateInterval
+import pt.isel.model.report.ModifiedFiles
+
+//TODO: DOCUMENT
 
 data class GitCommunication(val git: Git, val repoURI: String, val localPath: File) {
     val branches by lazy { getAllBranches() }
@@ -192,12 +194,12 @@ data class GitCommunication(val git: Git, val repoURI: String, val localPath: Fi
         }
 
         return fileStats.entries.sortedByDescending { it.value.first }.take(10).map { (path, data) ->
-                ModifiedFiles(
-                    path = path,
-                    changes = data.first,
-                    lastModified = data.second,
-                    extension = path.substringAfterLast('.', "")
-                )
+            ModifiedFiles(
+                path = path,
+                changes = data.first,
+                lastModified = data.second,
+                extension = path.substringAfterLast('.', "")
+            )
             }
     }
 

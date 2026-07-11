@@ -2,6 +2,8 @@ package pt.isel.model.git
 
 import java.time.Instant
 
+//TODO: DOCUMENT
+
 data class UserRepositoriesDTO(
     val lastPage: Int?,
     val repositories: List<RepositorySummary>

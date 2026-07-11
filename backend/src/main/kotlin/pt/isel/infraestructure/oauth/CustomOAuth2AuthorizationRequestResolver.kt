@@ -6,7 +6,9 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest
 import org.springframework.stereotype.Component
-import pt.isel.service.auth.JwtService
+import pt.isel.infraestructure.security.jwt.JwtService
+
+//TODO: DOCUMENT
 
 @Component
 class CustomOAuth2AuthorizationRequestResolver(
