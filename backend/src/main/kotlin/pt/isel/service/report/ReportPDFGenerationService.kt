@@ -6,11 +6,15 @@ import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.LoadState
 import com.microsoft.playwright.options.Media
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pt.isel.model.report.GitAnalysis
 
 @Service
-class ReportPDFGenerationService {
+class ReportPDFGenerationService(
+    @Value("\${report.frontend-url}")
+    private val reportFrontendUrl: String
+) {
 
     private val objectMapper: ObjectMapper = ObjectMapper()
         .registerModule(JavaTimeModule())
@@ -33,7 +37,7 @@ class ReportPDFGenerationService {
 
             page.emulateMedia(Page.EmulateMediaOptions().setMedia(Media.PRINT))
             page.addInitScript("window.__GIT_ANALYSIS__ = $json")
-            page.navigate("https://frontend-production-fc0c.up.railway.app/Info")
+            page.navigate("$reportFrontendUrl/Info")
 
             page.setViewportSize(1920, 1080)
 
