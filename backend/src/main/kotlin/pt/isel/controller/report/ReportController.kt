@@ -28,7 +28,7 @@ import pt.isel.entity.report.Report
  *
  * Exposes report related presentation-layer endpoints of the application.
  * */
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/private/report")
 class ReportController(

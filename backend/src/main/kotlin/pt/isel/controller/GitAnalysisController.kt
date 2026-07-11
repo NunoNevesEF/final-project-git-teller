@@ -21,7 +21,7 @@ import pt.isel.utils.Success
  *
  * Exposes analysis related presentation-layer endpoints of the application that do not require authorization.
  * */
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/gitCommunication")
 class PublicGitAnalysisController(
