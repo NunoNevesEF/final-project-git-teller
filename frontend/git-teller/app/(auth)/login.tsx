@@ -6,7 +6,7 @@ import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
 import AuthMenuButton from "@/components/login/AuthMenuButton";
 
-const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://git-teller-api.up.railway.app";
+const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "https://git-teller-api.up.railway.app";
 const LOGIN_PATH = "/api/public/auth/login";
 const API_BASE = DEFAULT_API_BASE;
 
