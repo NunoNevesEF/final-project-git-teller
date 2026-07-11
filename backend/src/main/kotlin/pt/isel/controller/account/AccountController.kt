@@ -18,12 +18,13 @@ import pt.isel.service.account.model.toHttpStatus
 import pt.isel.infraestructure.security.jwt.JwtService
 import pt.isel.infraestructure.oauth.CustomOAuth2UserService
 
+
 /**
  *  `PublicAccountController`
  *
  * Exposes account related presentation-layer endpoints of the application that do not require authorization.
  * */
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/accounts")
 class PublicAccountController(

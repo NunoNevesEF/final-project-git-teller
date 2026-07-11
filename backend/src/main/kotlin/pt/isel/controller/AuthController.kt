@@ -18,7 +18,7 @@ import pt.isel.utils.rightOrNull
  *
  * Exposes authentication related presentation-layer endpoints of the application.
  * */
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/auth")
 class AuthController(private val authService: AuthService) {

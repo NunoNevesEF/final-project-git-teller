@@ -23,7 +23,7 @@ import pt.isel.utils.Success
 
 //TODO: DOCUMENT
 
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/private/schedule")
 class ScheduledReportController(

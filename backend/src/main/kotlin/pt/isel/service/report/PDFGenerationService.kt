@@ -6,6 +6,7 @@ import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.LoadState
 import com.microsoft.playwright.options.Media
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pt.isel.model.report.GitAnalysis
 
@@ -15,8 +16,10 @@ import pt.isel.model.report.GitAnalysis
  * The service layer report-related operations to generate a pdf from the report presentation.
  * */
 @Service
-class PDFGenerationService {
-
+class PDFGenerationService(
+    @Value("\${report.frontend-url}")
+    private val reportFrontendUrl: String
+) {
     private val objectMapper: ObjectMapper = ObjectMapper()
         .registerModule(JavaTimeModule())
         .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
@@ -54,7 +57,7 @@ class PDFGenerationService {
 
             page.emulateMedia(Page.EmulateMediaOptions().setMedia(Media.PRINT))
             page.addInitScript("window.__GIT_ANALYSIS__ = $json")
-            page.navigate("http://localhost:8081/Info")
+            page.navigate("$reportFrontendUrl/Info")
 
             page.setViewportSize(1920, 1080)
 

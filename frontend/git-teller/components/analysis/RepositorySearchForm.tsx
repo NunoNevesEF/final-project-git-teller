@@ -5,9 +5,11 @@ import LlmAnalysisSettings, {
 } from '@/components/analysis/LlmAnalysisSettings';
 import { useCommonStyles } from '@/constants/useCommonStyles';
 import { useState } from 'react';
-import { View, Button, Text, Pressable, ScrollView } from 'react-native';
+import { View, Button, Text, Pressable, ScrollView, Platform } from 'react-native';
 import { useAuth } from '@/store/AuthProvider';
 import { DateRangePicker } from '../utils/DatePicker';
+import QRCode from "react-native-qrcode-svg";
+import { useTheme } from '@/constants/themeProvider';
 
 export type { LlmFilterType, PromptComplexity, AnalysisMode, AnalysisType };
 
@@ -57,6 +59,11 @@ export default function RepositorySearchForm({
                                                  requestedAnalyses, onRequestedAnalysesChange,
                                                  onSubmit,
                                              }: RepositorySearchFormProps) {
+    // ATUALIZAR PARA FAZER DEPLOY DO UMA NOVA BUILD MOBILE
+    const ANDROID_DOWNLOAD_URL =
+        "https://expo.dev/accounts/zetalfa13/projects/git-teller/builds/6b3e4b41-639c-44f2-abcf-ae1e53594fe2";
+
+    const { colors } = useTheme()
     const commonStyles = useCommonStyles();
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
     const { isAuthenticated } = useAuth();
@@ -64,6 +71,30 @@ export default function RepositorySearchForm({
 
     return (
         <ScrollView contentContainerStyle={[commonStyles.screen, commonStyles.centered]}>
+            {Platform.OS === "web" && (
+                <View
+                    style={{
+                        position: "absolute",
+                        top: 20,
+                        right: 20,
+                        alignItems: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <Text style={{ marginBottom: 8, fontSize: 12, color: colors.text }}>
+                        Android App
+                    </Text>
+
+                    <QRCode
+                        value={ANDROID_DOWNLOAD_URL}
+                        size={100}
+                    />
+
+                    <Text style={{ marginTop: 8, fontSize: 11, color: colors.text }}>
+                        Scan to download
+                    </Text>
+                </View>
+            )}
             <Text style={commonStyles.formTitle}>Analyze Repository</Text>
 
             <View style={commonStyles.optionGroup}>

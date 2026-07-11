@@ -25,6 +25,11 @@ export default function AuthMenuButton() {
         router.push('../signup');
     };
 
+    const handleSearch = () => {
+        closeMenu();
+        router.push('/search');
+    };
+
     const handleLogout = async () => {
         closeMenu();
         await signOut();
@@ -96,6 +101,13 @@ export default function AuthMenuButton() {
                             <>
                                 <Pressable
                                     style={commonStyles.primaryButton}
+                                    onPress={handleSearch}
+                                >
+                                    <Text style={commonStyles.primaryButtonText}>Search</Text>
+                                </Pressable>
+
+                                <Pressable
+                                    style={[commonStyles.primaryButton, { marginTop: 10 }]}
                                     onPress={handleLogin}
                                 >
                                     <Text style={commonStyles.primaryButtonText}>Log in</Text>

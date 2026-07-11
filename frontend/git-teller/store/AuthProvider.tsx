@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { clearTokens, clearUsername, getTokens, getUsername, saveTokens, saveUsername } from '@/services/secureStore';
 
 type SignInPayload = {
-    accessToken: string;
+    accessToken?: string;
     refreshToken?: string;
     username?: string;
 };
@@ -45,8 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const signIn = async ({ accessToken, refreshToken, username }: SignInPayload) => {
-        await saveTokens({ accessToken, refreshToken });
-        setAccessToken(accessToken);
+        if (accessToken !== undefined) {
+            await saveTokens({ accessToken, refreshToken });
+            setAccessToken(accessToken);
+        }
 
         if (username) {
             setUsername(username);

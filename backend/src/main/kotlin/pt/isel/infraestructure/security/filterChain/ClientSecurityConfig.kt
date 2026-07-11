@@ -1,5 +1,6 @@
 package pt.isel.infraestructure.security.filterChain
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -18,7 +19,8 @@ import pt.isel.infraestructure.oauth.CustomOAuth2UserService
 class ClientSecurityConfig(
     private val customOAuth2UserService: CustomOAuth2UserService,
     private val customOAuth2AuthenticationSuccessHandler: CustomOAuth2AuthenticationSuccessHandler,
-    private val customOAuth2AuthorizationRequestResolver: CustomOAuth2AuthorizationRequestResolver
+    private val customOAuth2AuthorizationRequestResolver: CustomOAuth2AuthorizationRequestResolver,
+    @Value("\${app.frontend.redirect-url.web}") private val webRedirectUrl: String
 ) {
     private val signUpPage = "/signup"
     private val loginPage = "/login"
@@ -33,7 +35,12 @@ class ClientSecurityConfig(
         http
             .authorizeHttpRequests { authRequest -> authRequest
                     //.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-                    .requestMatchers(*publicPages, publicAPI).permitAll()
+                    .requestMatchers(
+                        *publicPages,
+                        publicAPI,
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
+                    ).permitAll()
                     .requestMatchers(privateAPI).authenticated()
                     .anyRequest().authenticated()
             }
@@ -48,13 +55,13 @@ class ClientSecurityConfig(
                     }
                     .userInfoEndpoint { userInfo -> userInfo.userService(customOAuth2UserService) }
                     .successHandler(customOAuth2AuthenticationSuccessHandler)
-                    .failureUrl("http://localhost:8081/login?oauthError=true")
+                    .failureUrl("$webRedirectUrl?oauthError=true")
             }
             .logout { logout ->
                 logout
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)
-                    .logoutSuccessUrl("http://localhost:8081/login")
+                    .logoutSuccessUrl(webRedirectUrl)
                     .permitAll()
             }
 

@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import OAuthRedirectButton from "@/components/login/OAuthButton";
-import { saveTokens } from "@/services/secureStore";
+import AuthMenuButton from "@/components/login/AuthMenuButton";
 
-const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL || "https://git-teller-api.up.railway.app";
 const LOGIN_PATH = "/api/public/auth/login";
 const API_BASE = DEFAULT_API_BASE;
 
 export default function Login() {
-    const { signIn } = useAuth();
+    const { signIn, loading: authLoading } = useAuth();
 
     const params = useLocalSearchParams<{
         accessToken?: string | string[];
@@ -27,9 +27,11 @@ export default function Login() {
     const oauthHandledRef = useRef(false);
     const commonStyles = useCommonStyles();
 
-    // Handle OAuth redirect login if accessToken is present in URL params
+
     useEffect(() => {
         if (oauthHandledRef.current) return;
+
+        if (authLoading) return;
 
         const firstParam = (value?: string | string[]) =>
             typeof value === "string" ? value : Array.isArray(value) ? value[0] : undefined;
@@ -49,16 +51,12 @@ export default function Login() {
                 setErrorMessage(null);
 
                 if (needsUsername) {
-                    await saveTokens({ accessToken, refreshToken });
-                    router.replace({
-                        pathname: "./username",
-                        params: { accessToken, refreshToken },
-                    });
+                    await signIn({ accessToken, refreshToken });
+                    router.replace("./username");
                     return;
                 }
 
                 await signIn({ accessToken, refreshToken, username: username || "User" });
-                router.replace("../home");
             } catch (err: any) {
                 oauthHandledRef.current = false;
                 setErrorMessage(err?.message || "Unable to complete Google login.");
@@ -68,7 +66,7 @@ export default function Login() {
         };
 
         finalizeOAuthLogin();
-    }, [params.accessToken, params.refreshToken, params.needsUsername, params.username, signIn]);
+    }, [params.accessToken, params.refreshToken, params.needsUsername, params.username, signIn, authLoading]);
 
     const handleLogin = async () => {
         setLoading(true);
@@ -112,7 +110,6 @@ export default function Login() {
             }
 
             await signIn({ accessToken, refreshToken, username });
-            router.replace("../home");
         } catch (err: any) {
             const message = err?.message || "Unable to login. Please try again.";
             setErrorMessage(message);
@@ -124,11 +121,9 @@ export default function Login() {
 
     return (
         <View style={[commonStyles.screen, commonStyles.centered]}>
-            <Link href="../signup" asChild>
-                <Pressable style={commonStyles.topLeftActionButton}>
-                    <Text style={commonStyles.topLeftActionButtonText}>Sign Up</Text>
-                </Pressable>
-            </Link>
+
+            <AuthMenuButton />
+
 
             <Text style={commonStyles.authTitle}>Log in</Text>
 

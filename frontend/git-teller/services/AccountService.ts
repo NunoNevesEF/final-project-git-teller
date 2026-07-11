@@ -3,7 +3,7 @@ import apiClient from "@/services/authApiClient";
 import { OAuthLinkedAccountListItemDTO } from "@/models/account/OAuthLinkedAccountListItemDTO";
 
 const DEFAULT_API_BASE =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+  process.env.EXPO_PUBLIC_API_URL || "https://git-teller-api.up.railway.app";
 const SERVICE_PATH = "/api/private/accounts";
 
 export async function linkNewProviderAccount(provider: string): Promise<void> {

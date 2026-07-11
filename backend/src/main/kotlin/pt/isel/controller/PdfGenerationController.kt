@@ -12,12 +12,7 @@ import pt.isel.model.report.GitAnalysis
 import pt.isel.service.report.PDFGenerationService
 import pt.isel.controller.report.ReportController
 
-/**
- *  `PdfGenerationController`
- *
- * Exposes pdf related presentation-layer endpoints of the application.
- * */
-@CrossOrigin(origins = ["http://localhost:8081"])
+@CrossOrigin(origins = ["https://frontend-production-fc0c.up.railway.app"])
 @RestController
 @RequestMapping("/api/public/pdf")
 class PdfGenerationController(

@@ -1,28 +1,22 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { useAuth } from "@/store/AuthProvider";
 import { useCommonStyles } from "@/constants/useCommonStyles";
 import apiClient from "@/services/authApiClient";
 
 export default function Username() {
-    const { signIn } = useAuth();
+    const { signIn, signOut } = useAuth();
     const commonStyles = useCommonStyles();
-
-    const params = useLocalSearchParams<{
-        accessToken?: string | string[];
-        refreshToken?: string | string[];
-    }>();
-
-    const firstParam = (value?: string | string[]) =>
-        typeof value === "string" ? value : Array.isArray(value) ? value[0] : undefined;
-
-    const accessToken = firstParam(params.accessToken);
-    const refreshToken = firstParam(params.refreshToken);
 
     const [username, setUsername] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const handleCancel = async () => {
+        await signOut();
+        router.replace("./login");
+    };
 
     const handleSubmit = async () => {
         if (!username.trim()) {
@@ -38,8 +32,7 @@ export default function Username() {
                 params: { username: username.trim() },
             });
 
-            await signIn({ accessToken: accessToken!, refreshToken, username: username.trim() });
-            router.replace("../home");
+            await signIn({ username: username.trim() });
         } catch (err: any) {
             if (err?.response?.status === 409) {
                 setErrorMessage("That username is taken, choose another.");
@@ -72,6 +65,12 @@ export default function Username() {
                 disabled={loading}
             >
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={commonStyles.oauthButtonText}>Continue</Text>}
+            </Pressable>
+
+            <Pressable onPress={handleCancel} disabled={loading} style={{ marginTop: 16 }}>
+                <Text style={{ color: "#2563eb", fontWeight: "600", textDecorationLine: "underline" }}>
+                    Cancel and log out
+                </Text>
             </Pressable>
         </View>
     );
